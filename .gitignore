@@ -261,3 +261,6 @@ desktop-server/python/
 # Environment files
 *.env
 *.env.*
+
+# Allow committing env templates (not secrets)
+!*.env.example
