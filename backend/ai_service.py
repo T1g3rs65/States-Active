@@ -11,8 +11,13 @@ from datetime import datetime
 
 class AIService:
     def __init__(self, api_key: str = None):
-        # Use XAI_API_KEY for Grok, fallback to EMERGENT_LLM_KEY for compatibility
-        self.api_key = api_key or os.environ.get("XAI_API_KEY") or os.environ.get("EMERGENT_LLM_KEY")
+        # Use OPENCLAW_GATEWAY_TOKEN for the local gateway, with legacy fallbacks.
+        self.api_key = (
+            api_key
+            or os.environ.get("OPENCLAW_GATEWAY_TOKEN")
+            or os.environ.get("XAI_API_KEY")
+            or os.environ.get("EMERGENT_LLM_KEY")
+        )
         
     async def generate_issues(self, nation: Nation, count: int = 3) -> List[Issue]:
         """Generate daily issues based on nation's current state."""

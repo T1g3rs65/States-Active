@@ -167,10 +167,14 @@ async def process_monthly_tributes(db):
 async def run_daily_jobs():
     """Run all daily background jobs."""
     try:
-        # Connect to MongoDB
-        mongo_url = os.environ['MONGO_URL']
-        client = AsyncIOMotorClient(mongo_url)
-        db = client[os.environ['DB_NAME']]
+        # Connect to MongoDB (mock fallback when MONGO_URL unset, same as server.py)
+        mongo_url = os.environ.get('MONGO_URL')
+        if mongo_url:
+            client = AsyncIOMotorClient(mongo_url)
+        else:
+            from mongomock_motor import AsyncMongoMockClient
+            client = AsyncMongoMockClient()
+        db = client[os.environ.get('DB_NAME', 'states')]
         
         logger.info("=== Starting Daily Jobs ===")
         

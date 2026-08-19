@@ -38,13 +38,20 @@ from grok_client import LlmChat, UserMessage
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
-# MongoDB connection
-mongo_url = os.environ['MONGO_URL']
-client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ['DB_NAME']]
+# MongoDB connection.
+# - If MONGO_URL is set, use real MongoDB (production path).
+# - Otherwise fall back to an in-memory mock (mongomock-motor) for LAN/dev
+#   demos where MongoDB isn't installed. Same API, no code changes below.
+mongo_url = os.environ.get('MONGO_URL')
+if mongo_url:
+    client = AsyncIOMotorClient(mongo_url)
+else:
+    from mongomock_motor import AsyncMongoMockClient
+    client = AsyncMongoMockClient()
+db = client[os.environ.get('DB_NAME', 'states')]
 
-# Initialize AI service
-XAI_API_KEY = os.environ.get('XAI_API_KEY')
+# Initialize AI service (routes through OpenClaw gateway)
+XAI_API_KEY = os.environ.get('OPENCLAW_GATEWAY_TOKEN') or os.environ.get('XAI_API_KEY')
 ai_service = AIService(XAI_API_KEY)
 
 # Create the main app
@@ -56,8 +63,18 @@ api_router = APIRouter(prefix="/api")
 # Mount static files for portraits
 app.mount("/portraits", StaticFiles(directory=str(ROOT_DIR / "static" / "portraits")), name="portraits")
 
-# Mount generated portraits from frontend assets
-GENERATED_PORTRAITS_DIR = Path("/app/frontend/assets/portraits/generated")
+# Mount generated portraits from frontend assets.
+# Docker uses /app/frontend/...; local/LAN falls back to a writable local dir.
+_generated_dir = os.environ.get("GENERATED_PORTRAITS_DIR")
+if not _generated_dir:
+    _docker_dir = Path("/app/frontend/assets/portraits/generated")
+    _local_dir = ROOT_DIR / "static" / "generated_portraits"
+    try:
+        _docker_dir.mkdir(parents=True, exist_ok=True)
+        _generated_dir = str(_docker_dir)
+    except OSError:
+        _generated_dir = str(_local_dir)
+GENERATED_PORTRAITS_DIR = Path(_generated_dir)
 GENERATED_PORTRAITS_DIR.mkdir(parents=True, exist_ok=True)
 app.mount("/api/generated-portraits", StaticFiles(directory=str(GENERATED_PORTRAITS_DIR)), name="generated_portraits")
 

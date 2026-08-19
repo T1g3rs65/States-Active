@@ -5,8 +5,12 @@ from grok_client import LlmChat, UserMessage
 
 logger = logging.getLogger(__name__)
 
-# Initialize LLM client - use XAI_API_KEY for Grok, fallback to EMERGENT_LLM_KEY
-XAI_API_KEY = os.environ.get('XAI_API_KEY') or os.environ.get('EMERGENT_LLM_KEY')
+# Initialize LLM client - use OPENCLAW_GATEWAY_TOKEN for the local gateway.
+XAI_API_KEY = (
+    os.environ.get('OPENCLAW_GATEWAY_TOKEN')
+    or os.environ.get('XAI_API_KEY')
+    or os.environ.get('EMERGENT_LLM_KEY')
+)
 
 async def generate_policy_law(
     category: str, 
