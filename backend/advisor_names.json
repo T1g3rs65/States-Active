@@ -1,0 +1,53 @@
+{
+  "_readme": "Advisor names by race - Add more names to expand variety!",
+  
+  "human": {
+    "first_names": [
+      "Alexander", "Benjamin", "Charles", "David", "Edward",
+      "Franklin", "George", "Henry", "Isaac", "James",
+      "Katherine", "Laura", "Margaret", "Natalie", "Olivia",
+      "Patricia", "Rachel", "Sarah", "Victoria", "William",
+      "Arthur", "Eleanor", "Frederick", "Helena", "Marcus",
+      "Evelyn", "Theodore", "Charlotte", "Sebastian", "Amelia",
+      "Maximilian", "Beatrice", "Constantine", "Diana", "Edmund",
+      "Florence", "Gregory", "Harriet", "Ivan", "Josephine"
+    ],
+    "last_names": [
+      "Anderson", "Bennett", "Crawford", "Douglas", "Edwards",
+      "Fletcher", "Graham", "Harrison", "Irving", "Jefferson",
+      "Kingsley", "Lancaster", "Morrison", "Northwood", "Osborne",
+      "Pemberton", "Quincy", "Rothschild", "Sterling", "Thornton",
+      "Underwood", "Vanderbilt", "Wellington", "Xavier", "York",
+      "Ashford", "Blackwood", "Cromwell", "Davenport", "Fairfax",
+      "Grayson", "Hartwell", "Kensington", "Lockwood", "Mercer"
+    ]
+  },
+  
+  "zythera": {
+    "first_names": [
+      "Zyx", "Krix", "Veth", "Qira", "Thex",
+      "Nixara", "Chitra", "Vexis", "Zelith", "Krynn",
+      "Xilith", "Thyra", "Nexis", "Quilara", "Zephyx",
+      "Chitrix", "Veleth", "Kyxara", "Thrynn", "Ixila",
+      "Zireth", "Quilyx", "Nexara", "Vythis", "Chyrix",
+      "Xelara", "Thixis", "Kryleth", "Zythara", "Quilith",
+      "Vexara", "Nyxith", "Chitara", "Zelyx", "Kyrith"
+    ],
+    "last_names": [
+      "of the Azure Hive", "of the Crystal Spire", "of the Emerald Nest",
+      "of the Golden Swarm", "of the Obsidian Colony", "of the Sapphire Warren",
+      "of the Jade Cluster", "of the Amber Brood", "of the Violet Nexus",
+      "of the Teal Collective", "of the Silver Hive", "of the Onyx Chambers",
+      "Hivemind", "Queensguard", "Swarmkeeper", "Nestborn", "Colonyward",
+      "Spirewatcher", "Chamberlain", "Broodmaster", "Clusterkin", "Warrenborn",
+      "the Wise", "the Swift", "the Stalwart", "the Luminous", "the Ancient",
+      "the Harmonic", "the Resonant", "the Crystalline", "the Iridescent"
+    ]
+  },
+  
+  "_template": {
+    "_comment": "Add a new race by copying this template",
+    "first_names": ["Name1", "Name2", "Name3"],
+    "last_names": ["Surname1", "Surname2", "Surname3"]
+  }
+}

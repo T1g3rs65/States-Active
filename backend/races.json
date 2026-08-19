@@ -1,0 +1,92 @@
+{
+  "_readme": "SovereignHex Race Configuration - Add new races here!",
+  "_instructions": [
+    "Each race needs: id, name, description, ai_description, color, and enabled",
+    "The ai_description is used by the AI when generating issues and content",
+    "The color is used for UI theming throughout the game",
+    "Set enabled: false to disable a race on your server",
+    "Or use ENABLED_RACES env var to override (comma-separated race IDs)"
+  ],
+  
+  "races": [
+    {
+      "id": "human",
+      "name": "Human",
+      "plural": "Humans",
+      "adjective": "Human",
+      "color": "#3B82F6",
+      "color_light": "#60A5FA",
+      "color_dark": "#1E40AF",
+      "description": "Adaptable and ambitious, humans are known for their diversity and drive to explore and expand.",
+      "ai_description": "Humans are a versatile and ambitious species. They are highly adaptable, capable of thriving in almost any environment. Human societies are diverse, ranging from democratic republics to authoritarian regimes. They are known for their innovation, cultural richness, and sometimes their tendency toward conflict. Human nations often balance tradition with progress.",
+      "lore": "Humans arrived on this world generations ago, their origins lost to time. They have since spread across the continents, building cities, forging alliances, and occasionally waging wars. Their short lifespans drive them to achieve greatness quickly.",
+      "traits": {
+        "adaptability": "high",
+        "lifespan": "average",
+        "reproduction": "moderate"
+      },
+      "enabled": true
+    },
+    {
+      "id": "zythera",
+      "name": "Zythera",
+      "plural": "Zythera",
+      "adjective": "Zytheran",
+      "color": "#14B8A6",
+      "color_light": "#2DD4BF",
+      "color_dark": "#0F766E",
+      "description": "Beautiful insectoid beings native to this world, the Zythera live in caste-based societies ruled by their Queens.",
+      "ai_description": "The Zythera are a beautiful insectoid species native to this planet. They have elegant, teal-colored exoskeletons that shimmer in the light. Their society is organized into castes similar to ants: Workers who build and maintain, Soldiers who defend, Scholars who research and advise, and the Queen who rules and ensures the colony's continuation. Zythera are deeply connected to their hive and prioritize collective harmony over individual desires. They communicate through a combination of pheromones, subtle wing vibrations, and spoken language. Despite their alien appearance, many other species find them strangely beautiful and graceful.",
+      "lore": "The Zythera have called this world home since before recorded history. Their great Hive-Cities dot the landscape, magnificent structures of hardite secretions and crystalline architecture. Each Hive is led by a Queen, whose wisdom guides her people. The Zythera remember when the humans first arrived, and the two species have had a complex relationship ever since.",
+      "traits": {
+        "social_structure": "hive-caste",
+        "lifespan": "varies_by_caste",
+        "reproduction": "queen_dependent"
+      },
+      "physical": {
+        "coloration": "teal",
+        "type": "insectoid",
+        "notable_features": ["compound eyes", "delicate wings", "elegant antennae", "iridescent exoskeleton"]
+      },
+      "castes": [
+        {
+          "name": "Worker",
+          "role": "Construction, maintenance, resource gathering",
+          "percentage": 60
+        },
+        {
+          "name": "Soldier",
+          "role": "Defense, military operations, protection",
+          "percentage": 25
+        },
+        {
+          "name": "Scholar",
+          "role": "Research, diplomacy, advisory",
+          "percentage": 10
+        },
+        {
+          "name": "Royal",
+          "role": "Leadership, reproduction, governance",
+          "percentage": 5
+        }
+      ],
+      "enabled": true
+    }
+  ],
+  
+  "_template": {
+    "_comment": "Copy this template to add a new race",
+    "id": "unique_lowercase_id",
+    "name": "Display Name",
+    "plural": "Plural Form",
+    "adjective": "Adjective Form",
+    "color": "#HEX_COLOR",
+    "color_light": "#LIGHTER_HEX",
+    "color_dark": "#DARKER_HEX",
+    "description": "Short description shown in race selector (1-2 sentences)",
+    "ai_description": "Detailed description for AI to use when generating content. Include culture, society, values, appearance, and any unique characteristics.",
+    "lore": "Background history and world-building details",
+    "traits": {},
+    "enabled": true
+  }
+}
