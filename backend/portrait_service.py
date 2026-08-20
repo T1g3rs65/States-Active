@@ -1,10 +1,12 @@
 """
 Portrait Generation Service
-Generates unique Zythera Queen portraits using AI with style references.
+
+Deprecated (GH-78): the `emergentintegrations` image-generation provider was
+removed. `generate_zythera_queen_portrait` is now a fail-fast stub; fallback
+portrait selection (`get_fallback_portrait`) is retained.
 """
 
 import os
-import base64
 import random
 import logging
 from pathlib import Path
@@ -15,44 +17,10 @@ load_dotenv()
 
 logger = logging.getLogger(__name__)
 
-# Reference portrait descriptions for style consistency
-ZYTHERA_QUEEN_STYLE = """
-Art style: Pony Diffusion / Anime-influenced digital painting
-Character: Zythera Queen - beautiful insectoid alien humanoid female
-Physical features:
-- Teal/cyan colored skin with subtle iridescent shimmer
-- Four elegant antennae extending from the head
-- Orange or amber glowing eyes
-- Chitinous "hair-like" structure framing the face, can be styled elegantly
-- Delicate facial features combining human beauty with alien grace
-- Large, transparent, iridescent insect-like wings (butterfly/dragonfly style)
-Composition: Portrait style, head and upper body, regal pose
-Lighting: Dramatic, with glowing highlights on eyes and wing edges
-"""
-
-NORMAL_QUEEN_STYLE = """
-Expression: Serene, wise, benevolent, motherly
-Attire: Elegant royal robes or ornate ceremonial dress
-Colors: Rich purples, teals, golds, silver accents
-Mood: Peaceful, nurturing, harmonious
-Background: Soft ethereal glow, hive architecture hints
-"""
-
-EVIL_QUEEN_STYLE = """
-Expression: Cold, calculating, menacing, imperious
-Attire: Dark armor, spiky crown, intimidating regalia
-Colors: Black, deep purple, blood red, toxic green accents
-Mood: Threatening, dominant, oppressive
-Background: Dark shadows, ominous lighting, industrial hive elements
-"""
-
 class PortraitService:
     def __init__(self, db):
         self.db = db
-        self.api_key = os.environ.get("EMERGENT_LLM_KEY")
         self.portraits_dir = Path("/app/frontend/assets/portraits")
-        self.generated_dir = self.portraits_dir / "generated"
-        self.generated_dir.mkdir(exist_ok=True)
         
     async def generate_zythera_queen_portrait(
         self, 
@@ -62,72 +30,26 @@ class PortraitService:
     ) -> Tuple[bool, Optional[str]]:
         """
         Generate a unique Zythera Queen portrait for a nation.
-        
+
+        DEPRECATED (GH-78): image generation previously used the removed
+        `emergentintegrations` provider, which is no longer supported or
+        installed. Image generation now routes through the OpenClaw gateway.
+        This method is kept as a stub that fails fast; it returns
+        ``(False, message)`` and never attempts the dead provider import.
+
         Returns:
             Tuple of (success, portrait_path or error_message)
         """
-        try:
-            from emergentintegrations.llm.openai.image_generation import OpenAIImageGeneration
-            
-            if not self.api_key:
-                logger.error("EMERGENT_LLM_KEY not found")
-                return False, "API key not configured"
-            
-            # Build the prompt
-            style_modifier = EVIL_QUEEN_STYLE if is_evil else NORMAL_QUEEN_STYLE
-            
-            # Add unique elements based on nation name
-            unique_elements = self._generate_unique_elements(nation_name, is_evil)
-            
-            prompt = f"""
-{ZYTHERA_QUEEN_STYLE}
-
-{style_modifier}
-
-Unique character details for this queen:
-{unique_elements}
-
-Generate a stunning portrait of this Zythera Queen in the described art style.
-High quality, detailed, professional digital art.
-"""
-            
-            logger.info(f"Generating portrait for nation {nation_id} ({nation_name})")
-            
-            # Generate the image
-            image_gen = OpenAIImageGeneration(api_key=self.api_key)
-            images = await image_gen.generate_images(
-                prompt=prompt,
-                model="gpt-image-1",
-                number_of_images=1
-            )
-            
-            if not images or len(images) == 0:
-                logger.error("No image was generated")
-                return False, "No image generated"
-            
-            # Save the image
-            portrait_filename = f"zythera_queen_{nation_id}.png"
-            portrait_path = self.generated_dir / portrait_filename
-            
-            with open(portrait_path, "wb") as f:
-                f.write(images[0])
-            
-            logger.info(f"Portrait saved to {portrait_path}")
-            
-            # Store URL path in database (for frontend to fetch)
-            portrait_url = f"/api/generated-portraits/{portrait_filename}"
-            from bson import ObjectId
-            await self.db.nations.update_one(
-                {"_id": ObjectId(nation_id)},
-                {"$set": {"custom_portrait": portrait_url}}
-            )
-            logger.info(f"Database updated with custom_portrait URL for nation {nation_id}: {portrait_url}")
-            
-            return True, portrait_url
-            
-        except Exception as e:
-            logger.error(f"Error generating portrait: {e}")
-            return False, str(e)
+        logger.error(
+            "PortraitService.generate_zythera_queen_portrait is deprecated: "
+            "the `emergentintegrations` provider was removed. Image generation "
+            "now routes through the OpenClaw gateway. Use get_fallback_portrait "
+            "or the gateway-backed path instead."
+        )
+        return False, (
+            "Deprecated: `emergentintegrations` provider removed. "
+            "Image generation now routes through the OpenClaw gateway."
+        )
     
     def _generate_unique_elements(self, nation_name: str, is_evil: bool) -> str:
         """Generate unique visual elements based on nation name."""

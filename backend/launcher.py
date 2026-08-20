@@ -19,7 +19,7 @@ DEFAULT_CONFIG = {
     "port": 8001,
     "allow_migration": True,
     "visibility": "public",
-    "emergent_llm_key": "",
+    "openclaw_gateway_token": "",
     "auto_open_browser": True
 }
 
@@ -60,7 +60,7 @@ def print_config(config):
     print(f"   Port:        {config['port']}")
     print(f"   Migration:   {'Enabled' if config['allow_migration'] else 'Disabled'}")
     print(f"   Visibility:  {config['visibility']}")
-    print(f"   LLM Key:     {'Set ✓' if config['emergent_llm_key'] else 'Not Set ✗'}")
+    print(f"   Gateway:     {'Set ✓' if config['openclaw_gateway_token'] else 'Not Set ✗'}")
 
 def configure_server(config):
     """Interactive configuration."""
@@ -108,12 +108,12 @@ def configure_server(config):
     elif migration in ['n', 'no']:
         config['allow_migration'] = False
     
-    # LLM Key
-    print("\n🔑 AI Key (for generating in-game issues)")
-    print("   Get your key from: https://app.emergent.sh (Profile > Universal Key)")
-    key = input(f"Emergent LLM Key [{'*' * 8 if config['emergent_llm_key'] else 'not set'}]: ").strip()
+    # OpenClaw gateway token (replaces the removed Emergent LLM key)
+    print("\n🔑 OpenClaw Gateway Token (for AI-generated in-game content)")
+    print("   Get it from your OpenClaw gateway config (OPENCLAW_GATEWAY_TOKEN)")
+    key = input(f"Gateway Token [{'*' * 8 if config['openclaw_gateway_token'] else 'not set'}]: ").strip()
     if key:
-        config['emergent_llm_key'] = key
+        config['openclaw_gateway_token'] = key
     
     save_config(config)
     print("\n✅ Configuration saved!")
@@ -131,8 +131,8 @@ def start_server(config):
     os.environ['ALLOW_MIGRATION'] = str(config['allow_migration']).lower()
     os.environ['SERVER_VISIBILITY'] = config['visibility']
     
-    if config['emergent_llm_key']:
-        os.environ['EMERGENT_LLM_KEY'] = config['emergent_llm_key']
+    if config['openclaw_gateway_token']:
+        os.environ['OPENCLAW_GATEWAY_TOKEN'] = config['openclaw_gateway_token']
     
     # MongoDB - use local file-based DB for simplicity if not set
     if 'MONGO_URL' not in os.environ:

@@ -47,20 +47,20 @@ Use environment variables (Docker) or edit `server_config.json` (EXE):
 | `WORLD_SEED` | 123456 | Map seed - **different seed = unique world!** |
 | `MAX_PLAYERS` | 50 | Maximum players |
 | `ALLOW_MIGRATION` | true | Allow nations to migrate here |
-| `EMERGENT_LLM_KEY` | - | AI key for generating issues |
+| `OPENCLAW_GATEWAY_TOKEN` | - | OpenClaw gateway token for AI content generation |
 
 ---
 
-## 🔑 Getting an AI Key
+## 🔑 Getting an AI Token
 
-The server needs an AI key to generate in-game issues and advisor content.
+The server needs an OpenClaw gateway token to generate in-game issues and advisor content.
 
-1. Go to [app.emergent.sh](https://app.emergent.sh)
-2. Click Profile → Universal Key
-3. Copy your key
-4. Add it to your configuration
+1. Your OpenClaw gateway exposes an OpenAI-compatible endpoint at `OPENCLAW_GATEWAY_URL`
+   (default `http://127.0.0.1:18789/v1`)
+2. Set `OPENCLAW_GATEWAY_TOKEN` to the gateway token (see the OpenClaw gateway config)
+3. Add it to your configuration
 
-Without an AI key, the game will still work but won't generate new issues.
+Without a token, the game will still work but won't generate new issues.
 
 ---
 
@@ -79,8 +79,8 @@ Or keep it private and share the URL directly with friends!
 - EXE: Install MongoDB from [mongodb.com](https://mongodb.com/try/download/community)
 
 ### "No issues generating"
-- Check your EMERGENT_LLM_KEY is set correctly
-- The key needs to be valid and have quota
+- Check your OPENCLAW_GATEWAY_TOKEN is set correctly
+- The gateway endpoint must be reachable and the token valid
 
 ### "Players can't connect"
 - Check firewall allows port 8001
