@@ -17,6 +17,7 @@
     "@react-navigation/bottom-tabs": "^7.3.10",
     "@react-navigation/elements": "^2.3.8",
     "@react-navigation/native": "^7.1.6",
+    "d3-delaunay": "^6.0.4",
     "date-fns": "^4.1.0",
     "expo": "~57.0.14",
     "expo-blur": "~14.1.5",

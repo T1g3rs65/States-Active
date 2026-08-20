@@ -19,57 +19,22 @@ import { SimplexNoise } from '../utils/noise';
 import { api } from '../utils/api';
 import { lloydRelaxation, calculateBorderOwnership } from '../utils/borders';
 import { calculateCapacityFromPopulation } from '../utils/nationSize';
+import { generateVoronoiCells, VoronoiCell, DEEP_WATER_BIOMES } from '../utils/voronoiMap';
 import { assignResourceToTile, RESOURCE_BY_ID, TIER_COLORS } from '../utils/resources';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const WORLD_SEED = 123456; // Constant seed for deterministic terrain
-const MAP_CACHE_KEY = `world_map_terrain_v3_${WORLD_SEED}`; // v3 = 45% resource spawn rate
+const MAP_CACHE_KEY = `world_map_terrain_v4_voronoi_${WORLD_SEED}`; // v4 = Voronoi irregular-cell map
 
-const MAP_COLS = 200; // Width - reduced for mobile performance
-const MAP_ROWS = 200; // Height - 200x200 = 40,000 hexagons (mobile-friendly)
-const HEX_SIZE = 25; // Radius
-// Flat-top hexagon dimensions
-const HEX_WIDTH = HEX_SIZE * Math.sqrt(3); // Width (flat side to flat side)
-const HEX_HEIGHT = HEX_SIZE * 2; // Height (point to point)
-const HEX_HORIZ_SPACING = HEX_WIDTH; // FULL width - hexagons side-by-side
-const HEX_VERT_SPACING = HEX_SIZE * 1.5; // 1.5 × radius for perfect vertical nesting
+const MAP_COLS = 200; // Logical width (grid units)
+const MAP_ROWS = 200; // Logical height (grid units)
+const CELL_SCALE = 6; // Pixels per grid unit
+const MAP_WIDTH = MAP_COLS * CELL_SCALE;
+const MAP_HEIGHT = MAP_ROWS * CELL_SCALE;
+const VORONOI_CELLS = 1500; // Mobile-friendly cell count vs 40k hexes
 
-interface Territory {
-  id: string;
-  col: number;
-  row: number;
-  x: number;
-  y: number;
-  ownerId: string | null;
-  ownerName?: string;
-  normalized: number; // Normalized elevation (0-1)
-  moisture?: number; // Realistic moisture with latitude curve (0-1)
-  resourceId?: string | null; // Resource on this tile (from seed)
-  biome: // Water
-         'deep_ocean' | 'shallow_sea' | 'abyss' | 'midnight_zone' | 'river' |
-         // Ice
-         'glacier' | 'ice_shelf' | 'snow_ice' |
-         // Tundra
-         'arctic_tundra' | 'tundra' |
-         // Mountains
-         'rocky_mountain' | 'alpine_meadow' | 'sparse_vegetation' |
-         // Forests
-         'boreal_forest' | 'temperate_rainforest' | 'tropical_rainforest' |
-         'evergreen_forest' | 'deciduous_forest' | 'mixed_forest' |
-         // Wetlands
-         'swamp' | 'marsh' | 'peat_bog' | 'mangrove' | 'wetland' |
-         // Grasslands
-         'temperate_grassland' | 'flooded_grassland' | 'grassland' | 
-         'savanna' | 'woody_savanna' | 'shrubland' |
-         // Deserts
-         'hot_desert' | 'semi_arid_desert' | 'cold_desert' | 'barren' |
-         // Coastal
-         'beach' | 'rocky_coast' | 'salt_marsh' |
-         // Special
-         'badlands' | 'karst';
-  color: string;
-}
+interface Territory extends VoronoiCell {}
 
 interface NationCluster {
   nationId: string;
@@ -166,8 +131,8 @@ export default function WorldMap() {
     setZoom(targetZoom);
     
     // Calculate the pixel position of the nation's center
-    const nationX = centerCol * HEX_HORIZ_SPACING * targetZoom;
-    const nationY = centerRow * HEX_VERT_SPACING * targetZoom;
+    const nationX = centerCol * CELL_SCALE * targetZoom;
+    const nationY = centerRow * CELL_SCALE * targetZoom;
     
     // Calculate scroll offset to center the nation on screen
     const screenWidth = SCREEN_WIDTH;
@@ -428,338 +393,12 @@ export default function WorldMap() {
 
   // Generate the base terrain (biomes, colors) - deterministic based on seed
   const generateBaseTerrain = (seed: number = WORLD_SEED): Territory[] => {
-    setLoadingStatus('Generating 40,000 hexagons...');
-    const noise = new SimplexNoise(seed);
-    const newTerritories: Territory[] = [];
-
-    // PASS 1: Generate raw elevation with SMOOTH COASTLINES
-    const rawElevations: number[] = [];
-    let minElev = Infinity;
-    let maxElev = -Infinity;
-    
-    for (let row = 0; row < MAP_ROWS; row++) {
-      for (let col = 0; col < MAP_COLS; col++) {
-        // Large smooth continent mask (very low frequency)
-        const continentMask = noise.fbm(col * 0.002, row * 0.002, 3, 0.5);
-        
-        // Detailed elevation (reduced high frequencies)
-        const base = noise.fbm(col / 100, row / 100, 4, 0.35) * 0.6;
-        const ridges = Math.pow(noise.ridged(col * 0.02, row * 0.02, 5), 1.8) * 0.35;
-        const directional = Math.abs(noise.noise2D(col * 0.005, row * 0.12)) * -0.2;
-        
-        // Blend continent mask with elevation (70% smooth, 30% detail)
-        const elevation = continentMask * 0.7 + (base + ridges + directional) * 0.3;
-        
-        rawElevations.push(elevation);
-        minElev = Math.min(minElev, elevation);
-        maxElev = Math.max(maxElev, elevation);
-      }
-    }
-    
-    console.log(`Elevation range: ${minElev.toFixed(2)} to ${maxElev.toFixed(2)}`);
-    
-    // PASS 2: Create hexes with NORMALIZED elevation (0-1 range)
-    let idx = 0;
-    for (let row = 0; row < MAP_ROWS; row++) {
-      for (let col = 0; col < MAP_COLS; col++) {
-        const x = col * HEX_HORIZ_SPACING + (row % 2 === 0 ? 0 : HEX_HORIZ_SPACING / 2);
-        const y = row * HEX_VERT_SPACING;
-
-        // Normalize elevation to 0-1 range
-        const normalized = (rawElevations[idx] - minElev) / (maxElev - minElev);
-        
-        // Moisture (unchanged)
-        const moisture = noise.fbm((col + 2000) / 20, (row + 2000) / 25, 5, 0.85);
-        
-        // PASS 2.5: Calculate realistic moisture with latitude curve
-        const latitude = Math.abs((row - MAP_ROWS / 2) / (MAP_ROWS / 2));
-        
-        // Desert probability band (subtropical ~15-35° = lat 0.15-0.35)
-        const desertLat = Math.exp(-Math.pow((latitude - 0.33), 2) / 0.015);
-        
-        // Normalize moisture to [0, 1] range, then apply moderate latitude reduction
-        const finalMoisture = (moisture + 1) * 0.5 - (desertLat * 0.4);
-        
-        newTerritories.push({
-          id: `${col}-${row}`,
-          col,
-          row,
-          x,
-          y,
-          ownerId: null,
-          normalized: normalized,
-          moisture: finalMoisture,
-          biome: 'temperate_grassland',
-          color: '#C8C87A',
-        });
-        
-        idx++;
-      }
-    }
-
-    // PATHFINDING RIVERS - Simple downhill flow from mountains to ocean
-    setLoadingStatus('Generating rivers...');
-    const finalRivers = new Set<string>();
-    
-    // Find mountain sources (high elevation)
-    const mountainSources = newTerritories
-      .filter(t => {
-        const base = noise.fbm(t.col / 100, t.row / 100, 6, 0.5) * 0.6;
-        const ridges = Math.pow(noise.ridged(t.col * 0.02, t.row * 0.02, 5), 1.8) * 0.75;
-        const directional = noise.noise2D(t.col * 0.005, t.row * 0.12) * 0.3;
-        const elev = base + ridges + directional - 0.1;
-        return elev > 0.8 && elev < 1.5;
-      })
-      .sort(() => Math.random() - 0.5)
-      .slice(0, 30);
-    
-    // Flow each river downhill to ocean
-    for (const source of mountainSources) {
-      let current = source;
-      const visited = new Set<string>();
-      let steps = 0;
-      const maxSteps = 200;
-      
-      while (steps < maxSteps) {
-        if (visited.has(current.id)) break;
-        visited.add(current.id);
-        finalRivers.add(current.id);
-        
-        const currElev = noise.fbm(current.col / 100, current.row / 100, 6, 0.5) * 0.6 +
-                        Math.pow(noise.ridged(current.col * 0.02, current.row * 0.02, 5), 1.8) * 0.75 +
-                        noise.noise2D(current.col * 0.005, current.row * 0.12) * 0.3 - 0.1;
-        
-        if (currElev < 0.05) break;
-        
-        const neighbors = [
-          [0, -1], [1, 0], [0, 1], [-1, 0],
-          [1, -1], [-1, -1], [1, 1], [-1, 1]
-        ];
-        
-        let lowestNeighbor = null;
-        let lowestElev = currElev;
-        
-        for (const [dc, dr] of neighbors) {
-          const neighbor = newTerritories.find(
-            t => t.col === current.col + dc && t.row === current.row + dr
-          );
-          
-          if (!neighbor || visited.has(neighbor.id)) continue;
-          
-          const nElev = noise.fbm(neighbor.col / 100, neighbor.row / 100, 6, 0.5) * 0.6 +
-                       Math.pow(noise.ridged(neighbor.col * 0.02, neighbor.row * 0.02, 5), 1.8) * 0.75 +
-                       noise.noise2D(neighbor.col * 0.005, neighbor.row * 0.12) * 0.3 - 0.1;
-          
-          if (nElev < lowestElev) {
-            lowestElev = nElev;
-            lowestNeighbor = neighbor;
-          }
-        }
-        
-        if (!lowestNeighbor) break;
-        current = lowestNeighbor;
-        steps++;
-      }
-    }
-
-    // STEP 3: Assign biomes
-    setLoadingStatus('Assigning biomes...');
-    for (const territory of newTerritories) {
-      const { col, row } = territory;
-      
-      const base = noise.fbm(col / 100, row / 100, 6, 0.5) * 0.6;
-      const ridges = Math.pow(noise.ridged(col * 0.02, row * 0.02, 5), 1.8) * 0.75;
-      const directional = noise.noise2D(col * 0.005, row * 0.12) * 0.3;
-      const elevation = base + ridges + directional;
-      
-      const moisture = territory.moisture || 0.5;
-      const latitude = Math.abs((row - MAP_ROWS / 2) / (MAP_ROWS / 2));
-      
-      let biome: Territory['biome'] = 'temperate_grassland';
-      let color = '#C8C87A';
-
-      // OCEANS
-      if (territory.normalized < 0.25) {
-        biome = 'abyss';
-        color = '#001133';
-      } else if (territory.normalized < 0.30) {
-        biome = 'midnight_zone';
-        color = '#002244';
-      } else if (territory.normalized < 0.35) {
-        biome = 'deep_ocean';
-        color = '#1C0DFF';
-      } else if (territory.normalized < 0.45) {
-        biome = 'shallow_sea';
-        color = '#0064C8';
-      }
-      // POLAR ICE
-      else if (latitude > 0.9) {
-        if (elevation > 0.6) {
-          biome = 'glacier';
-          color = '#B0E0FF';
-        } else if (elevation > 0.4) {
-          biome = 'snow_ice';
-          color = '#F0F0F0';
-        } else if (elevation > 0.2) {
-          biome = 'ice_shelf';
-          color = '#E8F4FF';
-        } else {
-          biome = 'arctic_tundra';
-          color = '#D0D8C0';
-        }
-      } else if (latitude > 0.90) {
-        biome = 'tundra';
-        color = '#F6E2A0';
-      }
-      // MOUNTAINS
-      else if (territory.normalized > 0.92) {
-        biome = 'rocky_mountain';
-        color = '#000000';
-      } else if (territory.normalized > 0.88) {
-        biome = 'alpine_meadow';
-        color = '#2B2B2B';
-      }
-      // HIGH MOUNTAINS
-      else if (elevation > 0.8) {
-        if (latitude > 0.7) {
-          biome = 'boreal_forest';
-          color = '#2F4F2F';
-        } else if (moisture < 0.1) {
-          biome = 'badlands';
-          color = '#B86F50';
-        } else if (moisture > 0.5) {
-          biome = 'karst';
-          color = '#C0C0C0';
-        } else {
-          biome = 'sparse_vegetation';
-          color = '#8B8B7A';
-        }
-      }
-      // COASTAL
-      else if (elevation < 0.25 && elevation > 0.15) {
-        const nearOcean = noise.noise2D(col / 3, row / 3) > 0.3;
-        if (nearOcean) {
-          if (moisture > 0.5) {
-            biome = 'salt_marsh';
-            color = '#8FBC8F';
-          } else if (moisture > 0.2) {
-            biome = 'beach';
-            color = '#F0E68C';
-          } else {
-            biome = 'rocky_coast';
-            color = '#707070';
-          }
-        } else {
-          biome = 'flooded_grassland';
-          color = '#A0D6A0';
-        }
-      }
-      // WETLANDS
-      else if (elevation < 0.35 && moisture > 0.6) {
-        if (latitude < 0.2) {
-          biome = 'swamp';
-          color = '#2F3F2F';
-        } else if (latitude < 0.35) {
-          biome = 'mangrove';
-          color = '#00CF75';
-        } else if (latitude < 0.5) {
-          biome = 'marsh';
-          color = '#5F7F5F';
-        } else {
-          biome = 'peat_bog';
-          color = '#4F3F2F';
-        }
-      } else if (elevation < 0.25 && moisture > 0.5) {
-        biome = 'wetland';
-        color = '#27FF87';
-      }
-      // FORESTS
-      else if (moisture > 0.40) {
-        if (latitude < 0.15) {
-          biome = 'tropical_rainforest';
-          color = '#003300';
-        } else if (latitude > 0.70) {
-          biome = 'boreal_forest';
-          color = '#2F4F2F';
-        } else if (moisture > 0.60) {
-          biome = 'temperate_rainforest';
-          color = '#1F3F1F';
-        } else if (moisture > 0.45) {
-          biome = 'evergreen_forest';
-          color = '#05450A';
-        } else {
-          biome = 'deciduous_forest';
-          color = '#78D203';
-        }
-      } else if (moisture > 0.35) {
-        biome = 'mixed_forest';
-        color = '#009900';
-      }
-      // DESERTS
-      else if (moisture < 0.15) {
-        if (latitude > 0.7) {
-          biome = 'cold_desert';
-          color = '#C9B89B';
-        } else if (latitude > 0.35 && latitude < 0.5) {
-          if (elevation > 0.5) {
-            biome = 'hot_desert';
-            color = '#E3B98F';
-          } else if (moisture < 0.03) {
-            biome = 'savanna';
-            color = '#FBFF13';
-          } else {
-            biome = 'semi_arid_desert';
-            color = '#D8B56B';
-          }
-        } else if (elevation > 0.6) {
-          biome = 'barren';
-          color = '#F9FFA4';
-        } else {
-          const useSavanna = noise.noise2D(col / 3, row / 3) > 0.2;
-          biome = useSavanna ? 'savanna' : 'semi_arid_desert';
-          color = useSavanna ? '#FBFF13' : '#D8B56B';
-        }
-      }
-      // GRASSLANDS & SAVANNAS
-      else if (moisture > 0.05) {
-        if (latitude < 0.35 && moisture < 0.22) {
-          biome = 'woody_savanna';
-          color = '#DADE48';
-        } else if (moisture < 0.25) {
-          biome = 'shrubland';
-          color = '#BFBB22';
-        } else if (moisture < 0.28 && latitude < 0.45) {
-          biome = 'savanna';
-          color = '#FBFF13';
-        } else if (moisture > 0.22) {
-          biome = 'grassland';
-          color = '#B6FF05';
-        } else {
-          biome = 'temperate_grassland';
-          color = '#C8C87A';
-        }
-      }
-      // DEFAULT GRASSLAND
-      else {
-        biome = 'grassland';
-        color = '#B6FF05';
-      }
-
-      // RIVERS OVERLAY
-      const isRiver = finalRivers.has(territory.id);
-      if (isRiver) {
-        biome = 'river';
-        color = '#2060A0';
-      }
-
-      territory.biome = biome;
-      territory.color = color;
-      
-      // Assign resource based on biome and seed (deterministic)
-      territory.resourceId = assignResourceToTile(biome, territory.col, territory.row, WORLD_SEED);
-    }
-
-    return newTerritories;
+    setLoadingStatus(`Generating ${VORONOI_CELLS} Voronoi cells...`);
+    return generateVoronoiCells(seed, MAP_COLS, MAP_ROWS, VORONOI_CELLS, CELL_SCALE).map(cell => ({
+      ...cell,
+      ownerId: null,
+      ownerName: undefined,
+    }));
   };
 
   // Apply nation ownership to territories (fetches from server)
@@ -848,11 +487,9 @@ export default function WorldMap() {
         '#38BDF8', '#34D399', '#FCA5A5', '#93C5FD', '#C084FC'
       ];
 
-      // LLOYD RELAXATION + NOISE/CILLULAR BORDER OWNERSHIP (L21 faithful reuse)
+      // LLOYD RELAXATION + NOISE/CELLULAR BORDER OWNERSHIP (L21 faithful reuse)
       // Use the prior Lloyd/noise/cellular border utilities from utils/borders.ts.
       const borderNoise = new SimplexNoise(worldSeed + 789012);
-      const deepWaterBiomes = new Set(['abyss', 'midnight_zone', 'deep_ocean']);
-      const waterBiomes = new Set(['abyss', 'midnight_zone', 'deep_ocean', 'shallow_sea', 'river']);
 
       // Relax seed positions for region shape (keeps flags anchored later)
       const relaxedSeeds = lloydRelaxation(
@@ -864,31 +501,12 @@ export default function WorldMap() {
         nationSeeds[idx].row = pos.row;
       });
 
-      // Helper: build a lookup for near-water tiles
-      const territoryMap = new Map<string, Territory>();
-      workingTerritories.forEach(t => territoryMap.set(t.id, t));
-      const neighborDeltas = [
-        [-1, 0], [1, 0], [0, -1], [0, 1],
-        [-1, -1], [-1, 1], [1, -1], [1, 1]
-      ];
-      const nearWaterSet = new Set<string>();
-      for (const t of workingTerritories) {
-        if (waterBiomes.has(t.biome)) continue;
-        for (const [dc, dr] of neighborDeltas) {
-          const n = territoryMap.get(`${t.col + dc}-${t.row + dr}`);
-          if (n && waterBiomes.has(n.biome)) {
-            nearWaterSet.add(t.id);
-            break;
-          }
-        }
-      }
-
-      // Assign every land-ish tile to the best noise-warped seed within its radius.
+      // Assign every land-ish cell to the best noise-warped seed within its radius.
       // Skip deep ocean so nations don't own open water.
       for (const territory of workingTerritories) {
-        if (deepWaterBiomes.has(territory.biome)) continue;
+        if (DEEP_WATER_BIOMES.has(territory.biome)) continue;
 
-        // Filter to seeds that can reach this tile by capacity radius
+        // Filter to seeds that can reach this cell by capacity radius
         const reachableSeeds: typeof nationSeeds = [];
         for (const seed of nationSeeds) {
           const dist = Math.abs(territory.col - seed.col) + Math.abs(territory.row - seed.row);
@@ -905,7 +523,7 @@ export default function WorldMap() {
           (x, y) => borderNoise.noise2D(x, y),
           territory.normalized,
           territory.biome === 'river',
-          nearWaterSet.has(territory.id)
+          territory.nearWater
         );
 
         if (ownerId) {
@@ -1001,43 +619,24 @@ export default function WorldMap() {
     }
   };
 
-  const getHexagonPoints = (centerX: number, centerY: number, size: number): string => {
-    const points = [];
-    
-    // Flat-top hexagon: rotate 30° from pointy-top
-    for (let i = 0; i < 6; i++) {
-      const angle = (Math.PI / 3) * i - Math.PI / 6; // -30° rotation for flat-top
-      const x = centerX + size * Math.cos(angle);
-      const y = centerY + size * Math.sin(angle);
-      points.push(`${x.toFixed(1)},${y.toFixed(1)}`);
-    }
-    
-    return points.join(' ');
+  const getHexagonPoints = (_centerX: number, _centerY: number, _size: number): string => {
+    // Deprecated: Voronoi cells use their own polygon vertices.
+    return '';
   };
 
   const getSquareTiles = () => {
-    // No squares needed - hexagons tile perfectly!
+    // Deprecated: no square fallback in Voronoi mode.
     return [];
   };
 
   const isBorderTerritory = (territory: Territory): boolean => {
     if (!territory.ownerId) return false;
-    
-    const neighbors = [
-      [-1, 0], [1, 0], [0, -1], [0, 1],
-      [-1, -1], [-1, 1], [1, -1], [1, 1]
-    ];
-    
-    for (const [dc, dr] of neighbors) {
-      const neighbor = territories.find(
-        t => t.col === territory.col + dc && t.row === territory.row + dr
-      );
-      
+    for (const n of territory.neighbors) {
+      const neighbor = territories[n];
       if (!neighbor || neighbor.ownerId !== territory.ownerId) {
         return true;
       }
     }
-    
     return false;
   };
 
@@ -1076,9 +675,8 @@ export default function WorldMap() {
     );
   }
 
-  const mapWidth = MAP_COLS * HEX_HORIZ_SPACING + HEX_SIZE;
-  const mapHeight = MAP_ROWS * HEX_VERT_SPACING + HEX_SIZE;
-  const squares = getSquareTiles();
+  const mapWidth = MAP_WIDTH;
+  const mapHeight = MAP_HEIGHT;
 
   return (
     <View style={styles.container}>
@@ -1088,7 +686,7 @@ export default function WorldMap() {
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <Text style={styles.title}>World Map</Text>
-          <Text style={styles.subtitle}>40,000 Territories</Text>
+          <Text style={styles.subtitle}>Voronoi Territories</Text>
         </View>
         <TouchableOpacity onPress={zoomToMyNation} style={styles.myNationButton}>
           <Ionicons name="locate" size={20} color="#F3F6FA" />
@@ -1220,7 +818,7 @@ export default function WorldMap() {
                   key={`disc-${cluster.nationId}`}
                   cx={centerTerritory.x * zoom}
                   cy={centerTerritory.y * zoom}
-                  r={cluster.discRadius * HEX_HORIZ_SPACING * zoom * 1.1}
+                  r={cluster.discRadius * CELL_SCALE * zoom * 1.1}
                   fill={cluster.color}
                   opacity={0.14}
                   pointerEvents="none"
@@ -1238,11 +836,7 @@ export default function WorldMap() {
               return (
                 <G key={territory.id}>
                   <Polygon
-                    points={getHexagonPoints(
-                      territory.x * zoom,
-                      territory.y * zoom,
-                      HEX_SIZE * zoom
-                    )}
+                    points={territory.polygon.map(([px, py]) => `${px * zoom},${py * zoom}`).join(' ')}
                     fill={fillColor}
                     stroke={stroke.color}
                     strokeWidth={Math.max(0.8, stroke.width * zoom)}
@@ -1255,7 +849,7 @@ export default function WorldMap() {
                     <Circle
                       cx={territory.x * zoom}
                       cy={territory.y * zoom}
-                      r={Math.max(4, HEX_SIZE * zoom * 0.3)}
+                      r={Math.max(4, CELL_SCALE * zoom * 0.5)}
                       fill={RESOURCE_BY_ID.get(territory.resourceId)?.color || '#F3F6FA'}
                       stroke="#0B0F14"
                       strokeWidth={1}
@@ -1274,9 +868,9 @@ export default function WorldMap() {
               
               if (!centerTerritory) return null;
               
-              const centerX = (centerTerritory.x + HEX_SIZE) * zoom;
-              const centerY = (centerTerritory.y + HEX_SIZE) * zoom;
-              const flagSize = Math.max(35, HEX_SIZE * zoom * 1.5);
+              const centerX = centerTerritory.x * zoom;
+              const centerY = centerTerritory.y * zoom;
+              const flagSize = Math.max(35, CELL_SCALE * zoom * 2.5);
               const flagWidth = flagSize * 1.5;
               const flagHeight = flagSize;
               
