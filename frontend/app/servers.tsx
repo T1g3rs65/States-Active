@@ -282,7 +282,7 @@ export default function WorldBrowserScreen() {
                     <View style={styles.worldHeader}>
                       <Text style={styles.worldName}>
                         {world.name}
-                        {isCurrentWorld && <Text style={styles.youBadge}> (You're here)</Text>}
+                        {isCurrentWorld && <Text style={styles.youBadge}> (You{'\u2019'}re here)</Text>}
                       </Text>
                       <View style={styles.playerBadge}>
                         <Ionicons name="people" size={14} color="#00E0C7" />

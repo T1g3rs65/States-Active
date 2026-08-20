@@ -106,7 +106,7 @@ export default function DeclareWarScreen() {
             </View>
           </View>
           <Text style={styles.optionDescription}>
-            Pure conquest and expansion. Severe reputation penalty - you'll be seen as a warmonger.
+            Pure conquest and expansion. Severe reputation penalty - you{'\u2019'}ll be seen as a warmonger.
           </Text>
         </TouchableOpacity>
 

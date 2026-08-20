@@ -9,8 +9,7 @@ import {
   Dimensions,
   ActivityIndicator,
 } from 'react-native';
-import { useRouter } from 'expo-router';
-import { useFocusEffect } from 'expo-router';
+import { useRouter , useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { PieChart } from 'react-native-chart-kit';
 import { useNationStore } from '../../store/nationStore';

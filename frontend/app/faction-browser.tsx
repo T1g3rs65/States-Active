@@ -670,7 +670,7 @@ export default function AllianceBrowserScreen() {
                       <View style={styles.inviteInfo}>
                         <Text style={styles.inviteAllianceName}>{invite.alliance_name}</Text>
                         <Text style={styles.inviteFrom}>Invited by {invite.invited_by_nation_name}</Text>
-                        {invite.message && <Text style={styles.inviteMessage}>"{invite.message}"</Text>}
+                        {invite.message && <Text style={styles.inviteMessage}>{'\u201c'}{invite.message}{'\u201d'}</Text>}
                       </View>
                       <View style={styles.inviteActions}>
                         <TouchableOpacity
@@ -773,7 +773,7 @@ export default function AllianceBrowserScreen() {
                     </View>
                     <Text style={styles.myAllianceName}>{myAlliance.name}</Text>
                     {myAlliance.motto && (
-                      <Text style={styles.myAllianceMotto}>"{myAlliance.motto}"</Text>
+                      <Text style={styles.myAllianceMotto}>{'\u201c'}{myAlliance.motto}{'\u201d'}</Text>
                     )}
                     {myAlliance.description && (
                       <Text style={styles.myAllianceDescription}>{myAlliance.description}</Text>
@@ -904,7 +904,7 @@ export default function AllianceBrowserScreen() {
                             </View>
                             
                             {request.message && (
-                              <Text style={styles.requestMessage} numberOfLines={2}>"{request.message}"</Text>
+                              <Text style={styles.requestMessage} numberOfLines={2}>{'\u201c'}{request.message}{'\u201d'}</Text>
                             )}
                             
                             <View style={styles.requestActions}>
@@ -1016,7 +1016,7 @@ export default function AllianceBrowserScreen() {
               ) : (
                 <View style={styles.emptyState}>
                   <Ionicons name="people-outline" size={64} color="rgba(243,246,250,0.48)" />
-                  <Text style={styles.emptyText}>You're not in a faction</Text>
+                  <Text style={styles.emptyText}>You{'\u2019'}re not in a faction</Text>
                   <Text style={styles.emptySubtext}>Browse factions to join one, or create your own!</Text>
                   <TouchableOpacity
                     style={[styles.createAllianceButton, { backgroundColor: themeColor }]}

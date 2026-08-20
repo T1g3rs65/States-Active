@@ -309,7 +309,7 @@ export default function FactionSettingsScreen() {
         </View>
         <View style={styles.errorContainer}>
           <Ionicons name="lock-closed" size={48} color="rgba(243,246,250,0.48)" />
-          <Text style={styles.errorText}>You don't have permission to edit this faction</Text>
+          <Text style={styles.errorText}>You{'\u2019'} don{'\u2019'}t have permission to edit this faction</Text>
         </View>
       </SafeAreaView>
     );

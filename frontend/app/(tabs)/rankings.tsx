@@ -10,8 +10,7 @@ import {
   Image,
   Alert,
 } from 'react-native';
-import { useRouter } from 'expo-router';
-import { useFocusEffect } from 'expo-router';
+import { useRouter , useFocusEffect } from 'expo-router';
 import { api } from '../../utils/api';
 import { Ionicons } from '@expo/vector-icons';
 import { SvgXml } from 'react-native-svg';

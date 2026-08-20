@@ -278,7 +278,7 @@ export default function NonAggressionPacts() {
       </View>
       
       {request.message && (
-        <Text style={styles.requestMessage}>"{request.message}"</Text>
+        <Text style={styles.requestMessage}>{'\u201c'}{request.message}{'\u201d'}</Text>
       )}
       
       {isIncoming && (

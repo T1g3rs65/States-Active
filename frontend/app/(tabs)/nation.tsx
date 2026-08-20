@@ -16,11 +16,10 @@ import { useNationStore } from '../../store/nationStore';
 import { LinearGradient } from 'expo-linear-gradient';
 import { format } from 'date-fns';
 import { api } from '../../utils/api';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect , useRouter } from 'expo-router';
 import { SvgXml } from 'react-native-svg';
 import { PieChart } from 'react-native-chart-kit';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
 import { calculateTerritoryBiomes, getBiomePieChartData } from '../../utils/territoryCalc';
 import { calculateCapacityFromPopulation, getNationSizeClass } from '../../utils/nationSize';
 import { getRaceTheme, getRaceName, getRaceIcon } from '../../utils/raceColors';
@@ -536,7 +535,7 @@ export default function Nation() {
         </TouchableOpacity>
         <Text style={[styles.sizeClass, { color: themeColor }]}>{getNationSizeClass(stats.population)}</Text>
         {nation.motto && (
-          <Text style={styles.motto}>"{nation.motto}"</Text>
+          <Text style={styles.motto}>{'\u201c'}{nation.motto}{'\u201d'}</Text>
         )}
         <View style={styles.customizationInfo}>
           <Text style={styles.customizationText}>💰 Currency: {nation.currency || 'Credits'}</Text>
@@ -583,7 +582,7 @@ export default function Nation() {
           {nation.description}
         </Text>
         <Text style={styles.descriptionHint}>
-          Descriptions update weekly based on your nation's progress
+          Descriptions update weekly based on your nation{'\u2019'}s progress
         </Text>
       </View>
 

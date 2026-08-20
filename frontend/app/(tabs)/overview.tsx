@@ -9,8 +9,7 @@ import {
   Dimensions,
   Image,
 } from 'react-native';
-import { useRouter } from 'expo-router';
-import { useFocusEffect } from 'expo-router';
+import { useRouter , useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useNationStore } from '../../store/nationStore';
 import { api } from '../../utils/api';

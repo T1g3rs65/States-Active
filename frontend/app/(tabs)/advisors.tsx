@@ -19,8 +19,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNationStore } from '../../store/nationStore';
 import { api } from '../../utils/api';
 import { getRaceTheme } from '../../utils/raceColors';
-import { useRouter } from 'expo-router';
-import { useFocusEffect } from 'expo-router';
+import { useRouter , useFocusEffect } from 'expo-router';
 
 const { width } = Dimensions.get('window');
 

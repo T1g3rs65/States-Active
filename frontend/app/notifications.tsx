@@ -169,7 +169,7 @@ export default function Notifications() {
             <Ionicons name="notifications-off-outline" size={64} color="rgba(255,255,255,0.08)" />
             <Text style={styles.emptyTitle}>No Notifications</Text>
             <Text style={styles.emptyText}>
-              You're all caught up! Requests and notifications will appear here.
+              You{'\u2019'}re all caught up! Requests and notifications will appear here.
             </Text>
           </View>
         ) : (
@@ -249,7 +249,7 @@ export default function Notifications() {
                         <Text style={styles.highlightText}>{request.from_nation_name}</Text> wants to form a Non-Aggression Pact with you.
                       </Text>
                       {request.message && (
-                        <Text style={styles.pactMessage}>"{request.message}"</Text>
+                        <Text style={styles.pactMessage}>{'\u201c'}{request.message}{'\u201d'}</Text>
                       )}
                       <Text style={styles.requestTime}>
                         {new Date(request.created_at).toLocaleDateString()}

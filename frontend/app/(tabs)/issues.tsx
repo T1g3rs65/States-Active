@@ -15,8 +15,7 @@ import { api } from '../../utils/api';
 import { Issue } from '../../types';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import { useFocusEffect } from 'expo-router';
+import { useRouter , useFocusEffect } from 'expo-router';
 import { getRaceTheme } from '../../utils/raceColors';
 
 export default function Issues() {

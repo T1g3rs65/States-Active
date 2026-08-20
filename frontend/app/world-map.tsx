@@ -13,11 +13,10 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import { useNationStore } from '../store/nationStore';
-import Svg, { Polygon, G, Text as SvgText, Rect, Circle } from 'react-native-svg';
+import Svg, { Polygon, G, Text as SvgText, Rect, Circle , SvgXml } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
 import { SimplexNoise } from '../utils/noise';
 import { api } from '../utils/api';
-import { SvgXml } from 'react-native-svg';
 import { lloydRelaxation, calculateBorderOwnership } from '../utils/borders';
 import { calculateCapacityFromPopulation } from '../utils/nationSize';
 import { dijkstraExpansion } from '../utils/dijkstra';
@@ -790,7 +789,7 @@ export default function WorldMap() {
       const allNations = response.rankings || [];
       
       // Collect nation positions with capacities
-      const nationSeeds: Array<{ 
+      const nationSeeds: { 
         nationId: string; 
         col: number; 
         row: number; 
@@ -798,7 +797,7 @@ export default function WorldMap() {
         flag: string | null;
         capacity: number;
         maxRadius: number;
-      }> = [];
+      }[] = [];
       
       let totalCapacity = 0;
       
@@ -910,7 +909,7 @@ export default function WorldMap() {
   // Sync territory counts to backend for each nation
   const syncTerritoryCounts = async (
     territories: Territory[], 
-    nationSeeds: Array<{ nationId: string; name: string }>
+    nationSeeds: { nationId: string; name: string }[]
   ) => {
     for (const seed of nationSeeds) {
       // Count territories by biome for this nation
