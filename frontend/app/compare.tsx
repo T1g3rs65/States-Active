@@ -43,7 +43,7 @@ export default function Compare() {
   if (loading || !myNation || !compareNation) {
     return (
       <View style={styles.container}>
-        <ActivityIndicator size="large" color="#3B82F6" />
+        <ActivityIndicator size="large" color="#00E0C7" />
       </View>
     );
   }
@@ -209,7 +209,7 @@ export default function Compare() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#0B0F14',
   },
   header: {
     flexDirection: 'row',
@@ -217,9 +217,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 16,
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     borderBottomWidth: 1,
-    borderBottomColor: '#334155',
+    borderBottomColor: 'rgba(255,255,255,0.08)',
   },
   backButton: {
     padding: 8,
@@ -227,7 +227,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
   },
   content: {
     padding: 16,
@@ -235,12 +235,12 @@ const styles = StyleSheet.create({
   categoryTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
     marginTop: 24,
     marginBottom: 12,
     paddingBottom: 8,
     borderBottomWidth: 2,
-    borderBottomColor: '#334155',
+    borderBottomColor: 'rgba(255,255,255,0.08)',
   },
   nationHeaders: {
     flexDirection: 'row',
@@ -255,7 +255,7 @@ const styles = StyleSheet.create({
   nationName: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
     marginBottom: 4,
   },
   govType: {
@@ -275,7 +275,7 @@ const styles = StyleSheet.create({
   vs: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#3B82F6',
+    color: '#00E0C7',
   },
   comparisonRow: {
     flexDirection: 'row',
@@ -285,24 +285,24 @@ const styles = StyleSheet.create({
   },
   statBox: {
     flex: 1,
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     padding: 16,
     borderRadius: 8,
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#334155',
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   winner: {
-    borderColor: '#10B981',
+    borderColor: '#27D17A',
     backgroundColor: '#0F3730',
   },
   statValue: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#E2E8F0',
+    color: '#F3F6FA',
   },
   winnerText: {
-    color: '#10B981',
+    color: '#27D17A',
   },
   labelBox: {
     width: 120,
@@ -310,11 +310,11 @@ const styles = StyleSheet.create({
   },
   statLabel: {
     fontSize: 14,
-    color: '#CBD5E1',
+    color: 'rgba(243,246,250,0.70)',
     marginBottom: 4,
   },
   difference: {
     fontSize: 11,
-    color: '#64748B',
+    color: 'rgba(243,246,250,0.48)',
   },
 });

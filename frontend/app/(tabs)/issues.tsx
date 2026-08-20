@@ -33,7 +33,7 @@ export default function Issues() {
   const [secondsRemaining, setSecondsRemaining] = useState<number | null>(null);
   const [atCap, setAtCap] = useState(false);
   const [notificationCount, setNotificationCount] = useState(0);
-  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Get race-based theme color
   const raceTheme = getRaceTheme(nation?.race);
@@ -183,7 +183,7 @@ export default function Issues() {
         >
           <Ionicons name="notifications" size={24} color={themeColor} />
           {notificationCount > 0 && (
-            <View style={[styles.notificationBadge, { backgroundColor: '#EF4444' }]}>
+            <View style={[styles.notificationBadge, { backgroundColor: '#FF5A65' }]}>
               <Text style={styles.notificationBadgeText}>{notificationCount}</Text>
             </View>
           )}
@@ -226,7 +226,7 @@ export default function Issues() {
             <Ionicons 
               name={timerDisplay === 'Available now!' ? "hourglass" : "time-outline"} 
               size={20} 
-              color={timerDisplay === 'Available now!' ? "#F59E0B" : "#22C55E"} 
+              color={timerDisplay === 'Available now!' ? "#F2C94C" : "#27D17A"} 
             />
             <Text style={[styles.nextIssueLabel, timerDisplay === 'Available now!' && styles.generatingLabel]}>
               {timerDisplay === 'Available now!' ? 'Generating...' : 'Next issue in:'}
@@ -267,7 +267,7 @@ export default function Issues() {
             style={styles.issueCard}
             onPress={() => setSelectedIssue(issue)}
           >
-            <LinearGradient colors={['#1E293B', '#0F172A']} style={styles.issueCardGradient}>
+            <LinearGradient colors={['#11171F', '#0B0F14']} style={styles.issueCardGradient}>
               <Text style={styles.issueCardTitle}>{issue.title}</Text>
               <Text style={styles.issueCardPreview} numberOfLines={3}>
                 {issue.description}
@@ -313,7 +313,7 @@ export default function Issues() {
 
         {submitting && (
           <View style={styles.loadingOverlay}>
-            <ActivityIndicator size="large" color="#3B82F6" />
+            <ActivityIndicator size="large" color="#00E0C7" />
             <Text style={styles.loadingText}>Processing decision...</Text>
           </View>
         )}
@@ -360,14 +360,14 @@ function ResultsModal({
       >
         <View style={styles.modalContent} onStartShouldSetResponder={() => true}>
           <View style={styles.modalHeader}>
-            <Ionicons name="checkmark-circle" size={64} color="#10B981" />
+            <Ionicons name="checkmark-circle" size={64} color="#27D17A" />
             <Text style={styles.modalTitle}>Decision Made!</Text>
             <Text style={styles.modalSubtitle}>Your choice has shaped the nation</Text>
           </View>
 
           {policyCreated && (
             <View style={styles.policyCreatedContainer}>
-              <Ionicons name="newspaper" size={32} color="#F59E0B" />
+              <Ionicons name="newspaper" size={32} color="#F2C94C" />
               <Text style={styles.policyCreatedText}>New Law Enacted!</Text>
               <Text style={styles.policyCreatedName}>{policyCreated}</Text>
               <Text style={styles.policyCreatedHint}>View in Policies page</Text>
@@ -382,7 +382,7 @@ function ResultsModal({
                 <Text
                   style={[
                     styles.statChangeValue,
-                    { color: value > 0 ? '#10B981' : '#EF4444' }
+                    { color: value > 0 ? '#27D17A' : '#FF5A65' }
                   ]}
                 >
                   {value > 0 ? '+' : ''}{value.toFixed(1)}
@@ -403,7 +403,7 @@ function ResultsModal({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#0B0F14',
   },
   topHeader: {
     flexDirection: 'row',
@@ -412,14 +412,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 48,
     paddingBottom: 12,
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     borderBottomWidth: 1,
-    borderBottomColor: '#334155',
+    borderBottomColor: 'rgba(255,255,255,0.08)',
   },
   topHeaderTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
   },
   headerButtons: {
     flexDirection: 'row',
@@ -444,7 +444,7 @@ const styles = StyleSheet.create({
   notificationBadgeText: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#fff',
+    color: '#FFF',
   },
   profileButton: {
     padding: 4,
@@ -464,12 +464,12 @@ const styles = StyleSheet.create({
   header: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
     marginBottom: 8,
   },
   subheader: {
     fontSize: 16,
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
     marginBottom: 24,
   },
   issueCard: {
@@ -483,12 +483,12 @@ const styles = StyleSheet.create({
   issueCardTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
     marginBottom: 12,
   },
   issueCardPreview: {
     fontSize: 14,
-    color: '#CBD5E1',
+    color: 'rgba(243,246,250,0.70)',
     lineHeight: 22,
     marginBottom: 16,
   },
@@ -499,48 +499,48 @@ const styles = StyleSheet.create({
   },
   choiceCount: {
     fontSize: 12,
-    color: '#64748B',
+    color: 'rgba(243,246,250,0.48)',
   },
   viewButton: {
     fontSize: 14,
-    color: '#3B82F6',
+    color: '#00E0C7',
     fontWeight: '600',
   },
   backButton: {
     marginBottom: 24,
   },
   backButtonText: {
-    color: '#3B82F6',
+    color: '#00E0C7',
     fontSize: 16,
   },
   issueTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
     marginBottom: 16,
   },
   issueDescription: {
     fontSize: 16,
-    color: '#CBD5E1',
+    color: 'rgba(243,246,250,0.70)',
     lineHeight: 24,
     marginBottom: 32,
     padding: 16,
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     borderRadius: 12,
   },
   choicesHeader: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
     marginBottom: 16,
   },
   choiceCard: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     padding: 20,
     borderRadius: 12,
     marginBottom: 16,
     borderWidth: 2,
-    borderColor: '#334155',
+    borderColor: 'rgba(255,255,255,0.08)',
     flexDirection: 'row',
     alignItems: 'flex-start',
   },
@@ -548,13 +548,13 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#3B82F6',
+    backgroundColor: '#00E0C7',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
   },
   choiceNumberText: {
-    color: '#FFFFFF',
+    color: '#F3F6FA',
     fontSize: 16,
     fontWeight: 'bold',
   },
@@ -562,23 +562,23 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     fontWeight: '600',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
     marginBottom: 8,
   },
   choiceDescription: {
     fontSize: 14,
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
     lineHeight: 20,
     marginBottom: 12,
   },
   effectsContainer: {
     borderTopWidth: 1,
-    borderTopColor: '#334155',
+    borderTopColor: 'rgba(255,255,255,0.08)',
     paddingTop: 12,
   },
   effectsLabel: {
     fontSize: 12,
-    color: '#64748B',
+    color: 'rgba(243,246,250,0.48)',
     marginBottom: 4,
   },
   effectText: {
@@ -592,63 +592,63 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
     marginBottom: 8,
   },
   emptyText: {
     fontSize: 16,
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
     textAlign: 'center',
     marginBottom: 24,
   },
   nextIssueTimer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#22C55E',
+    borderColor: '#27D17A',
     gap: 8,
     marginBottom: 12,
   },
   nextIssueLabel: {
-    color: '#22C55E',
+    color: '#27D17A',
     fontSize: 14,
     fontWeight: '500',
   },
   nextIssueTime: {
-    color: '#FFFFFF',
+    color: '#F3F6FA',
     fontSize: 18,
     fontWeight: 'bold',
   },
   timerHint: {
-    color: '#64748B',
+    color: 'rgba(243,246,250,0.48)',
     fontSize: 12,
     fontStyle: 'italic',
     textAlign: 'center',
   },
   generatingTimer: {
-    borderColor: '#F59E0B',
+    borderColor: '#F2C94C',
   },
   generatingLabel: {
-    color: '#F59E0B',
+    color: '#F2C94C',
   },
   generateButton: {
-    backgroundColor: '#3B82F6',
+    backgroundColor: '#00E0C7',
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
   },
   generateButtonText: {
-    color: '#FFFFFF',
+    color: '#F3F6FA',
     fontSize: 16,
     fontWeight: '600',
   },
   loadingText: {
     marginTop: 16,
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
     fontSize: 16,
   },
   loadingOverlay: {
@@ -668,13 +668,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalContent: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     borderRadius: 20,
     padding: 24,
     width: '90%',
     maxWidth: 400,
     borderWidth: 2,
-    borderColor: '#3B82F6',
+    borderColor: '#00E0C7',
   },
   modalHeader: {
     alignItems: 'center',
@@ -683,28 +683,28 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
     marginTop: 12,
   },
   modalSubtitle: {
     fontSize: 16,
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
     marginTop: 8,
     textAlign: 'center',
   },
   policyCreatedContainer: {
-    backgroundColor: '#F59E0B22',
+    backgroundColor: '#F2C94C22',
     borderRadius: 12,
     padding: 20,
     marginBottom: 24,
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#F59E0B',
+    borderColor: '#F2C94C',
   },
   policyCreatedText: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#F59E0B',
+    color: '#F2C94C',
     marginTop: 12,
     marginBottom: 8,
   },
@@ -717,11 +717,11 @@ const styles = StyleSheet.create({
   },
   policyCreatedHint: {
     fontSize: 12,
-    color: '#CBD5E1',
+    color: 'rgba(243,246,250,0.70)',
     fontStyle: 'italic',
   },
   statsChangesContainer: {
-    backgroundColor: '#0F172A',
+    backgroundColor: '#0B0F14',
     borderRadius: 12,
     padding: 16,
     marginBottom: 24,
@@ -729,7 +729,7 @@ const styles = StyleSheet.create({
   statsChangesHeader: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#CBD5E1',
+    color: 'rgba(243,246,250,0.70)',
     marginBottom: 12,
   },
   statChangeRow: {
@@ -737,11 +737,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#334155',
+    borderBottomColor: 'rgba(255,255,255,0.08)',
   },
   statChangeName: {
     fontSize: 15,
-    color: '#E2E8F0',
+    color: '#F3F6FA',
     flex: 1,
   },
   statChangeValue: {
@@ -750,13 +750,13 @@ const styles = StyleSheet.create({
     marginLeft: 16,
   },
   modalButton: {
-    backgroundColor: '#3B82F6',
+    backgroundColor: '#00E0C7',
     padding: 16,
     borderRadius: 12,
     alignItems: 'center',
   },
   modalButtonText: {
-    color: '#FFFFFF',
+    color: '#F3F6FA',
     fontSize: 18,
     fontWeight: '600',
   },

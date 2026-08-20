@@ -79,7 +79,7 @@ export default function Index() {
   if (checking) {
     return (
       <View style={styles.container}>
-        <ActivityIndicator size="large" color="#3B82F6" />
+        <ActivityIndicator size="large" color="#00E0C7" />
         <Text style={styles.loadingText}>Loading your nation...</Text>
       </View>
     );
@@ -88,7 +88,7 @@ export default function Index() {
   if (showLogin) {
     return (
       <LinearGradient
-        colors={['#0F172A', '#1E293B', '#334155']}
+        colors={['#0B0F14', '#11171F', 'rgba(255,255,255,0.08)']}
         style={styles.container}
       >
         <View style={styles.content}>
@@ -102,7 +102,7 @@ export default function Index() {
               value={userId}
               onChangeText={setUserId}
               placeholder="Enter your User ID"
-              placeholderTextColor="#64748B"
+              placeholderTextColor="rgba(243,246,250,0.48)"
               autoCapitalize="none"
             />
             
@@ -124,7 +124,7 @@ export default function Index() {
 
   return (
     <LinearGradient
-      colors={['#0F172A', '#1E293B', '#334155']}
+      colors={['#0B0F14', '#11171F', 'rgba(255,255,255,0.08)']}
       style={styles.container}
     >
       <View style={styles.content}>
@@ -179,19 +179,19 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 48,
     fontWeight: 'bold',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
     marginBottom: 8,
     letterSpacing: 2,
   },
   subtitle: {
     fontSize: 24,
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
     marginBottom: 32,
     letterSpacing: 1,
   },
   description: {
     fontSize: 16,
-    color: '#CBD5E1',
+    color: 'rgba(243,246,250,0.70)',
     textAlign: 'center',
     marginBottom: 40,
     lineHeight: 24,
@@ -212,15 +212,15 @@ const styles = StyleSheet.create({
   },
   featureText: {
     fontSize: 16,
-    color: '#E2E8F0',
+    color: '#F3F6FA',
   },
   button: {
-    backgroundColor: '#3B82F6',
+    backgroundColor: '#00E0C7',
     paddingHorizontal: 48,
     paddingVertical: 16,
     borderRadius: 12,
     elevation: 4,
-    shadowColor: '#3B82F6',
+    shadowColor: '#00E0C7',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -228,7 +228,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   buttonText: {
-    color: '#FFFFFF',
+    color: '#F3F6FA',
     fontSize: 18,
     fontWeight: '600',
     letterSpacing: 0.5,
@@ -240,39 +240,39 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   secondaryButtonText: {
-    color: '#3B82F6',
+    color: '#00E0C7',
     fontSize: 16,
     fontWeight: '500',
   },
   loadingText: {
     marginTop: 16,
     fontSize: 16,
-    color: '#64748B',
+    color: 'rgba(243,246,250,0.48)',
   },
   loginForm: {
     width: '100%',
     gap: 16,
   },
   label: {
-    color: '#CBD5E1',
+    color: 'rgba(243,246,250,0.70)',
     fontSize: 16,
     fontWeight: '500',
   },
   input: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: 'rgba(255,255,255,0.08)',
     borderRadius: 8,
     padding: 16,
     fontSize: 16,
-    color: '#F8FAFC',
+    color: '#F3F6FA',
   },
   backButton: {
     paddingVertical: 12,
     alignItems: 'center',
   },
   backButtonText: {
-    color: '#64748B',
+    color: 'rgba(243,246,250,0.48)',
     fontSize: 16,
   },
 });

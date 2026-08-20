@@ -9,7 +9,7 @@ export default function WarDashboard() {
   const [participants, setParticipants] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [battleTimerDisplay, setBattleTimerDisplay] = useState<string>('');
-  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     loadWarDetails();
@@ -71,7 +71,7 @@ export default function WarDashboard() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#EF4444" />
+        <ActivityIndicator size="large" color="#FF5A65" />
         <Text style={styles.loadingText}>Loading War Status...</Text>
       </View>
     );
@@ -93,7 +93,7 @@ export default function WarDashboard() {
   
   // Calculate war score from perspective (attacker's perspective if spectating)
   const displayScore = isAttacker ? war.war_score : -war.war_score;
-  const scoreColor = displayScore > 0 ? '#10B981' : displayScore < 0 ? '#EF4444' : '#6B7280';
+  const scoreColor = displayScore > 0 ? '#27D17A' : displayScore < 0 ? '#FF5A65' : 'rgba(243,246,250,0.48)';
   
   return (
     <View style={styles.container}>
@@ -245,7 +245,7 @@ export default function WarDashboard() {
                   <Text style={styles.eventTitle}>{event.title}</Text>
                   <Text style={[
                     styles.eventScore,
-                    { color: event.war_score_change > 0 ? '#10B981' : '#EF4444' }
+                    { color: event.war_score_change > 0 ? '#27D17A' : '#FF5A65' }
                   ]}>
                     {event.war_score_change > 0 ? '+' : ''}{event.war_score_change}
                   </Text>
@@ -285,16 +285,16 @@ export default function WarDashboard() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#0B0F14',
   },
   loadingContainer: {
     flex: 1,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#0B0F14',
     justifyContent: 'center',
     alignItems: 'center',
   },
   loadingText: {
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
     marginTop: 16,
     fontSize: 16,
   },
@@ -304,33 +304,33 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 60,
     paddingBottom: 20,
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     borderBottomWidth: 2,
-    borderBottomColor: '#EF4444',
+    borderBottomColor: '#FF5A65',
   },
   backButton: {
     marginRight: 16,
   },
   backText: {
-    color: '#EF4444',
+    color: '#FF5A65',
     fontSize: 16,
     fontWeight: '600',
   },
   headerTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#EF4444',
+    color: '#FF5A65',
     flex: 1,
   },
   spectatorBadge: {
-    backgroundColor: '#6B7280',
+    backgroundColor: 'rgba(243,246,250,0.48)',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
     marginLeft: 8,
   },
   spectatorText: {
-    color: '#FFFFFF',
+    color: '#F3F6FA',
     fontSize: 12,
     fontWeight: '600',
   },
@@ -341,12 +341,12 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   card: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     borderRadius: 12,
     padding: 20,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   cardTitle: {
     fontSize: 20,
@@ -357,13 +357,13 @@ const styles = StyleSheet.create({
   },
   dayText: {
     fontSize: 16,
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
     textAlign: 'center',
     marginBottom: 4,
   },
   caususBelli: {
     fontSize: 14,
-    color: '#EF4444',
+    color: '#FF5A65',
     textAlign: 'center',
     fontWeight: '600',
   },
@@ -378,7 +378,7 @@ const styles = StyleSheet.create({
   },
   scoreBarTrack: {
     height: 40,
-    backgroundColor: '#334155',
+    backgroundColor: 'rgba(255,255,255,0.08)',
     borderRadius: 8,
     overflow: 'hidden',
     position: 'relative',
@@ -400,23 +400,23 @@ const styles = StyleSheet.create({
   },
   scoreLabelLeft: {
     fontSize: 12,
-    color: '#EF4444',
+    color: '#FF5A65',
   },
   scoreLabelCenter: {
     fontSize: 12,
-    color: '#6B7280',
+    color: 'rgba(243,246,250,0.48)',
   },
   scoreLabelRight: {
     fontSize: 12,
-    color: '#10B981',
+    color: '#27D17A',
   },
   battleTimerCard: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
     borderWidth: 2,
-    borderColor: '#F59E0B',
+    borderColor: '#F2C94C',
     alignItems: 'center',
   },
   battleTimerHeader: {
@@ -431,26 +431,26 @@ const styles = StyleSheet.create({
   battleTimerTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#F59E0B',
+    color: '#F2C94C',
   },
   battleTimerValue: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
     marginBottom: 8,
   },
   battleTimerHint: {
     fontSize: 12,
-    color: '#64748B',
+    color: 'rgba(243,246,250,0.48)',
     textAlign: 'center',
   },
   eventCard: {
-    backgroundColor: '#0F172A',
+    backgroundColor: '#0B0F14',
     borderRadius: 8,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#475569',
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   eventHeader: {
     flexDirection: 'row',
@@ -471,49 +471,49 @@ const styles = StyleSheet.create({
   },
   eventDescription: {
     fontSize: 14,
-    color: '#CBD5E1',
+    color: 'rgba(243,246,250,0.70)',
     lineHeight: 20,
     marginBottom: 8,
   },
   eventDate: {
     fontSize: 12,
-    color: '#64748B',
+    color: 'rgba(243,246,250,0.48)',
   },
   noEvents: {
     fontSize: 14,
-    color: '#64748B',
+    color: 'rgba(243,246,250,0.48)',
     fontStyle: 'italic',
     textAlign: 'center',
     paddingVertical: 20,
   },
   actionsCard: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     borderRadius: 12,
     padding: 20,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#EF4444',
+    borderColor: '#FF5A65',
   },
   surrenderButton: {
-    backgroundColor: '#EF4444',
+    backgroundColor: '#FF5A65',
     borderRadius: 8,
     paddingVertical: 14,
     alignItems: 'center',
     marginBottom: 12,
   },
   surrenderButtonText: {
-    color: '#FFFFFF',
+    color: '#F3F6FA',
     fontSize: 16,
     fontWeight: 'bold',
   },
   warningText: {
     fontSize: 13,
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
     textAlign: 'center',
     lineHeight: 18,
   },
   errorText: {
-    color: '#EF4444',
+    color: '#FF5A65',
     fontSize: 16,
     textAlign: 'center',
     marginTop: 40,
@@ -525,12 +525,12 @@ const styles = StyleSheet.create({
   sideTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
     marginBottom: 4,
   },
   sidePower: {
     fontSize: 12,
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
     marginBottom: 12,
   },
   participantRow: {
@@ -538,7 +538,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 8,
     paddingHorizontal: 12,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#0B0F14',
     borderRadius: 8,
     marginBottom: 6,
   },
@@ -548,19 +548,19 @@ const styles = StyleSheet.create({
   participantName: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
   },
   primaryParticipant: {
     fontWeight: '700',
-    color: '#F59E0B',
+    color: '#F2C94C',
   },
   participantRace: {
     fontSize: 12,
-    color: '#64748B',
+    color: 'rgba(243,246,250,0.48)',
     marginTop: 2,
   },
   youBadge: {
-    backgroundColor: '#3B82F6',
+    backgroundColor: '#00E0C7',
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 4,
@@ -568,7 +568,7 @@ const styles = StyleSheet.create({
   youBadgeText: {
     fontSize: 10,
     fontWeight: '600',
-    color: '#fff',
+    color: '#FFF',
   },
   vsSeparator: {
     alignItems: 'center',
@@ -577,19 +577,19 @@ const styles = StyleSheet.create({
   vsText: {
     fontSize: 20,
     fontWeight: '900',
-    color: '#EF4444',
+    color: '#FF5A65',
   },
   vassalWarNotice: {
     marginTop: 12,
     padding: 10,
-    backgroundColor: '#F59E0B20',
+    backgroundColor: '#F2C94C20',
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#F59E0B',
+    borderColor: '#F2C94C',
   },
   vassalWarText: {
     fontSize: 12,
-    color: '#F59E0B',
+    color: '#F2C94C',
     textAlign: 'center',
     fontWeight: '500',
   },

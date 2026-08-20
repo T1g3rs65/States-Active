@@ -85,7 +85,7 @@ export default function DeclareWarScreen() {
         >
           <View style={styles.optionHeader}>
             <Text style={styles.optionTitle}>💎 Resource Competition</Text>
-            <View style={[styles.repBadge, { backgroundColor: '#F59E0B' }]}>
+            <View style={[styles.repBadge, { backgroundColor: '#F2C94C' }]}>
               <Text style={styles.repText}>-10 Rep</Text>
             </View>
           </View>
@@ -100,8 +100,8 @@ export default function DeclareWarScreen() {
           disabled={loading}
         >
           <View style={styles.optionHeader}>
-            <Text style={[styles.optionTitle, { color: '#EF4444' }]}>🔥 Aggressive Expansion</Text>
-            <View style={[styles.repBadge, { backgroundColor: '#DC2626' }]}>
+            <Text style={[styles.optionTitle, { color: '#FF5A65' }]}>🔥 Aggressive Expansion</Text>
+            <View style={[styles.repBadge, { backgroundColor: '#FF5A65' }]}>
               <Text style={styles.repText}>-20 Rep</Text>
             </View>
           </View>
@@ -149,7 +149,7 @@ export default function DeclareWarScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#0B0F14',
   },
   header: {
     flexDirection: 'row',
@@ -157,35 +157,35 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 60,
     paddingBottom: 20,
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     borderBottomWidth: 2,
-    borderBottomColor: '#EF4444',
+    borderBottomColor: '#FF5A65',
   },
   backButton: {
     marginRight: 16,
   },
   backText: {
-    color: '#EF4444',
+    color: '#FF5A65',
     fontSize: 16,
     fontWeight: '600',
   },
   headerTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#EF4444',
+    color: '#FF5A65',
   },
   content: {
     flex: 1,
     padding: 20,
   },
   warningCard: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     borderRadius: 12,
     padding: 24,
     marginBottom: 24,
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#EF4444',
+    borderColor: '#FF5A65',
   },
   warningEmoji: {
     fontSize: 48,
@@ -199,7 +199,7 @@ const styles = StyleSheet.create({
   },
   warningText: {
     fontSize: 14,
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
     textAlign: 'center',
     lineHeight: 20,
   },
@@ -210,15 +210,15 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   optionCard: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     borderRadius: 12,
     padding: 20,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   dangerCard: {
-    borderColor: '#EF4444',
+    borderColor: '#FF5A65',
     borderWidth: 2,
   },
   disabled: {
@@ -237,23 +237,23 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   repBadge: {
-    backgroundColor: '#475569',
+    backgroundColor: 'rgba(255,255,255,0.08)',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 6,
   },
   repText: {
-    color: '#FFFFFF',
+    color: '#F3F6FA',
     fontSize: 14,
     fontWeight: 'bold',
   },
   optionDescription: {
     fontSize: 14,
-    color: '#CBD5E1',
+    color: 'rgba(243,246,250,0.70)',
     lineHeight: 20,
   },
   loadingCard: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     borderRadius: 12,
     padding: 20,
     alignItems: 'center',
@@ -265,12 +265,12 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   errorCard: {
-    backgroundColor: '#7F1D1D',
+    backgroundColor: '#FF5A65',
     borderRadius: 12,
     padding: 20,
     marginBottom: 16,
     borderWidth: 2,
-    borderColor: '#EF4444',
+    borderColor: '#FF5A65',
   },
   errorTitle: {
     fontSize: 18,
@@ -285,22 +285,22 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   errorButton: {
-    backgroundColor: '#EF4444',
+    backgroundColor: '#FF5A65',
     borderRadius: 8,
     paddingVertical: 12,
     alignItems: 'center',
   },
   errorButtonText: {
-    color: '#FFFFFF',
+    color: '#F3F6FA',
     fontSize: 16,
     fontWeight: 'bold',
   },
   infoCard: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     borderRadius: 12,
     padding: 20,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   infoTitle: {
     fontSize: 16,
@@ -310,7 +310,7 @@ const styles = StyleSheet.create({
   },
   infoText: {
     fontSize: 14,
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
     lineHeight: 22,
     marginBottom: 4,
   },

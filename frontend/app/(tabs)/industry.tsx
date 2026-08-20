@@ -167,7 +167,7 @@ export default function Industry() {
       name: item.resource.name,
       population: Math.round((item.value / Math.max(industryStats.totalValue, 1)) * 100),
       color: item.resource.color,
-      legendFontColor: '#CBD5E1',
+      legendFontColor: 'rgba(243,246,250,0.70)',
       legendFontSize: 11,
     }));
 
@@ -179,8 +179,8 @@ export default function Industry() {
       pieData.push({
         name: 'Other',
         population: Math.round((otherValue / Math.max(industryStats.totalValue, 1)) * 100),
-        color: '#64748B',
-        legendFontColor: '#CBD5E1',
+        color: 'rgba(243,246,250,0.48)',
+        legendFontColor: 'rgba(243,246,250,0.70)',
         legendFontSize: 11,
       });
     }
@@ -190,8 +190,8 @@ export default function Industry() {
       pieData.push({
         name: 'No Resources',
         population: 100,
-        color: '#334155',
-        legendFontColor: '#CBD5E1',
+        color: 'rgba(255,255,255,0.08)',
+        legendFontColor: 'rgba(243,246,250,0.70)',
         legendFontSize: 11,
       });
     }
@@ -207,9 +207,9 @@ export default function Industry() {
             </Text>
             <Text style={styles.statSubtext}>Value Units</Text>
           </View>
-          <View style={[styles.statCard, { borderColor: '#22C55E' }]}>
+          <View style={[styles.statCard, { borderColor: '#27D17A' }]}>
             <Text style={styles.statLabel}>GDP Contribution</Text>
-            <Text style={[styles.statValue, { color: '#22C55E' }]}>
+            <Text style={[styles.statValue, { color: '#27D17A' }]}>
               {formatValue(industryStats.gdpContribution)}
             </Text>
             <Text style={styles.statSubtext}>{industryStats.industryPercentOfGDP.toFixed(1)}% of GDP</Text>
@@ -217,16 +217,16 @@ export default function Industry() {
         </View>
 
         <View style={styles.statsRow}>
-          <View style={[styles.statCard, { borderColor: '#F59E0B' }]}>
+          <View style={[styles.statCard, { borderColor: '#F2C94C' }]}>
             <Text style={styles.statLabel}>Resource Tiles</Text>
-            <Text style={[styles.statValue, { color: '#F59E0B' }]}>
+            <Text style={[styles.statValue, { color: '#F2C94C' }]}>
               {industryStats.resourceTiles}
             </Text>
             <Text style={styles.statSubtext}>of {industryStats.totalTiles} total</Text>
           </View>
-          <View style={[styles.statCard, { borderColor: '#8B5CF6' }]}>
+          <View style={[styles.statCard, { borderColor: '#00E0C7' }]}>
             <Text style={styles.statLabel}>Resource Types</Text>
-            <Text style={[styles.statValue, { color: '#8B5CF6' }]}>
+            <Text style={[styles.statValue, { color: '#00E0C7' }]}>
               {Object.keys(industryStats.resourceCounts).length}
             </Text>
             <Text style={styles.statSubtext}>Unique Resources</Text>
@@ -291,7 +291,7 @@ export default function Industry() {
 
         {industryStats.topResources.length === 0 ? (
           <View style={styles.emptyState}>
-            <Ionicons name="cube-outline" size={48} color="#64748B" />
+            <Ionicons name="cube-outline" size={48} color="rgba(243,246,250,0.48)" />
             <Text style={styles.emptyStateText}>No resources discovered yet</Text>
             <Text style={styles.emptyStateSubtext}>
               Visit the World Map to claim territory with resources
@@ -355,7 +355,7 @@ export default function Industry() {
 
         {leaderboardData.length === 0 ? (
           <View style={styles.emptyState}>
-            <Ionicons name="trophy-outline" size={48} color="#64748B" />
+            <Ionicons name="trophy-outline" size={48} color="rgba(243,246,250,0.48)" />
             <Text style={styles.emptyStateText}>Loading leaderboard...</Text>
           </View>
         ) : (
@@ -373,7 +373,7 @@ export default function Industry() {
                   <Text style={[
                     styles.rankText,
                     index === 0 && { color: '#FCD34D' },
-                    index === 1 && { color: '#CBD5E1' },
+                    index === 1 && { color: 'rgba(243,246,250,0.70)' },
                     index === 2 && { color: '#F97316' }
                   ]}>
                     #{index + 1}
@@ -401,7 +401,7 @@ export default function Industry() {
     return (
       <View style={styles.container}>
         <View style={styles.emptyState}>
-          <Ionicons name="business-outline" size={64} color="#64748B" />
+          <Ionicons name="business-outline" size={64} color="rgba(243,246,250,0.48)" />
           <Text style={styles.emptyStateText}>No nation found</Text>
           <Text style={styles.emptyStateSubtext}>Create a nation to view industry stats</Text>
         </View>
@@ -432,7 +432,7 @@ export default function Industry() {
           >
             <Ionicons name="notifications" size={24} color={themeColor} />
             {notificationCount > 0 && (
-              <View style={[styles.notificationBadge, { backgroundColor: '#EF4444' }]}>
+              <View style={[styles.notificationBadge, { backgroundColor: '#FF5A65' }]}>
                 <Text style={styles.notificationBadgeText}>{notificationCount}</Text>
               </View>
             )}
@@ -477,7 +477,7 @@ export default function Industry() {
       <ScrollView
         style={styles.content}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#3B82F6" />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#00E0C7" />
         }
       >
         {selectedTab === 'overview' && renderOverview()}
@@ -487,7 +487,7 @@ export default function Industry() {
         {/* Hint to visit world map */}
         {(!industryStats || industryStats.resourceTiles === 0) && (
           <View style={styles.hintCard}>
-            <Ionicons name="map-outline" size={32} color="#F59E0B" />
+            <Ionicons name="map-outline" size={32} color="#F2C94C" />
             <View style={{ flex: 1, marginLeft: 12 }}>
               <Text style={styles.hintTitle}>Sync Your Territory</Text>
               <Text style={styles.hintText}>
@@ -498,7 +498,7 @@ export default function Industry() {
                 onPress={() => router.push('/world-map')}
               >
                 <Text style={styles.hintButtonText}>Open World Map</Text>
-                <Ionicons name="arrow-forward" size={16} color="#FFFFFF" />
+                <Ionicons name="arrow-forward" size={16} color="#F3F6FA" />
               </TouchableOpacity>
             </View>
           </View>
@@ -513,7 +513,7 @@ export default function Industry() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#0B0F14',
   },
   topHeader: {
     flexDirection: 'row',
@@ -522,14 +522,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 48,
     paddingBottom: 12,
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     borderBottomWidth: 1,
-    borderBottomColor: '#334155',
+    borderBottomColor: 'rgba(255,255,255,0.08)',
   },
   topHeaderTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
   },
   headerButtons: {
     flexDirection: 'row',
@@ -554,7 +554,7 @@ const styles = StyleSheet.create({
   notificationBadgeText: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#fff',
+    color: '#FFF',
   },
   profileButton: {
     padding: 4,
@@ -563,23 +563,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     padding: 12,
     gap: 8,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#0B0F14',
   },
   tab: {
     flex: 1,
     paddingVertical: 10,
     paddingHorizontal: 16,
     borderRadius: 8,
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     alignItems: 'center',
   },
   tabText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
   },
   tabTextActive: {
-    color: '#FFFFFF',
+    color: '#F3F6FA',
   },
   content: {
     flex: 1,
@@ -591,7 +591,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadingText: {
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
     marginTop: 12,
     fontSize: 16,
   },
@@ -602,14 +602,14 @@ const styles = StyleSheet.create({
   },
   statCard: {
     flex: 1,
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     borderRadius: 12,
     padding: 16,
     borderLeftWidth: 4,
   },
   statLabel: {
     fontSize: 12,
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
     marginBottom: 4,
   },
   statValue: {
@@ -618,7 +618,7 @@ const styles = StyleSheet.create({
   },
   statSubtext: {
     fontSize: 11,
-    color: '#64748B',
+    color: 'rgba(243,246,250,0.48)',
     marginTop: 2,
   },
   sectionHeader: {
@@ -628,11 +628,11 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
   },
   sectionSubtitle: {
     fontSize: 13,
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
     marginTop: 4,
   },
   tierRow: {
@@ -641,7 +641,7 @@ const styles = StyleSheet.create({
   },
   tierCard: {
     flex: 1,
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     borderRadius: 8,
     padding: 12,
     borderLeftWidth: 3,
@@ -649,26 +649,26 @@ const styles = StyleSheet.create({
   tierLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
     marginBottom: 4,
   },
   tierCount: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
   },
   tierValue: {
     fontSize: 11,
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
   },
   chartContainer: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
   },
   resourceCard: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
@@ -691,7 +691,7 @@ const styles = StyleSheet.create({
   resourceName: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
   },
   resourceMeta: {
     flexDirection: 'row',
@@ -710,7 +710,7 @@ const styles = StyleSheet.create({
   },
   resourceValue: {
     fontSize: 12,
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
   },
   resourceStats: {
     alignItems: 'flex-end',
@@ -718,21 +718,21 @@ const styles = StyleSheet.create({
   resourceCount: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
   },
   resourceCountLabel: {
     fontSize: 11,
-    color: '#64748B',
+    color: 'rgba(243,246,250,0.48)',
   },
   resourceFooter: {
     marginTop: 12,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#334155',
+    borderTopColor: 'rgba(255,255,255,0.08)',
   },
   resourceDescription: {
     fontSize: 13,
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
     lineHeight: 18,
   },
   resourceValueRow: {
@@ -743,7 +743,7 @@ const styles = StyleSheet.create({
   },
   resourceTotalLabel: {
     fontSize: 12,
-    color: '#64748B',
+    color: 'rgba(243,246,250,0.48)',
   },
   resourceTotalValue: {
     fontSize: 16,
@@ -751,7 +751,7 @@ const styles = StyleSheet.create({
   },
   resourcePercentage: {
     fontSize: 12,
-    color: '#64748B',
+    color: 'rgba(243,246,250,0.48)',
   },
   emptyState: {
     alignItems: 'center',
@@ -760,19 +760,19 @@ const styles = StyleSheet.create({
   emptyStateText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
     marginTop: 16,
   },
   emptyStateSubtext: {
     fontSize: 14,
-    color: '#64748B',
+    color: 'rgba(243,246,250,0.48)',
     marginTop: 8,
     textAlign: 'center',
   },
   leaderboardEntry: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     borderRadius: 12,
     padding: 14,
     marginBottom: 10,
@@ -784,7 +784,7 @@ const styles = StyleSheet.create({
   rankText: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
   },
   leaderboardInfo: {
     flex: 1,
@@ -793,11 +793,11 @@ const styles = StyleSheet.create({
   leaderboardName: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
   },
   leaderboardStats: {
     fontSize: 12,
-    color: '#64748B',
+    color: 'rgba(243,246,250,0.48)',
     marginTop: 2,
   },
   leaderboardValue: {
@@ -806,11 +806,11 @@ const styles = StyleSheet.create({
   leaderboardValueText: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#22C55E',
+    color: '#27D17A',
   },
   leaderboardValueLabel: {
     fontSize: 11,
-    color: '#64748B',
+    color: 'rgba(243,246,250,0.48)',
   },
   hintCard: {
     flexDirection: 'row',
@@ -837,7 +837,7 @@ const styles = StyleSheet.create({
   hintButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F59E0B',
+    backgroundColor: '#F2C94C',
     paddingVertical: 10,
     paddingHorizontal: 16,
     borderRadius: 8,
@@ -845,7 +845,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   hintButtonText: {
-    color: '#FFFFFF',
+    color: '#F3F6FA',
     fontSize: 14,
     fontWeight: '600',
   },

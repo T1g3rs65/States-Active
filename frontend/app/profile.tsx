@@ -219,7 +219,7 @@ export default function Profile() {
           <TouchableOpacity style={styles.settingButton} onPress={() => setShowFlagCreator(true)}>
             <Ionicons name="flag" size={24} color={themeColor} />
             <Text style={styles.settingButtonText}>Design Flag</Text>
-            <Ionicons name="chevron-forward" size={20} color="#64748B" />
+            <Ionicons name="chevron-forward" size={20} color="rgba(243,246,250,0.48)" />
           </TouchableOpacity>
           
           <TouchableOpacity style={styles.settingButton} onPress={() => {
@@ -229,7 +229,7 @@ export default function Profile() {
           }}>
             <Ionicons name="create-outline" size={24} color={themeColor} />
             <Text style={styles.settingButtonText}>Edit Currency & Animal</Text>
-            <Ionicons name="chevron-forward" size={20} color="#64748B" />
+            <Ionicons name="chevron-forward" size={20} color="rgba(243,246,250,0.48)" />
           </TouchableOpacity>
         </View>
 
@@ -237,21 +237,21 @@ export default function Profile() {
           <Text style={styles.sectionTitle}>Multiplayer</Text>
           
           <TouchableOpacity style={styles.settingButton} onPress={() => router.push('/faction-browser')}>
-            <Ionicons name="people" size={24} color="#8B5CF6" />
+            <Ionicons name="people" size={24} color="#00E0C7" />
             <Text style={styles.settingButtonText}>Factions</Text>
-            <Ionicons name="chevron-forward" size={20} color="#64748B" />
+            <Ionicons name="chevron-forward" size={20} color="rgba(243,246,250,0.48)" />
           </TouchableOpacity>
           
           <TouchableOpacity style={styles.settingButton} onPress={() => router.push('/world-news')}>
-            <Ionicons name="newspaper" size={24} color="#F59E0B" />
+            <Ionicons name="newspaper" size={24} color="#F2C94C" />
             <Text style={styles.settingButtonText}>World News & Voting</Text>
-            <Ionicons name="chevron-forward" size={20} color="#64748B" />
+            <Ionicons name="chevron-forward" size={20} color="rgba(243,246,250,0.48)" />
           </TouchableOpacity>
           
           <TouchableOpacity style={styles.settingButton} onPress={() => router.push('/servers')}>
-            <Ionicons name="globe" size={24} color="#22C55E" />
+            <Ionicons name="globe" size={24} color="#27D17A" />
             <Text style={styles.settingButtonText}>Server Browser</Text>
-            <Ionicons name="chevron-forward" size={20} color="#64748B" />
+            <Ionicons name="chevron-forward" size={20} color="rgba(243,246,250,0.48)" />
           </TouchableOpacity>
         </View>
 
@@ -262,7 +262,7 @@ export default function Profile() {
             style={[styles.settingButton, notificationsEnabled && styles.settingButtonActive]} 
             onPress={toggleNotifications}
           >
-            <Ionicons name={notificationsEnabled ? "notifications" : "notifications-off"} size={24} color={notificationsEnabled ? "#10B981" : "#64748B"} />
+            <Ionicons name={notificationsEnabled ? "notifications" : "notifications-off"} size={24} color={notificationsEnabled ? "#27D17A" : "rgba(243,246,250,0.48)"} />
             <Text style={styles.settingButtonText}>
               {notificationsEnabled ? 'Notifications Enabled' : 'Enable Notifications'}
             </Text>
@@ -284,7 +284,7 @@ export default function Profile() {
             }}
             activeOpacity={0.7}
           >
-            <Ionicons name="trash" size={24} color="#FFFFFF" />
+            <Ionicons name="trash" size={24} color="#F3F6FA" />
             <Text style={styles.deleteButtonText}>Delete Nation</Text>
           </TouchableOpacity>
         </View>
@@ -331,7 +331,7 @@ export default function Profile() {
               value={editCurrency}
               onChangeText={setEditCurrency}
               placeholder="Credits"
-              placeholderTextColor="#64748B"
+              placeholderTextColor="rgba(243,246,250,0.48)"
             />
             
             <Text style={styles.modalLabel}>National Animal</Text>
@@ -340,7 +340,7 @@ export default function Profile() {
               value={editAnimal}
               onChangeText={setEditAnimal}
               placeholder="Eagle"
-              placeholderTextColor="#64748B"
+              placeholderTextColor="rgba(243,246,250,0.48)"
             />
             
             <TouchableOpacity style={[styles.saveButton, { backgroundColor: themeColor }]} onPress={handleCustomizationUpdate}>
@@ -359,7 +359,7 @@ export default function Profile() {
       >
         <View style={styles.deleteModalOverlay}>
           <View style={styles.deleteModalContent}>
-            <Ionicons name="warning" size={48} color="#EF4444" style={{ marginBottom: 16 }} />
+            <Ionicons name="warning" size={48} color="#FF5A65" style={{ marginBottom: 16 }} />
             <Text style={styles.deleteModalTitle}>Delete Nation?</Text>
             <Text style={styles.deleteModalText}>
               Are you sure you want to permanently delete your nation? This action cannot be undone.
@@ -408,7 +408,7 @@ export default function Profile() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#0B0F14',
   },
   header: {
     flexDirection: 'row',
@@ -416,9 +416,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 16,
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     borderBottomWidth: 1,
-    borderBottomColor: '#334155',
+    borderBottomColor: 'rgba(255,255,255,0.08)',
   },
   backButton: {
     padding: 8,
@@ -426,7 +426,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
   },
   content: {
     padding: 16,
@@ -441,76 +441,76 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
     marginBottom: 12,
   },
   userIdCard: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     padding: 20,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   userIdLabel: {
     fontSize: 14,
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
     marginBottom: 8,
   },
   userId: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#3B82F6',
+    color: '#00E0C7',
     marginBottom: 8,
   },
   userIdNote: {
     fontSize: 12,
-    color: '#64748B',
+    color: 'rgba(243,246,250,0.48)',
     fontStyle: 'italic',
     marginBottom: 16,
   },
   copyButton: {
-    backgroundColor: '#334155',
+    backgroundColor: 'rgba(255,255,255,0.08)',
     padding: 12,
     borderRadius: 8,
     alignItems: 'center',
   },
   copyButtonText: {
-    color: '#E2E8F0',
+    color: '#F3F6FA',
     fontSize: 14,
     fontWeight: '500',
   },
   settingButton: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     padding: 16,
     borderRadius: 12,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   settingButtonActive: {
-    borderColor: '#10B981',
+    borderColor: '#27D17A',
   },
   warButtonActive: {
-    borderColor: '#EF4444',
+    borderColor: '#FF5A65',
     borderWidth: 2,
     backgroundColor: '#1E1B4B',
   },
   settingButtonText: {
     flex: 1,
-    color: '#E2E8F0',
+    color: '#F3F6FA',
     fontSize: 16,
     fontWeight: '500',
   },
   notificationNote: {
     fontSize: 12,
-    color: '#64748B',
+    color: 'rgba(243,246,250,0.48)',
     marginTop: 8,
     marginLeft: 8,
   },
   deleteButton: {
-    backgroundColor: '#EF4444',
+    backgroundColor: '#FF5A65',
     padding: 16,
     borderRadius: 12,
     flexDirection: 'row',
@@ -519,25 +519,25 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   deleteButtonText: {
-    color: '#FFFFFF',
+    color: '#F3F6FA',
     fontSize: 16,
     fontWeight: '600',
   },
   footerText: {
     textAlign: 'center',
-    color: '#64748B',
+    color: 'rgba(243,246,250,0.48)',
     fontSize: 12,
     marginTop: 24,
     marginBottom: 16,
   },
   errorText: {
-    color: '#EF4444',
+    color: '#FF5A65',
     fontSize: 16,
     textAlign: 'center',
   },
   modalContainer: {
     flex: 1,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#0B0F14',
     paddingTop: 60,
   },
   modalHeader: {
@@ -548,13 +548,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   modalClose: {
-    color: '#3B82F6',
+    color: '#00E0C7',
     fontSize: 16,
   },
   modalHeaderTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
   },
   modalContent: {
     padding: 24,
@@ -562,17 +562,17 @@ const styles = StyleSheet.create({
   modalLabel: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
     marginBottom: 8,
     marginTop: 16,
   },
   modalInput: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: 'rgba(255,255,255,0.08)',
     borderRadius: 12,
     padding: 16,
-    color: '#F8FAFC',
+    color: '#F3F6FA',
     fontSize: 16,
   },
   saveButton: {
@@ -582,7 +582,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   saveButtonText: {
-    color: '#FFFFFF',
+    color: '#F3F6FA',
     fontSize: 16,
     fontWeight: '600',
   },
@@ -594,24 +594,24 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   deleteModalContent: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     borderRadius: 16,
     padding: 24,
     alignItems: 'center',
     width: '100%',
     maxWidth: 340,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   deleteModalTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
     marginBottom: 12,
   },
   deleteModalText: {
     fontSize: 14,
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
     textAlign: 'center',
     marginBottom: 24,
     lineHeight: 20,
@@ -625,11 +625,11 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 14,
     borderRadius: 10,
-    backgroundColor: '#334155',
+    backgroundColor: 'rgba(255,255,255,0.08)',
     alignItems: 'center',
   },
   deleteModalCancelText: {
-    color: '#F8FAFC',
+    color: '#F3F6FA',
     fontSize: 16,
     fontWeight: '600',
   },
@@ -637,11 +637,11 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 14,
     borderRadius: 10,
-    backgroundColor: '#EF4444',
+    backgroundColor: '#FF5A65',
     alignItems: 'center',
   },
   deleteModalConfirmText: {
-    color: '#FFFFFF',
+    color: '#F3F6FA',
     fontSize: 16,
     fontWeight: '600',
   },

@@ -121,7 +121,7 @@ export default function StatDetail() {
     <View style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.push('/(tabs)/overview')}>
-          <Ionicons name="arrow-back" size={24} color="#3B82F6" />
+          <Ionicons name="arrow-back" size={24} color="#00E0C7" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{statLabel}</Text>
         <View style={{ width: 40 }} />
@@ -131,7 +131,7 @@ export default function StatDetail() {
         <View style={styles.currentValueCard}>
           <Text style={styles.currentLabel}>Current Value</Text>
           <View style={styles.currentRow}>
-            <Text style={styles.currentValue}>{isGDP ? currentValue : currentValue?.toFixed(1)}</Text>
+            <Text style={styles.currentValue}>{isGDP ? currentValue : Number(currentValue).toFixed(1)}</Text>
             {trend !== 0 && (
               <View style={[styles.trendBadge, trend > 0 ? styles.trendUp : styles.trendDown]}>
                 <Ionicons
@@ -171,12 +171,12 @@ export default function StatDetail() {
 
         {loading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#3B82F6" />
+            <ActivityIndicator size="large" color="#00E0C7" />
             <Text style={styles.loadingText}>Loading chart...</Text>
           </View>
         ) : historyData.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <Ionicons name="bar-chart-outline" size={64} color="#64748B" />
+            <Ionicons name="bar-chart-outline" size={64} color="rgba(243,246,250,0.48)" />
             <Text style={styles.emptyText}>No historical data yet</Text>
             <Text style={styles.emptySubtext}>Make more decisions to see trends</Text>
           </View>
@@ -190,7 +190,7 @@ export default function StatDetail() {
               spacing={getChartSpacing()}
               initialSpacing={10}
               endSpacing={10}
-              color="#3B82F6"
+              color="#00E0C7"
               thickness={2}
               startFillColor="rgba(59, 130, 246, 0.3)"
               endFillColor="rgba(59, 130, 246, 0.05)"
@@ -198,22 +198,21 @@ export default function StatDetail() {
               endOpacity={0.2}
               areaChart
               curved
-              yAxisColor="#334155"
-              xAxisColor="#334155"
-              yAxisTextStyle={{ color: '#94A3B8', fontSize: 10 }}
-              xAxisLabelTextStyle={{ color: '#94A3B8', fontSize: 8 }}
-              rulesColor="#334155"
+              yAxisColor="rgba(255,255,255,0.08)"
+              xAxisColor="rgba(255,255,255,0.08)"
+              yAxisTextStyle={{ color: 'rgba(243,246,250,0.70)', fontSize: 10 }}
+              xAxisLabelTextStyle={{ color: 'rgba(243,246,250,0.70)', fontSize: 8 }}
+              rulesColor="rgba(255,255,255,0.08)"
               rulesType="solid"
               yAxisThickness={1}
               xAxisThickness={1}
-              minValue={minValue * 0.9}
               maxValue={maxValue * 1.1}
               noOfSections={5}
               showVerticalLines
-              verticalLinesColor="#334155"
-              dataPointsColor="#3B82F6"
+              verticalLinesColor="rgba(255,255,255,0.08)"
+              dataPointsColor="#00E0C7"
               dataPointsRadius={chartData.length > 30 ? 2 : 4}
-              textColor="#94A3B8"
+              textColor="rgba(243,246,250,0.70)"
               textFontSize={10}
               hideDataPoints={chartData.length > 60}
               disableScroll={true}
@@ -252,7 +251,7 @@ export default function StatDetail() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#0B0F14',
   },
   header: {
     flexDirection: 'row',
@@ -260,9 +259,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 16,
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     borderBottomWidth: 1,
-    borderBottomColor: '#334155',
+    borderBottomColor: 'rgba(255,255,255,0.08)',
   },
   backButton: {
     padding: 8,
@@ -270,22 +269,22 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
   },
   content: {
     padding: 16,
   },
   currentValueCard: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     padding: 24,
     borderRadius: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   currentLabel: {
     fontSize: 14,
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
     marginBottom: 8,
   },
   currentRow: {
@@ -295,7 +294,7 @@ const styles = StyleSheet.create({
   currentValue: {
     fontSize: 48,
     fontWeight: 'bold',
-    color: '#3B82F6',
+    color: '#00E0C7',
     marginRight: 16,
   },
   trendBadge: {
@@ -307,20 +306,20 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   trendUp: {
-    backgroundColor: '#10B981',
+    backgroundColor: '#27D17A',
   },
   trendDown: {
-    backgroundColor: '#EF4444',
+    backgroundColor: '#FF5A65',
   },
   trendText: {
-    color: '#FFFFFF',
+    color: '#F3F6FA',
     fontSize: 14,
     fontWeight: '600',
   },
   periodSelector: {
     flexDirection: 'row',
     marginBottom: 16,
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     borderRadius: 12,
     padding: 4,
   },
@@ -331,28 +330,28 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   periodButtonActive: {
-    backgroundColor: '#3B82F6',
+    backgroundColor: '#00E0C7',
   },
   periodButtonText: {
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
     fontSize: 14,
     fontWeight: '500',
   },
   periodButtonTextActive: {
-    color: '#FFFFFF',
+    color: '#F3F6FA',
   },
   chartCard: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     padding: 20,
     borderRadius: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   chartTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
     marginBottom: 16,
   },
   loadingContainer: {
@@ -361,7 +360,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginTop: 16,
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
     fontSize: 16,
   },
   emptyContainer: {
@@ -371,21 +370,21 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
     marginTop: 16,
   },
   emptySubtext: {
     fontSize: 14,
-    color: '#64748B',
+    color: 'rgba(243,246,250,0.48)',
     marginTop: 8,
   },
   statsInfo: {
     flexDirection: 'row',
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     padding: 16,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   statInfoItem: {
     flex: 1,
@@ -393,16 +392,16 @@ const styles = StyleSheet.create({
   },
   statInfoLabel: {
     fontSize: 12,
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
     marginBottom: 4,
   },
   statInfoValue: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#3B82F6',
+    color: '#00E0C7',
   },
   errorText: {
-    color: '#EF4444',
+    color: '#FF5A65',
     fontSize: 16,
     textAlign: 'center',
   },

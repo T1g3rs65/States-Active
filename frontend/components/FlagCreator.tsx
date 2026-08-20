@@ -4,8 +4,8 @@ import * as ImagePicker from 'expo-image-picker';
 import Svg, { Polygon, Rect, Defs, ClipPath } from 'react-native-svg';
 
 const COLORS = [
-  '#EF4444', '#F59E0B', '#10B981', '#3B82F6', '#6366F1', '#8B5CF6',
-  '#EC4899', '#FFFFFF', '#000000', '#94A3B8', '#FCD34D', '#34D399',
+  '#FF5A65', '#F2C94C', '#27D17A', '#00E0C7', '#6366F1', '#00E0C7',
+  '#00B8B8', '#F3F6FA', '#000000', 'rgba(243,246,250,0.70)', '#FCD34D', '#27D17A',
 ];
 
 const PATTERNS = [
@@ -33,9 +33,9 @@ const getHexagonPoints = (width: number, height: number) => {
 };
 
 export default function FlagCreator({ onFlagCreated, race = 'human' }: FlagCreatorProps) {
-  const [color1, setColor1] = useState('#3B82F6');
-  const [color2, setColor2] = useState('#FFFFFF');
-  const [color3, setColor3] = useState('#EF4444');
+  const [color1, setColor1] = useState('#00E0C7');
+  const [color2, setColor2] = useState('#F3F6FA');
+  const [color3, setColor3] = useState('#FF5A65');
   const [pattern, setPattern] = useState('horizontal');
   
   const isHexagon = race?.toLowerCase() === 'zythera';
@@ -74,7 +74,7 @@ export default function FlagCreator({ onFlagCreated, race = 'human' }: FlagCreat
           <g clip-path="url(#hexClip)">
             <image href="data:image/jpeg;base64,${imageBase64}" x="0" y="0" width="${w}" height="${h}" preserveAspectRatio="xMidYMid slice"/>
           </g>
-          <polygon points="${hexPoints}" fill="none" stroke="#1E293B" stroke-width="3"/>
+          <polygon points="${hexPoints}" fill="none" stroke="#11171F" stroke-width="3"/>
         </svg>`;
         
         const hexFlagBase64 = `data:image/svg+xml;base64,${btoa(svg)}`;
@@ -211,7 +211,7 @@ export default function FlagCreator({ onFlagCreated, race = 'human' }: FlagCreat
       <g clip-path="url(#hexClip)">
         ${patternContent}
       </g>
-      <polygon points="${hexPoints}" fill="none" stroke="#1E293B" stroke-width="3"/>
+      <polygon points="${hexPoints}" fill="none" stroke="#11171F" stroke-width="3"/>
     </svg>`;
     
     return `data:image/svg+xml;base64,${btoa(svg)}`;
@@ -358,11 +358,11 @@ export default function FlagCreator({ onFlagCreated, race = 'human' }: FlagCreat
               <Polygon points={hexPoints} />
             </ClipPath>
           </Defs>
-          <Rect width={size} height={h} fill="#0F172A" />
+          <Rect width={size} height={h} fill="#0B0F14" />
           <Svg clipPath="url(#hexClipPreview)">
             {patternElements}
           </Svg>
-          <Polygon points={hexPoints} fill="none" stroke="#475569" strokeWidth={2} />
+          <Polygon points={hexPoints} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth={2} />
         </Svg>
         <Text style={styles.hexLabel}>Hexagonal Flag (Zythera)</Text>
       </View>
@@ -464,37 +464,37 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
     marginBottom: 24,
     textAlign: 'center',
   },
   hexBanner: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     padding: 12,
     borderRadius: 8,
     marginBottom: 16,
     borderLeftWidth: 4,
-    borderLeftColor: '#8B5CF6',
+    borderLeftColor: '#00E0C7',
   },
   hexBannerText: {
-    color: '#A78BFA',
+    color: '#00E0C7',
     fontSize: 14,
     textAlign: 'center',
   },
   hexLabel: {
-    color: '#64748B',
+    color: 'rgba(243,246,250,0.48)',
     fontSize: 12,
     marginTop: 8,
   },
   uploadButton: {
-    backgroundColor: '#10B981',
+    backgroundColor: '#27D17A',
     padding: 16,
     borderRadius: 12,
     alignItems: 'center',
     marginBottom: 16,
   },
   uploadButtonText: {
-    color: '#FFFFFF',
+    color: '#F3F6FA',
     fontSize: 16,
     fontWeight: '600',
   },
@@ -506,10 +506,10 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: '#334155',
+    backgroundColor: 'rgba(255,255,255,0.08)',
   },
   dividerText: {
-    color: '#64748B',
+    color: 'rgba(243,246,250,0.48)',
     fontSize: 12,
     marginHorizontal: 16,
   },
@@ -520,7 +520,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#CBD5E1',
+    color: 'rgba(243,246,250,0.70)',
     marginBottom: 12,
     marginTop: 8,
   },
@@ -533,23 +533,23 @@ const styles = StyleSheet.create({
   patternButton: {
     flex: 1,
     minWidth: '45%',
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     padding: 12,
     borderRadius: 8,
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#334155',
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   patternButtonActive: {
-    borderColor: '#3B82F6',
+    borderColor: '#00E0C7',
     backgroundColor: '#1E3A5F',
   },
   patternButtonText: {
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
     fontSize: 14,
   },
   patternButtonTextActive: {
-    color: '#3B82F6',
+    color: '#00E0C7',
     fontWeight: '600',
   },
   colorGrid: {
@@ -566,11 +566,11 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   colorButtonSelected: {
-    borderColor: '#10B981',
+    borderColor: '#27D17A',
     borderWidth: 4,
   },
   createButton: {
-    backgroundColor: '#3B82F6',
+    backgroundColor: '#00E0C7',
     padding: 16,
     borderRadius: 12,
     alignItems: 'center',
@@ -578,7 +578,7 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   createButtonText: {
-    color: '#FFFFFF',
+    color: '#F3F6FA',
     fontSize: 16,
     fontWeight: '600',
   },

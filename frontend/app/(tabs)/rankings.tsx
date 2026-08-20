@@ -108,7 +108,7 @@ export default function Rankings() {
     try {
       const response = await api.getAlliances(nationId);
       if (response.success && response.allies) {
-        const allyIds = new Set(response.allies.map((a: AllyInfo) => a.ally_id));
+        const allyIds = new Set<string>(response.allies.map((a: AllyInfo) => a.ally_id));
         setAllies(allyIds);
       }
     } catch (error) {
@@ -253,7 +253,7 @@ export default function Rankings() {
           >
             <Ionicons name="notifications" size={24} color={themeColor} />
             {notificationCount > 0 && (
-              <View style={[styles.notificationBadge, { backgroundColor: '#EF4444' }]}>
+              <View style={[styles.notificationBadge, { backgroundColor: '#FF5A65' }]}>
                 <Text style={styles.notificationBadgeText}>{notificationCount}</Text>
               </View>
             )}
@@ -357,13 +357,13 @@ export default function Rankings() {
                       <Text style={styles.allyStarIcon}>⭐</Text>
                     )}
                     {isInMyFaction && (
-                      <Ionicons name="star" size={14} color="#8B5CF6" style={styles.factionStarIcon} />
+                      <Ionicons name="star" size={14} color="#00E0C7" style={styles.factionStarIcon} />
                     )}
                     <Text style={styles.nationName} numberOfLines={1}>
                       {entry.nation_name}
                     </Text>
                     {entry.faction_tag && (
-                      <View style={[styles.factionTagBadge, { backgroundColor: entry.faction_color || '#8B5CF6' }]}>
+                      <View style={[styles.factionTagBadge, { backgroundColor: entry.faction_color || '#00E0C7' }]}>
                         <Text style={styles.factionTagText}>{entry.faction_tag}</Text>
                       </View>
                     )}
@@ -401,7 +401,7 @@ export default function Rankings() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#0B0F14',
   },
   topHeader: {
     flexDirection: 'row',
@@ -410,14 +410,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 48,
     paddingBottom: 12,
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     borderBottomWidth: 1,
-    borderBottomColor: '#334155',
+    borderBottomColor: 'rgba(255,255,255,0.08)',
   },
   topHeaderTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
   },
   headerButtons: {
     flexDirection: 'row',
@@ -442,30 +442,30 @@ const styles = StyleSheet.create({
   notificationBadgeText: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#fff',
+    color: '#FFF',
   },
   profileButton: {
     padding: 4,
   },
   categoryHeader: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     paddingTop: 12,
     paddingBottom: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#334155',
+    borderBottomColor: 'rgba(255,255,255,0.08)',
   },
   header: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     paddingTop: 16,
     paddingBottom: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#334155',
+    borderBottomColor: 'rgba(255,255,255,0.08)',
   },
   modeSelector: {
     flexDirection: 'row',
     marginHorizontal: 16,
     marginBottom: 12,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#0B0F14',
     borderRadius: 8,
     padding: 4,
   },
@@ -479,12 +479,12 @@ const styles = StyleSheet.create({
     // backgroundColor dynamically set inline
   },
   modeButtonText: {
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
     fontSize: 14,
     fontWeight: '500',
   },
   modeButtonTextActive: {
-    color: '#FFFFFF',
+    color: '#F3F6FA',
   },
   categoriesScroll: {
     flexGrow: 0,
@@ -497,7 +497,7 @@ const styles = StyleSheet.create({
   categoryChip: {
     paddingHorizontal: 16,
     paddingVertical: 8,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#0B0F14',
     borderRadius: 16,
     marginRight: 8,
   },
@@ -505,12 +505,12 @@ const styles = StyleSheet.create({
     // backgroundColor dynamically set inline
   },
   categoryChipText: {
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
     fontSize: 14,
     fontWeight: '500',
   },
   categoryChipTextActive: {
-    color: '#FFFFFF',
+    color: '#F3F6FA',
   },
   content: {
     flex: 1,
@@ -525,18 +525,18 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginTop: 16,
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
     fontSize: 16,
   },
   rankingCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     padding: 16,
     borderRadius: 12,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   rankContainer: {
     width: 50,
@@ -545,7 +545,7 @@ const styles = StyleSheet.create({
   rankText: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
   },
   flagIcon: {
     width: 24,
@@ -553,7 +553,7 @@ const styles = StyleSheet.create({
     borderRadius: 2,
     marginRight: 8,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   nationInfo: {
     flex: 1,
@@ -580,17 +580,17 @@ const styles = StyleSheet.create({
   factionTagText: {
     fontSize: 9,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: '#F3F6FA',
   },
   nationName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
     flex: 1,
   },
   governmentType: {
     fontSize: 12,
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
   },
   statContainer: {
     alignItems: 'flex-end',
@@ -598,12 +598,12 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#3B82F6',
+    color: '#00E0C7',
   },
   compareButton: {
     marginLeft: 8,
     padding: 8,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#0B0F14',
     borderRadius: 8,
     borderWidth: 1,
     // borderColor dynamically set inline
@@ -613,7 +613,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   emptyText: {
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
     fontSize: 16,
   },
 });

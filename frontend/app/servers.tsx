@@ -216,9 +216,9 @@ export default function WorldBrowserScreen() {
 
   if (loading) {
     return (
-      <LinearGradient colors={['#0F172A', '#1E293B', '#334155']} style={styles.container}>
+      <LinearGradient colors={['#0B0F14', '#11171F', 'rgba(255,255,255,0.08)']} style={styles.container}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#3B82F6" />
+          <ActivityIndicator size="large" color="#00E0C7" />
           <Text style={styles.loadingText}>Loading worlds...</Text>
         </View>
       </LinearGradient>
@@ -226,23 +226,23 @@ export default function WorldBrowserScreen() {
   }
 
   return (
-    <LinearGradient colors={['#0F172A', '#1E293B', '#334155']} style={styles.container}>
+    <LinearGradient colors={['#0B0F14', '#11171F', 'rgba(255,255,255,0.08)']} style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color="#3B82F6" />
+            <Ionicons name="arrow-back" size={24} color="#00E0C7" />
           </TouchableOpacity>
           <Text style={styles.title}>🌍 World Browser</Text>
           <TouchableOpacity onPress={() => setShowCreateModal(true)} style={styles.createButton}>
-            <Ionicons name="add-circle" size={28} color="#10B981" />
+            <Ionicons name="add-circle" size={28} color="#27D17A" />
           </TouchableOpacity>
         </View>
 
         {/* Current World Badge */}
         {currentWorld && (
           <View style={styles.currentWorldBadge}>
-            <Ionicons name="home" size={16} color="#10B981" />
+            <Ionicons name="home" size={16} color="#27D17A" />
             <Text style={styles.currentWorldText}>
               Current World: {currentWorld.name}
             </Text>
@@ -253,7 +253,7 @@ export default function WorldBrowserScreen() {
           style={styles.content} 
           contentContainerStyle={styles.scrollContent}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#3B82F6" />
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#00E0C7" />
           }
         >
           <Text style={styles.subtitle}>
@@ -263,7 +263,7 @@ export default function WorldBrowserScreen() {
           {/* Worlds List */}
           {worlds.length === 0 ? (
             <View style={styles.emptyState}>
-              <Ionicons name="planet-outline" size={60} color="#64748B" />
+              <Ionicons name="planet-outline" size={60} color="rgba(243,246,250,0.48)" />
               <Text style={styles.emptyText}>No worlds yet</Text>
               <Text style={styles.emptySubtext}>Be the first to create a world!</Text>
             </View>
@@ -285,7 +285,7 @@ export default function WorldBrowserScreen() {
                         {isCurrentWorld && <Text style={styles.youBadge}> (You're here)</Text>}
                       </Text>
                       <View style={styles.playerBadge}>
-                        <Ionicons name="people" size={14} color="#3B82F6" />
+                        <Ionicons name="people" size={14} color="#00E0C7" />
                         <Text style={styles.playerCount}>
                           {world.nation_count}/{world.max_players}
                         </Text>
@@ -300,7 +300,7 @@ export default function WorldBrowserScreen() {
                     
                     <View style={styles.worldMeta}>
                       <View style={styles.metaItem}>
-                        <Ionicons name="dice" size={12} color="#64748B" />
+                        <Ionicons name="dice" size={12} color="rgba(243,246,250,0.48)" />
                         <Text style={styles.metaText}>Seed: {world.seed}</Text>
                       </View>
                       
@@ -312,12 +312,12 @@ export default function WorldBrowserScreen() {
                       
                       {world.allows_migration ? (
                         <View style={styles.migrationBadge}>
-                          <Ionicons name="airplane" size={12} color="#10B981" />
+                          <Ionicons name="airplane" size={12} color="#27D17A" />
                           <Text style={styles.migrationText}>Migration OK</Text>
                         </View>
                       ) : (
                         <View style={styles.noMigrationBadge}>
-                          <Ionicons name="lock-closed" size={12} color="#EF4444" />
+                          <Ionicons name="lock-closed" size={12} color="#FF5A65" />
                           <Text style={styles.noMigrationText}>Closed</Text>
                         </View>
                       )}
@@ -331,10 +331,10 @@ export default function WorldBrowserScreen() {
                       disabled={!canMigrate || migrating}
                     >
                       {migrating ? (
-                        <ActivityIndicator color="#FFFFFF" size="small" />
+                        <ActivityIndicator color="#F3F6FA" size="small" />
                       ) : (
                         <>
-                          <Ionicons name="airplane" size={16} color="#FFFFFF" />
+                          <Ionicons name="airplane" size={16} color="#F3F6FA" />
                           <Text style={styles.migrateButtonText}>Migrate</Text>
                         </>
                       )}
@@ -358,7 +358,7 @@ export default function WorldBrowserScreen() {
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>🌍 Create New World</Text>
                 <TouchableOpacity onPress={() => setShowCreateModal(false)}>
-                  <Ionicons name="close" size={24} color="#94A3B8" />
+                  <Ionicons name="close" size={24} color="rgba(243,246,250,0.70)" />
                 </TouchableOpacity>
               </View>
 
@@ -371,7 +371,7 @@ export default function WorldBrowserScreen() {
                     value={newWorldName}
                     onChangeText={setNewWorldName}
                     placeholder="e.g., Terra Nova"
-                    placeholderTextColor="#64748B"
+                    placeholderTextColor="rgba(243,246,250,0.48)"
                     maxLength={50}
                   />
                 </View>
@@ -384,7 +384,7 @@ export default function WorldBrowserScreen() {
                     value={newWorldDescription}
                     onChangeText={setNewWorldDescription}
                     placeholder="A brief description of your world..."
-                    placeholderTextColor="#64748B"
+                    placeholderTextColor="rgba(243,246,250,0.48)"
                     multiline
                     numberOfLines={3}
                     maxLength={200}
@@ -400,7 +400,7 @@ export default function WorldBrowserScreen() {
                       value={newWorldSeed}
                       onChangeText={setNewWorldSeed}
                       placeholder="123456"
-                      placeholderTextColor="#64748B"
+                      placeholderTextColor="rgba(243,246,250,0.48)"
                       keyboardType="number-pad"
                       maxLength={6}
                     />
@@ -408,7 +408,7 @@ export default function WorldBrowserScreen() {
                       style={styles.randomButton}
                       onPress={() => setNewWorldSeed(Math.floor(Math.random() * 999999).toString())}
                     >
-                      <Ionicons name="shuffle" size={20} color="#3B82F6" />
+                      <Ionicons name="shuffle" size={20} color="#00E0C7" />
                     </TouchableOpacity>
                   </View>
                   <Text style={styles.formHint}>Same seed = same map terrain</Text>
@@ -422,7 +422,7 @@ export default function WorldBrowserScreen() {
                     value={newWorldMaxPlayers}
                     onChangeText={setNewWorldMaxPlayers}
                     placeholder="50"
-                    placeholderTextColor="#64748B"
+                    placeholderTextColor="rgba(243,246,250,0.48)"
                     keyboardType="number-pad"
                     maxLength={3}
                   />
@@ -438,8 +438,8 @@ export default function WorldBrowserScreen() {
                     <Switch
                       value={allowsMigration}
                       onValueChange={setAllowsMigration}
-                      trackColor={{ false: '#334155', true: '#10B981' }}
-                      thumbColor="#FFFFFF"
+                      trackColor={{ false: 'rgba(255,255,255,0.08)', true: '#27D17A' }}
+                      thumbColor="#F3F6FA"
                     />
                   </View>
                 </View>
@@ -455,8 +455,8 @@ export default function WorldBrowserScreen() {
                         onValueChange={(value) => 
                           setEnabledRaces(prev => ({ ...prev, [raceId]: value }))
                         }
-                        trackColor={{ false: '#334155', true: '#10B981' }}
-                        thumbColor="#FFFFFF"
+                        trackColor={{ false: 'rgba(255,255,255,0.08)', true: '#27D17A' }}
+                        thumbColor="#F3F6FA"
                       />
                     </View>
                   ))}
@@ -480,10 +480,10 @@ export default function WorldBrowserScreen() {
                   disabled={creating}
                 >
                   {creating ? (
-                    <ActivityIndicator color="#FFFFFF" size="small" />
+                    <ActivityIndicator color="#F3F6FA" size="small" />
                   ) : (
                     <>
-                      <Ionicons name="planet" size={18} color="#FFFFFF" />
+                      <Ionicons name="planet" size={18} color="#F3F6FA" />
                       <Text style={styles.createWorldButtonText}>Create World</Text>
                     </>
                   )}
@@ -511,7 +511,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginTop: 16,
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
     fontSize: 16,
   },
   header: {
@@ -521,7 +521,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#334155',
+    borderBottomColor: 'rgba(255,255,255,0.08)',
   },
   backButton: {
     padding: 8,
@@ -529,7 +529,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
   },
   createButton: {
     padding: 8,
@@ -544,7 +544,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   currentWorldText: {
-    color: '#10B981',
+    color: '#27D17A',
     fontSize: 14,
     fontWeight: '600',
   },
@@ -556,29 +556,29 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 16,
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
     marginBottom: 24,
     textAlign: 'center',
   },
   emptyState: {
     alignItems: 'center',
     padding: 40,
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     borderRadius: 16,
   },
   emptyText: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
     marginTop: 16,
   },
   emptySubtext: {
     fontSize: 14,
-    color: '#64748B',
+    color: 'rgba(243,246,250,0.48)',
     marginTop: 8,
   },
   worldCard: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
@@ -588,7 +588,7 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   worldCardCurrent: {
-    borderColor: '#10B981',
+    borderColor: '#27D17A',
   },
   worldInfo: {
     flex: 1,
@@ -602,12 +602,12 @@ const styles = StyleSheet.create({
   worldName: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
     flex: 1,
   },
   youBadge: {
     fontSize: 12,
-    color: '#10B981',
+    color: '#27D17A',
     fontWeight: '400',
   },
   playerBadge: {
@@ -621,12 +621,12 @@ const styles = StyleSheet.create({
   },
   playerCount: {
     fontSize: 13,
-    color: '#3B82F6',
+    color: '#00E0C7',
     fontWeight: '600',
   },
   worldDescription: {
     fontSize: 14,
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
     marginBottom: 8,
   },
   worldMeta: {
@@ -641,7 +641,7 @@ const styles = StyleSheet.create({
   },
   metaText: {
     fontSize: 12,
-    color: '#64748B',
+    color: 'rgba(243,246,250,0.48)',
   },
   migrationBadge: {
     flexDirection: 'row',
@@ -654,7 +654,7 @@ const styles = StyleSheet.create({
   },
   migrationText: {
     fontSize: 11,
-    color: '#10B981',
+    color: '#27D17A',
     fontWeight: '600',
   },
   noMigrationBadge: {
@@ -668,24 +668,24 @@ const styles = StyleSheet.create({
   },
   noMigrationText: {
     fontSize: 11,
-    color: '#EF4444',
+    color: '#FF5A65',
     fontWeight: '600',
   },
   migrateButton: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#3B82F6',
+    backgroundColor: '#00E0C7',
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 8,
     marginLeft: 12,
   },
   migrateButtonDisabled: {
-    backgroundColor: '#475569',
+    backgroundColor: 'rgba(255,255,255,0.08)',
   },
   migrateButtonText: {
-    color: '#FFFFFF',
+    color: '#F3F6FA',
     fontSize: 14,
     fontWeight: '600',
   },
@@ -696,7 +696,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     maxHeight: '90%',
@@ -707,12 +707,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     padding: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#334155',
+    borderBottomColor: 'rgba(255,255,255,0.08)',
   },
   modalTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
   },
   modalBody: {
     padding: 20,
@@ -723,17 +723,17 @@ const styles = StyleSheet.create({
   formLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
     marginBottom: 8,
   },
   formInput: {
-    backgroundColor: '#0F172A',
+    backgroundColor: '#0B0F14',
     borderRadius: 8,
     padding: 14,
-    color: '#F8FAFC',
+    color: '#F3F6FA',
     fontSize: 16,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   formTextArea: {
     minHeight: 80,
@@ -741,7 +741,7 @@ const styles = StyleSheet.create({
   },
   formHint: {
     fontSize: 12,
-    color: '#64748B',
+    color: 'rgba(243,246,250,0.48)',
     marginTop: 4,
   },
   seedRow: {
@@ -752,13 +752,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   randomButton: {
-    backgroundColor: '#0F172A',
+    backgroundColor: '#0B0F14',
     borderRadius: 8,
     padding: 14,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   raceRow: {
     flexDirection: 'row',
@@ -766,28 +766,28 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#334155',
+    borderBottomColor: 'rgba(255,255,255,0.08)',
   },
   raceName: {
     fontSize: 16,
-    color: '#F8FAFC',
+    color: '#F3F6FA',
   },
   modalFooter: {
     flexDirection: 'row',
     padding: 20,
     gap: 12,
     borderTopWidth: 1,
-    borderTopColor: '#334155',
+    borderTopColor: 'rgba(255,255,255,0.08)',
   },
   cancelButton: {
     flex: 1,
     paddingVertical: 14,
     alignItems: 'center',
     borderRadius: 8,
-    backgroundColor: '#334155',
+    backgroundColor: 'rgba(255,255,255,0.08)',
   },
   cancelButtonText: {
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
     fontSize: 16,
     fontWeight: '600',
   },
@@ -798,11 +798,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 14,
     borderRadius: 8,
-    backgroundColor: '#10B981',
+    backgroundColor: '#27D17A',
     gap: 8,
   },
   createWorldButtonText: {
-    color: '#FFFFFF',
+    color: '#F3F6FA',
     fontSize: 16,
     fontWeight: '600',
   },

@@ -63,7 +63,7 @@ export default function Overview() {
         nation.stats.gdp,
         nation.stats.political_freedom
       )
-    : { color: '#3B82F6', name: 'Centrist', description: 'Moderate' };
+    : { color: '#00E0C7', name: 'Centrist', description: 'Moderate' };
 
   useEffect(() => {
     if (nation) {
@@ -155,9 +155,9 @@ export default function Overview() {
     let normalized = value;
     if (inverse) normalized = 100 - value;
     
-    if (normalized >= 70) return '#10B981';
-    if (normalized >= 40) return '#F59E0B';
-    return '#EF4444';
+    if (normalized >= 70) return '#27D17A';
+    if (normalized >= 40) return '#F2C94C';
+    return '#FF5A65';
   };
 
   const navigateToStatDetail = (statKey, statLabel) => {
@@ -207,7 +207,7 @@ export default function Overview() {
           >
             <Ionicons name="notifications" size={24} color={themeColor} />
             {notificationCount > 0 && (
-              <View style={[styles.notificationBadge, { backgroundColor: '#EF4444' }]}>
+              <View style={[styles.notificationBadge, { backgroundColor: '#FF5A65' }]}>
                 <Text style={styles.notificationBadgeText}>{notificationCount}</Text>
               </View>
             )}
@@ -225,10 +225,10 @@ export default function Overview() {
         style={styles.scrollView}
         contentContainerStyle={styles.content}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={refreshNation} tintColor="#3B82F6" />
+          <RefreshControl refreshing={refreshing} onRefresh={refreshNation} tintColor="#00E0C7" />
         }
       >
-      <LinearGradient colors={['#1E293B', '#0F172A']} style={styles.headerCard}>
+      <LinearGradient colors={['#11171F', '#0B0F14']} style={styles.headerCard}>
         <View style={styles.headerTop}>
           {nation.flag_base64 && (() => {
             const isSvg = nation.flag_base64.includes('svg');
@@ -318,20 +318,20 @@ export default function Overview() {
             <PieChart
               data={(() => {
                 const budgets = [
-                  { name: 'Defense', value: nation.stats.budget_defense || 10, color: '#DC2626' },
-                  { name: 'Education', value: nation.stats.budget_education || 15, color: '#7C3AED' },
-                  { name: 'Healthcare', value: nation.stats.budget_healthcare || 20, color: '#10B981' },
-                  { name: 'Welfare', value: nation.stats.budget_welfare || 15, color: '#EC4899' },
-                  { name: 'Environment', value: nation.stats.budget_environment || 5, color: '#22C55E' },
-                  { name: 'Infrastructure', value: nation.stats.budget_infrastructure || 20, color: '#F59E0B' },
-                  { name: 'Other', value: nation.stats.budget_other || 15, color: '#64748B' },
+                  { name: 'Defense', value: nation.stats.budget_defense || 10, color: '#FF5A65' },
+                  { name: 'Education', value: nation.stats.budget_education || 15, color: '#00B8B8' },
+                  { name: 'Healthcare', value: nation.stats.budget_healthcare || 20, color: '#27D17A' },
+                  { name: 'Welfare', value: nation.stats.budget_welfare || 15, color: '#00B8B8' },
+                  { name: 'Environment', value: nation.stats.budget_environment || 5, color: '#27D17A' },
+                  { name: 'Infrastructure', value: nation.stats.budget_infrastructure || 20, color: '#F2C94C' },
+                  { name: 'Other', value: nation.stats.budget_other || 15, color: 'rgba(243,246,250,0.48)' },
                 ];
                 const total = budgets.reduce((sum, b) => sum + b.value, 0);
                 return budgets.map(b => ({
                   name: b.name,
                   population: Math.round((b.value / total) * 100),
                   color: b.color,
-                  legendFontColor: '#CBD5E1',
+                  legendFontColor: 'rgba(243,246,250,0.70)',
                   legendFontSize: 12
                 }));
               })()}
@@ -355,19 +355,19 @@ export default function Overview() {
             <PieChart
               data={(() => {
                 const sectors = [
-                  { name: 'Private Sector', value: 100 - nation.stats.tax_rate - nation.stats.unemployment, color: '#10B981' },
-                  { name: 'Government', value: nation.stats.tax_rate, color: '#3B82F6' },
-                  { name: 'Defense Industry', value: nation.stats.budget_defense * 0.7, color: '#DC2626' },
-                  { name: 'Healthcare', value: nation.stats.budget_healthcare * 0.5, color: '#EC4899' },
-                  { name: 'Black Market', value: nation.stats.crime_rate * 0.5, color: '#64748B' },
-                  { name: 'Unemployed', value: nation.stats.unemployment, color: '#EF4444' },
+                  { name: 'Private Sector', value: 100 - nation.stats.tax_rate - nation.stats.unemployment, color: '#27D17A' },
+                  { name: 'Government', value: nation.stats.tax_rate, color: '#00E0C7' },
+                  { name: 'Defense Industry', value: nation.stats.budget_defense * 0.7, color: '#FF5A65' },
+                  { name: 'Healthcare', value: nation.stats.budget_healthcare * 0.5, color: '#00B8B8' },
+                  { name: 'Black Market', value: nation.stats.crime_rate * 0.5, color: 'rgba(243,246,250,0.48)' },
+                  { name: 'Unemployed', value: nation.stats.unemployment, color: '#FF5A65' },
                 ];
                 const total = sectors.reduce((sum, s) => sum + Math.max(0, s.value), 0);
                 return sectors.map(s => ({
                   name: s.name,
                   population: Math.round((Math.max(0, s.value) / total) * 100),
                   color: s.color,
-                  legendFontColor: '#CBD5E1',
+                  legendFontColor: 'rgba(243,246,250,0.70)',
                   legendFontSize: 12
                 }));
               })()}
@@ -391,18 +391,18 @@ export default function Overview() {
             <PieChart
               data={(() => {
                 const causes = [
-                  { name: 'Old Age', value: Math.max(10, nation.stats.life_expectancy * 0.65), color: '#10B981' },
-                  { name: 'Heart Disease', value: Math.max(5, (100 - nation.stats.healthcare_quality) * 0.4), color: '#DC2626' },
-                  { name: 'Cancer', value: Math.max(3, nation.stats.pollution * 0.08 + 5), color: '#F59E0B' },
-                  { name: 'Violence/Crime', value: Math.max(1, nation.stats.crime_rate * 0.15), color: '#8B5CF6' },
-                  { name: 'Accidents', value: 3, color: '#3B82F6' },
+                  { name: 'Old Age', value: Math.max(10, nation.stats.life_expectancy * 0.65), color: '#27D17A' },
+                  { name: 'Heart Disease', value: Math.max(5, (100 - nation.stats.healthcare_quality) * 0.4), color: '#FF5A65' },
+                  { name: 'Cancer', value: Math.max(3, nation.stats.pollution * 0.08 + 5), color: '#F2C94C' },
+                  { name: 'Violence/Crime', value: Math.max(1, nation.stats.crime_rate * 0.15), color: '#00E0C7' },
+                  { name: 'Accidents', value: 3, color: '#00E0C7' },
                 ];
                 const total = causes.reduce((sum, c) => sum + c.value, 0);
                 return causes.map(c => ({
                   name: c.name,
                   population: Math.round((c.value / total) * 100),
                   color: c.color,
-                  legendFontColor: '#CBD5E1',
+                  legendFontColor: 'rgba(243,246,250,0.70)',
                   legendFontSize: 12
                 }));
               })()}
@@ -435,27 +435,27 @@ export default function Overview() {
                   'tropical_rainforest': '#003300',
                   'temperate_rainforest': '#1F3F1F',
                   'boreal_forest': '#2F4F2F',
-                  'evergreen_forest': '#05450a',
-                  'deciduous_forest': '#78d203',
+                  'evergreen_forest': '#05450A',
+                  'deciduous_forest': '#78D203',
                   'mixed_forest': '#009900',
                   // Grasslands
-                  'grassland': '#b6ff05',
+                  'grassland': '#B6FF05',
                   'temperate_grassland': '#C8C87A',
                   'flooded_grassland': '#A0D6A0',
-                  'savanna': '#fbff13',
-                  'woody_savanna': '#dade48',
+                  'savanna': '#FBFF13',
+                  'woody_savanna': '#DADE48',
                   'shrubland': '#BFBB22',
                   // Deserts
                   'hot_desert': '#E3B98F',
                   'semi_arid_desert': '#D8B56B',
                   'cold_desert': '#C9B89B',
-                  'barren': '#f9ffa4',
+                  'barren': '#F9FFA4',
                   // Wetlands
                   'swamp': '#2F3F2F',
                   'marsh': '#5F7F5F',
                   'peat_bog': '#4F3F2F',
                   'mangrove': '#00CF75',
-                  'wetland': '#27ff87',
+                  'wetland': '#27FF87',
                   // Mountains
                   'rocky_mountain': '#4A4A4A',
                   'alpine_meadow': '#6B6B6B',
@@ -473,7 +473,7 @@ export default function Overview() {
                   // Water
                   'river': '#2060A0',
                   'shallow_sea': '#0064C8',
-                  'deep_ocean': '#1c0dff',
+                  'deep_ocean': '#1C0DFF',
                   // Special
                   'badlands': '#B86F50',
                   'karst': '#C0C0C0',
@@ -525,7 +525,7 @@ export default function Overview() {
                   .map(([biome, count]) => ({
                     name: biomeNames[biome] || biome.replace(/_/g, ' '),
                     value: count,
-                    color: biomeColors[biome] || '#64748B',
+                    color: biomeColors[biome] || 'rgba(243,246,250,0.48)',
                   }))
                   .filter(b => b.value > 0)
                   .sort((a, b) => b.value - a.value);
@@ -536,20 +536,20 @@ export default function Overview() {
                 const otherTotal = otherBiomes.reduce((sum, b) => sum + b.value, 0);
                 
                 if (otherTotal > 0) {
-                  topBiomes.push({ name: 'Other', value: otherTotal, color: '#64748B' });
+                  topBiomes.push({ name: 'Other', value: otherTotal, color: 'rgba(243,246,250,0.48)' });
                 }
                 
                 const total = topBiomes.reduce((sum, b) => sum + b.value, 0);
                 
                 if (total === 0) {
-                  return [{ name: 'No Data', population: 100, color: '#64748B', legendFontColor: '#CBD5E1', legendFontSize: 12 }];
+                  return [{ name: 'No Data', population: 100, color: 'rgba(243,246,250,0.48)', legendFontColor: 'rgba(243,246,250,0.70)', legendFontSize: 12 }];
                 }
                 
                 return topBiomes.map(b => ({
                   name: b.name,
                   population: Math.round((b.value / total) * 100),
                   color: b.color,
-                  legendFontColor: '#CBD5E1',
+                  legendFontColor: 'rgba(243,246,250,0.70)',
                   legendFontSize: 11
                 }));
               })()}
@@ -641,7 +641,7 @@ export default function Overview() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#0B0F14',
   },
   topHeader: {
     flexDirection: 'row',
@@ -650,14 +650,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 48,
     paddingBottom: 12,
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     borderBottomWidth: 1,
-    borderBottomColor: '#334155',
+    borderBottomColor: 'rgba(255,255,255,0.08)',
   },
   topHeaderTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
   },
   headerButtons: {
     flexDirection: 'row',
@@ -682,7 +682,7 @@ const styles = StyleSheet.create({
   notificationBadgeText: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#fff',
+    color: '#FFF',
   },
   profileButton: {
     padding: 4,
@@ -709,7 +709,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     marginRight: 16,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   headerTextContainer: {
     flex: 1,
@@ -717,12 +717,12 @@ const styles = StyleSheet.create({
   nationName: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
     marginBottom: 8,
   },
   governmentType: {
     fontSize: 16,
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
     marginBottom: 4,
   },
   sizeClass: {
@@ -731,7 +731,7 @@ const styles = StyleSheet.create({
   },
   motto: {
     fontSize: 14,
-    color: '#CBD5E1',
+    color: 'rgba(243,246,250,0.70)',
     fontStyle: 'italic',
     marginBottom: 16,
   },
@@ -741,7 +741,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: '#334155',
+    borderTopColor: 'rgba(255,255,255,0.08)',
   },
   miniStat: {
     alignItems: 'center',
@@ -749,12 +749,12 @@ const styles = StyleSheet.create({
   miniStatValue: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#3B82F6',
+    color: '#00E0C7',
     marginBottom: 4,
   },
   miniStatLabel: {
     fontSize: 12,
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
   },
   politicalBadge: {
     marginTop: 16,
@@ -770,15 +770,15 @@ const styles = StyleSheet.create({
   },
   politicalDesc: {
     fontSize: 12,
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
   },
   descriptionText: {
     fontSize: 14,
-    color: '#CBD5E1',
+    color: 'rgba(243,246,250,0.70)',
     lineHeight: 22,
     marginBottom: 24,
     padding: 16,
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     borderRadius: 12,
   },
   actionButtons: {
@@ -788,14 +788,14 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     flex: 1,
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     padding: 16,
     borderRadius: 12,
     alignItems: 'center',
     borderWidth: 2,
   },
   actionButtonText: {
-    color: '#F8FAFC',
+    color: '#F3F6FA',
     fontSize: 14,
     fontWeight: '600',
   },
@@ -808,16 +808,16 @@ const styles = StyleSheet.create({
   allStatCard: {
     flex: 1,
     minWidth: '30%',
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     padding: 16,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: 'rgba(255,255,255,0.08)',
     alignItems: 'center',
   },
   allStatLabel: {
     fontSize: 12,
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
     marginBottom: 8,
     textAlign: 'center',
   },
@@ -828,7 +828,7 @@ const styles = StyleSheet.create({
   },
   allStatHint: {
     fontSize: 10,
-    color: '#64748B',
+    color: 'rgba(243,246,250,0.48)',
     marginTop: 4,
     textAlign: 'center',
   },
@@ -839,7 +839,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
     marginBottom: 16,
     paddingHorizontal: 16,
   },
@@ -852,16 +852,16 @@ const styles = StyleSheet.create({
   keyStatCard: {
     flex: 1,
     minWidth: '30%',
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     padding: 16,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: 'rgba(255,255,255,0.08)',
     alignItems: 'center',
   },
   keyStatLabel: {
     fontSize: 12,
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
     marginBottom: 8,
     textAlign: 'center',
   },
@@ -872,7 +872,7 @@ const styles = StyleSheet.create({
   },
   keyStatHint: {
     fontSize: 10,
-    color: '#64748B',
+    color: 'rgba(243,246,250,0.48)',
     marginTop: 4,
     textAlign: 'center',
   },
@@ -887,17 +887,17 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 8,
     borderWidth: 2,
-    borderColor: '#334155',
-    backgroundColor: '#1E293B',
+    borderColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: '#11171F',
     alignItems: 'center',
   },
   graphTabText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
   },
   graphTabTextActive: {
-    color: '#FFFFFF',
+    color: '#F3F6FA',
   },
   graphSection: {
     paddingHorizontal: 16,
@@ -906,24 +906,24 @@ const styles = StyleSheet.create({
   graphTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
     marginBottom: 4,
   },
   graphSubtitle: {
     fontSize: 14,
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
     marginBottom: 16,
   },
   chartContainer: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: 'rgba(255,255,255,0.08)',
     alignItems: 'center',
   },
   errorText: {
-    color: '#EF4444',
+    color: '#FF5A65',
     fontSize: 16,
     textAlign: 'center',
   },
@@ -933,13 +933,13 @@ const styles = StyleSheet.create({
   allStatsTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
     marginBottom: 16,
     paddingHorizontal: 16,
   },
   noDataHint: {
     fontSize: 12,
-    color: '#64748B',
+    color: 'rgba(243,246,250,0.48)',
     textAlign: 'center',
     marginTop: 12,
     fontStyle: 'italic',

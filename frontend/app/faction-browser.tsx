@@ -31,6 +31,7 @@ interface AllianceMember {
 }
 
 interface MultiAlliance {
+  _id?: string;
   id: string;
   name: string;
   tag: string;
@@ -57,8 +58,8 @@ interface AllianceInvite {
 }
 
 const ALLIANCE_COLORS = [
-  '#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6', 
-  '#EC4899', '#14B8A6', '#F97316', '#6366F1', '#84CC16'
+  '#00E0C7', '#FF5A65', '#27D17A', '#F2C94C', '#00E0C7', 
+  '#00B8B8', '#00E0C7', '#F97316', '#6366F1', '#84CC16'
 ];
 
 export default function AllianceBrowserScreen() {
@@ -81,7 +82,7 @@ export default function AllianceBrowserScreen() {
   const [allianceTag, setAllianceTag] = useState('');
   const [allianceDescription, setAllianceDescription] = useState('');
   const [allianceMotto, setAllianceMotto] = useState('');
-  const [allianceColor, setAllianceColor] = useState('#3B82F6');
+  const [allianceColor, setAllianceColor] = useState('#00E0C7');
   const [isPublic, setIsPublic] = useState(true);
   const [requiresApproval, setRequiresApproval] = useState(true);
   const [creating, setCreating] = useState(false);
@@ -432,7 +433,7 @@ export default function AllianceBrowserScreen() {
     setAllianceTag('');
     setAllianceDescription('');
     setAllianceMotto('');
-    setAllianceColor('#3B82F6');
+    setAllianceColor('#00E0C7');
     setIsPublic(true);
     setRequiresApproval(true);
   };
@@ -583,7 +584,7 @@ export default function AllianceBrowserScreen() {
       case 'founder': return '#FFD700';
       case 'leader': return '#C0C0C0';
       case 'officer': return '#CD7F32';
-      default: return '#64748B';
+      default: return 'rgba(243,246,250,0.48)';
     }
   };
 
@@ -673,13 +674,13 @@ export default function AllianceBrowserScreen() {
                       </View>
                       <View style={styles.inviteActions}>
                         <TouchableOpacity
-                          style={[styles.inviteButton, { backgroundColor: '#10B981' }]}
+                          style={[styles.inviteButton, { backgroundColor: '#27D17A' }]}
                           onPress={() => handleRespondToInvite(invite.id, true)}
                         >
                           <Ionicons name="checkmark" size={20} color="#FFF" />
                         </TouchableOpacity>
                         <TouchableOpacity
-                          style={[styles.inviteButton, { backgroundColor: '#EF4444' }]}
+                          style={[styles.inviteButton, { backgroundColor: '#FF5A65' }]}
                           onPress={() => handleRespondToInvite(invite.id, false)}
                         >
                           <Ionicons name="close" size={20} color="#FFF" />
@@ -695,7 +696,7 @@ export default function AllianceBrowserScreen() {
                 <Text style={styles.sectionTitle}>Public Factions ({alliances.length})</Text>
                 {alliances.length === 0 ? (
                   <View style={styles.emptyState}>
-                    <Ionicons name="people-outline" size={48} color="#64748B" />
+                    <Ionicons name="people-outline" size={48} color="rgba(243,246,250,0.48)" />
                     <Text style={styles.emptyText}>No factions yet</Text>
                     <Text style={styles.emptySubtext}>Be the first to create one!</Text>
                   </View>
@@ -743,7 +744,7 @@ export default function AllianceBrowserScreen() {
                       <View style={styles.allianceMeta}>
                         {alliance.requires_approval && (
                           <View style={styles.metaBadge}>
-                            <Ionicons name="lock-closed" size={12} color="#64748B" />
+                            <Ionicons name="lock-closed" size={12} color="rgba(243,246,250,0.48)" />
                             <Text style={styles.metaBadgeText}>Approval</Text>
                           </View>
                         )}
@@ -826,10 +827,10 @@ export default function AllianceBrowserScreen() {
                           disabled={callingToWar === member.nation_id}
                         >
                           {callingToWar === member.nation_id ? (
-                            <ActivityIndicator size="small" color="#EF4444" />
+                            <ActivityIndicator size="small" color="#FF5A65" />
                           ) : (
                             <>
-                              <Ionicons name="flame" size={14} color="#EF4444" />
+                              <Ionicons name="flame" size={14} color="#FF5A65" />
                               <Text style={styles.callToWarText}>Call</Text>
                             </>
                           )}
@@ -845,12 +846,12 @@ export default function AllianceBrowserScreen() {
                   {myAlliance.vassals && myAlliance.vassals.length > 0 ? (
                     myAlliance.vassals.map((vassal: AllianceMember) => (
                       <View key={vassal.nation_id} style={[styles.memberCard, styles.vassalCard]}>
-                        <View style={[styles.roleIcon, { backgroundColor: '#F59E0B30' }]}>
-                          <Ionicons name="shield" size={16} color="#F59E0B" />
+                        <View style={[styles.roleIcon, { backgroundColor: '#F2C94C30' }]}>
+                          <Ionicons name="shield" size={16} color="#F2C94C" />
                         </View>
                         <View style={styles.memberInfo}>
                           <Text style={styles.memberName}>{vassal.nation_name}</Text>
-                          <Text style={[styles.memberRole, { color: '#F59E0B' }]}>
+                          <Text style={[styles.memberRole, { color: '#F2C94C' }]}>
                             Vassal (under 500k)
                           </Text>
                         </View>
@@ -895,7 +896,7 @@ export default function AllianceBrowserScreen() {
                                 </Text>
                                 {request.is_vassal_eligible && (
                                   <View style={styles.vassalEligibleBadge}>
-                                    <Ionicons name="shield-checkmark" size={10} color="#8B5CF6" />
+                                    <Ionicons name="shield-checkmark" size={10} color="#00E0C7" />
                                     <Text style={styles.vassalEligibleText}>Vassal OK</Text>
                                   </View>
                                 )}
@@ -913,10 +914,10 @@ export default function AllianceBrowserScreen() {
                                 disabled={processingRequestId === request.id}
                               >
                                 {processingRequestId === request.id ? (
-                                  <ActivityIndicator size="small" color="#EF4444" />
+                                  <ActivityIndicator size="small" color="#FF5A65" />
                                 ) : (
                                   <>
-                                    <Ionicons name="close" size={14} color="#EF4444" />
+                                    <Ionicons name="close" size={14} color="#FF5A65" />
                                     <Text style={styles.rejectButtonText}>Reject</Text>
                                   </>
                                 )}
@@ -928,10 +929,10 @@ export default function AllianceBrowserScreen() {
                                 disabled={processingRequestId === request.id}
                               >
                                 {processingRequestId === request.id ? (
-                                  <ActivityIndicator size="small" color="#fff" />
+                                  <ActivityIndicator size="small" color="#FFF" />
                                 ) : (
                                   <>
-                                    <Ionicons name="checkmark" size={14} color="#fff" />
+                                    <Ionicons name="checkmark" size={14} color="#FFF" />
                                     <Text style={styles.acceptButtonText}>Accept</Text>
                                   </>
                                 )}
@@ -968,21 +969,21 @@ export default function AllianceBrowserScreen() {
                       <TextInput
                         style={styles.chatInput}
                         placeholder="Type a message..."
-                        placeholderTextColor="#64748B"
+                        placeholderTextColor="rgba(243,246,250,0.48)"
                         value={messageText}
                         onChangeText={setMessageText}
                         multiline
                         maxLength={500}
                       />
                       <TouchableOpacity
-                        style={[styles.sendButton, { backgroundColor: messageText.trim() ? themeColor : '#64748B' }]}
+                        style={[styles.sendButton, { backgroundColor: messageText.trim() ? themeColor : 'rgba(243,246,250,0.48)' }]}
                         onPress={handleSendMessage}
                         disabled={!messageText.trim() || sendingMessage}
                       >
                         {sendingMessage ? (
-                          <ActivityIndicator size="small" color="#FFFFFF" />
+                          <ActivityIndicator size="small" color="#F3F6FA" />
                         ) : (
-                          <Ionicons name="send" size={20} color="#FFFFFF" />
+                          <Ionicons name="send" size={20} color="#F3F6FA" />
                         )}
                       </TouchableOpacity>
                     </View>
@@ -997,7 +998,7 @@ export default function AllianceBrowserScreen() {
                         handleLeaveAlliance();
                       }}
                     >
-                      <Ionicons name="exit-outline" size={20} color="#EF4444" />
+                      <Ionicons name="exit-outline" size={20} color="#FF5A65" />
                       <Text style={styles.leaveButtonText}>Leave Faction</Text>
                     </TouchableOpacity>
                   )}
@@ -1005,7 +1006,7 @@ export default function AllianceBrowserScreen() {
                   {/* Show info for vassals */}
                   {isVassal && (
                     <View style={styles.vassalInfo}>
-                      <Ionicons name="lock-closed" size={16} color="#64748B" />
+                      <Ionicons name="lock-closed" size={16} color="rgba(243,246,250,0.48)" />
                       <Text style={styles.vassalInfoText}>
                         Vassals cannot leave on their own. You must be released by a faction leader.
                       </Text>
@@ -1014,7 +1015,7 @@ export default function AllianceBrowserScreen() {
                 </View>
               ) : (
                 <View style={styles.emptyState}>
-                  <Ionicons name="people-outline" size={64} color="#64748B" />
+                  <Ionicons name="people-outline" size={64} color="rgba(243,246,250,0.48)" />
                   <Text style={styles.emptyText}>You're not in a faction</Text>
                   <Text style={styles.emptySubtext}>Browse factions to join one, or create your own!</Text>
                   <TouchableOpacity
@@ -1060,7 +1061,7 @@ export default function AllianceBrowserScreen() {
               value={allianceName}
               onChangeText={setAllianceName}
               placeholder="e.g., Northern Alliance"
-              placeholderTextColor="#64748B"
+              placeholderTextColor="rgba(243,246,250,0.48)"
               maxLength={30}
             />
             
@@ -1070,7 +1071,7 @@ export default function AllianceBrowserScreen() {
               value={allianceTag}
               onChangeText={(text) => setAllianceTag(text.toUpperCase())}
               placeholder="e.g., NATO"
-              placeholderTextColor="#64748B"
+              placeholderTextColor="rgba(243,246,250,0.48)"
               maxLength={6}
               autoCapitalize="characters"
             />
@@ -1081,7 +1082,7 @@ export default function AllianceBrowserScreen() {
               value={allianceDescription}
               onChangeText={setAllianceDescription}
               placeholder="What is your faction about?"
-              placeholderTextColor="#64748B"
+              placeholderTextColor="rgba(243,246,250,0.48)"
               multiline
               numberOfLines={3}
               maxLength={200}
@@ -1093,7 +1094,7 @@ export default function AllianceBrowserScreen() {
               value={allianceMotto}
               onChangeText={setAllianceMotto}
               placeholder="e.g., United we stand"
-              placeholderTextColor="#64748B"
+              placeholderTextColor="rgba(243,246,250,0.48)"
               maxLength={50}
             />
             
@@ -1172,7 +1173,7 @@ export default function AllianceBrowserScreen() {
                         value={joinMessage}
                         onChangeText={setJoinMessage}
                         placeholder="Add a message (optional)"
-                        placeholderTextColor="#64748B"
+                        placeholderTextColor="rgba(243,246,250,0.48)"
                         multiline
                         numberOfLines={2}
                       />
@@ -1232,7 +1233,7 @@ export default function AllianceBrowserScreen() {
                   setSelectedRequest(null);
                 }}
               >
-                <Ionicons name="close" size={24} color="#94A3B8" />
+                <Ionicons name="close" size={24} color="rgba(243,246,250,0.70)" />
               </TouchableOpacity>
             </View>
             
@@ -1247,58 +1248,58 @@ export default function AllianceBrowserScreen() {
             <View style={styles.roleOptions}>
               {/* Member Option */}
               <TouchableOpacity
-                style={[styles.roleOption, { borderColor: '#10B981' }]}
+                style={[styles.roleOption, { borderColor: '#27D17A' }]}
                 onPress={() => processJoinRequest(selectedRequest?.id, true, 'member')}
                 disabled={processingRequestId === selectedRequest?.id}
               >
-                <View style={[styles.roleIconContainer, { backgroundColor: '#10B98120' }]}>
-                  <Ionicons name="people" size={24} color="#10B981" />
+                <View style={[styles.roleIconContainer, { backgroundColor: '#27D17A20' }]}>
+                  <Ionicons name="people" size={24} color="#27D17A" />
                 </View>
                 <View style={styles.roleOptionInfo}>
                   <Text style={styles.roleOptionTitle}>Full Member</Text>
                   <Text style={styles.roleOptionDesc}>Full voting rights</Text>
                 </View>
                 {processingRequestId === selectedRequest?.id ? (
-                  <ActivityIndicator size="small" color="#10B981" />
+                  <ActivityIndicator size="small" color="#27D17A" />
                 ) : (
-                  <Ionicons name="chevron-forward" size={20} color="#64748B" />
+                  <Ionicons name="chevron-forward" size={20} color="rgba(243,246,250,0.48)" />
                 )}
               </TouchableOpacity>
               
               {/* Vassal Option - Only show if slots available */}
               {getAvailableVassalSlots() > 0 ? (
                 <TouchableOpacity
-                  style={[styles.roleOption, { borderColor: '#8B5CF6' }]}
+                  style={[styles.roleOption, { borderColor: '#00E0C7' }]}
                   onPress={() => processJoinRequest(selectedRequest?.id, true, 'vassal')}
                   disabled={processingRequestId === selectedRequest?.id}
                 >
-                  <View style={[styles.roleIconContainer, { backgroundColor: '#8B5CF620' }]}>
-                    <Ionicons name="shield-half" size={24} color="#8B5CF6" />
+                  <View style={[styles.roleIconContainer, { backgroundColor: '#00E0C720' }]}>
+                    <Ionicons name="shield-half" size={24} color="#00E0C7" />
                   </View>
                   <View style={styles.roleOptionInfo}>
                     <Text style={styles.roleOptionTitle}>Vassal</Text>
                     <Text style={styles.roleOptionDesc}>Auto-promotes at 500K pop</Text>
                   </View>
                   {processingRequestId === selectedRequest?.id ? (
-                    <ActivityIndicator size="small" color="#8B5CF6" />
+                    <ActivityIndicator size="small" color="#00E0C7" />
                   ) : (
-                    <Ionicons name="chevron-forward" size={20} color="#64748B" />
+                    <Ionicons name="chevron-forward" size={20} color="rgba(243,246,250,0.48)" />
                   )}
                 </TouchableOpacity>
               ) : (
                 <View style={[styles.roleOption, styles.roleOptionDisabled]}>
-                  <View style={[styles.roleIconContainer, { backgroundColor: '#33415520' }]}>
-                    <Ionicons name="shield-half" size={24} color="#64748B" />
+                  <View style={[styles.roleIconContainer, { backgroundColor: 'rgba(255,255,255,0.08)20' }]}>
+                    <Ionicons name="shield-half" size={24} color="rgba(243,246,250,0.48)" />
                   </View>
                   <View style={styles.roleOptionInfo}>
-                    <Text style={[styles.roleOptionTitle, { color: '#64748B' }]}>Vassal</Text>
+                    <Text style={[styles.roleOptionTitle, { color: 'rgba(243,246,250,0.48)' }]}>Vassal</Text>
                     <Text style={styles.roleOptionDesc}>
                       {myAlliance && (myAlliance.members?.length || 0) < 3
                         ? 'Unlock at 3 members'
                         : 'No vassal slots available'}
                     </Text>
                   </View>
-                  <Ionicons name="lock-closed" size={18} color="#64748B" />
+                  <Ionicons name="lock-closed" size={18} color="rgba(243,246,250,0.48)" />
                 </View>
               )}
             </View>
@@ -1322,7 +1323,7 @@ export default function AllianceBrowserScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#0B0F14',
   },
   header: {
     flexDirection: 'row',
@@ -1331,7 +1332,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#1E293B',
+    borderBottomColor: '#11171F',
   },
   backButton: {
     padding: 8,
@@ -1339,7 +1340,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
   },
   createButton: {
     width: 36,
@@ -1355,19 +1356,19 @@ const styles = StyleSheet.create({
     padding: 12,
     margin: 16,
     marginBottom: 0,
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     borderRadius: 8,
     borderLeftWidth: 4,
   },
   invitesBannerText: {
-    color: '#F8FAFC',
+    color: '#F3F6FA',
     fontSize: 14,
     fontWeight: '500',
   },
   tabContainer: {
     flexDirection: 'row',
     borderBottomWidth: 1,
-    borderBottomColor: '#1E293B',
+    borderBottomColor: '#11171F',
   },
   tab: {
     flex: 1,
@@ -1377,7 +1378,7 @@ const styles = StyleSheet.create({
   tabText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#64748B',
+    color: 'rgba(243,246,250,0.48)',
   },
   content: {
     flex: 1,
@@ -1390,7 +1391,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   loadingText: {
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
     fontSize: 14,
   },
   section: {
@@ -1399,7 +1400,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
     marginBottom: 12,
   },
   emptyState: {
@@ -1411,11 +1412,11 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
   },
   emptySubtext: {
     fontSize: 14,
-    color: '#64748B',
+    color: 'rgba(243,246,250,0.48)',
     textAlign: 'center',
   },
   createAllianceButton: {
@@ -1433,7 +1434,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   inviteCard: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     borderRadius: 8,
     padding: 12,
     marginBottom: 8,
@@ -1447,16 +1448,16 @@ const styles = StyleSheet.create({
   inviteAllianceName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
   },
   inviteFrom: {
     fontSize: 12,
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
     marginTop: 2,
   },
   inviteMessage: {
     fontSize: 12,
-    color: '#64748B',
+    color: 'rgba(243,246,250,0.48)',
     fontStyle: 'italic',
     marginTop: 4,
   },
@@ -1472,7 +1473,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   allianceCard: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     borderRadius: 8,
     padding: 12,
     marginBottom: 8,
@@ -1499,11 +1500,11 @@ const styles = StyleSheet.create({
   allianceName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
   },
   allianceMembers: {
     fontSize: 12,
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
   },
   joinButton: {
     paddingHorizontal: 16,
@@ -1517,7 +1518,7 @@ const styles = StyleSheet.create({
   },
   allianceDescription: {
     fontSize: 13,
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
     marginTop: 8,
   },
   allianceMeta: {
@@ -1529,14 +1530,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#334155',
+    backgroundColor: 'rgba(255,255,255,0.08)',
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 4,
   },
   metaBadgeText: {
     fontSize: 10,
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
   },
   myAllianceHeader: {
     borderRadius: 12,
@@ -1559,17 +1560,17 @@ const styles = StyleSheet.create({
   myAllianceName: {
     fontSize: 22,
     fontWeight: '700',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
   },
   myAllianceMotto: {
     fontSize: 14,
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
     fontStyle: 'italic',
     marginTop: 4,
   },
   myAllianceDescription: {
     fontSize: 14,
-    color: '#CBD5E1',
+    color: 'rgba(243,246,250,0.70)',
     textAlign: 'center',
     marginTop: 8,
   },
@@ -1590,7 +1591,7 @@ const styles = StyleSheet.create({
   memberCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     padding: 12,
     borderRadius: 8,
     marginBottom: 8,
@@ -1609,21 +1610,21 @@ const styles = StyleSheet.create({
   memberName: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
   },
   memberRole: {
     fontSize: 12,
     fontWeight: '500',
   },
   youBadge: {
-    backgroundColor: '#334155',
+    backgroundColor: 'rgba(255,255,255,0.08)',
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 4,
   },
   youBadgeText: {
     fontSize: 10,
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
     fontWeight: '600',
   },
   leaveButton: {
@@ -1634,18 +1635,18 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#EF4444',
+    borderColor: '#FF5A65',
     marginTop: 16,
   },
   leaveButtonText: {
-    color: '#EF4444',
+    color: '#FF5A65',
     fontSize: 14,
     fontWeight: '600',
   },
   vassalInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     borderRadius: 8,
     padding: 12,
     marginTop: 16,
@@ -1653,12 +1654,12 @@ const styles = StyleSheet.create({
   },
   vassalInfoText: {
     flex: 1,
-    color: '#64748B',
+    color: 'rgba(243,246,250,0.48)',
     fontSize: 12,
     fontStyle: 'italic',
   },
   errorText: {
-    color: '#EF4444',
+    color: '#FF5A65',
     fontSize: 16,
     textAlign: 'center',
     marginTop: 20,
@@ -1666,7 +1667,7 @@ const styles = StyleSheet.create({
   // Modal styles
   modalContainer: {
     flex: 1,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#0B0F14',
   },
   modalHeader: {
     flexDirection: 'row',
@@ -1674,14 +1675,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#1E293B',
+    borderBottomColor: '#11171F',
   },
   modalCancel: {
-    color: '#64748B',
+    color: 'rgba(243,246,250,0.48)',
     fontSize: 16,
   },
   modalTitle: {
-    color: '#F8FAFC',
+    color: '#F3F6FA',
     fontSize: 18,
     fontWeight: '600',
   },
@@ -1693,19 +1694,19 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   inputLabel: {
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
     fontSize: 14,
     marginBottom: 8,
     marginTop: 16,
   },
   input: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     borderRadius: 8,
     padding: 12,
-    color: '#F8FAFC',
+    color: '#F3F6FA',
     fontSize: 16,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   textArea: {
     minHeight: 80,
@@ -1735,12 +1736,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   toggleLabel: {
-    color: '#F8FAFC',
+    color: '#F3F6FA',
     fontSize: 14,
     fontWeight: '500',
   },
   toggleDescription: {
-    color: '#64748B',
+    color: 'rgba(243,246,250,0.48)',
     fontSize: 12,
     marginTop: 2,
   },
@@ -1748,7 +1749,7 @@ const styles = StyleSheet.create({
     width: 50,
     height: 28,
     borderRadius: 14,
-    backgroundColor: '#334155',
+    backgroundColor: 'rgba(255,255,255,0.08)',
     padding: 2,
   },
   toggleKnob: {
@@ -1768,7 +1769,7 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   joinModalContent: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     borderRadius: 16,
     overflow: 'hidden',
   },
@@ -1790,13 +1791,13 @@ const styles = StyleSheet.create({
   joinModalTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
   },
   joinModalBody: {
     padding: 20,
   },
   joinModalInfo: {
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
     fontSize: 14,
     textAlign: 'center',
     marginBottom: 12,
@@ -1809,17 +1810,17 @@ const styles = StyleSheet.create({
     padding: 16,
     gap: 12,
     borderTopWidth: 1,
-    borderTopColor: '#334155',
+    borderTopColor: 'rgba(255,255,255,0.08)',
   },
   joinModalCancelButton: {
     flex: 1,
     padding: 12,
     borderRadius: 8,
     alignItems: 'center',
-    backgroundColor: '#334155',
+    backgroundColor: 'rgba(255,255,255,0.08)',
   },
   joinModalCancelText: {
-    color: '#F8FAFC',
+    color: '#F3F6FA',
     fontSize: 16,
     fontWeight: '600',
   },
@@ -1835,11 +1836,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   chatContainer: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     borderRadius: 12,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: 'rgba(255,255,255,0.08)',
     height: 400,
   },
   messagesList: {
@@ -1850,12 +1851,12 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
   messageCard: {
-    backgroundColor: '#0F172A',
+    backgroundColor: '#0B0F14',
     borderRadius: 8,
     padding: 12,
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   messageHeader: {
     flexDirection: 'row',
@@ -1869,16 +1870,16 @@ const styles = StyleSheet.create({
   },
   messageTime: {
     fontSize: 11,
-    color: '#64748B',
+    color: 'rgba(243,246,250,0.48)',
   },
   messageText: {
     fontSize: 14,
-    color: '#CBD5E1',
+    color: 'rgba(243,246,250,0.70)',
     lineHeight: 20,
   },
   emptyChat: {
     textAlign: 'center',
-    color: '#64748B',
+    color: 'rgba(243,246,250,0.48)',
     fontSize: 14,
     marginTop: 40,
     fontStyle: 'italic',
@@ -1887,12 +1888,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     padding: 12,
     borderTopWidth: 1,
-    borderTopColor: '#334155',
+    borderTopColor: 'rgba(255,255,255,0.08)',
     gap: 8,
   },
   chatInput: {
     flex: 1,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#0B0F14',
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 8,
@@ -1900,7 +1901,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     maxHeight: 80,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   sendButton: {
     width: 44,
@@ -1910,17 +1911,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   vassalCard: {
-    borderColor: '#F59E0B',
+    borderColor: '#F2C94C',
     borderWidth: 1,
     backgroundColor: '#78350F20',
   },
   emptyVassals: {
     textAlign: 'center',
-    color: '#64748B',
+    color: 'rgba(243,246,250,0.48)',
     fontSize: 14,
     fontStyle: 'italic',
     padding: 20,
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     borderRadius: 8,
     marginBottom: 16,
   },
@@ -1940,15 +1941,15 @@ const styles = StyleSheet.create({
   requestCountText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#fff',
+    color: '#FFF',
   },
   requestCard: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     borderRadius: 10,
     padding: 12,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   requestInfo: {
     marginBottom: 6,
@@ -1956,7 +1957,7 @@ const styles = StyleSheet.create({
   requestNationName: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
     marginBottom: 2,
   },
   requestMeta: {
@@ -1966,25 +1967,25 @@ const styles = StyleSheet.create({
   },
   requestPopulation: {
     fontSize: 12,
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
   },
   vassalEligibleBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
-    backgroundColor: '#8B5CF620',
+    backgroundColor: '#00E0C720',
     paddingHorizontal: 5,
     paddingVertical: 2,
     borderRadius: 4,
   },
   vassalEligibleText: {
     fontSize: 10,
-    color: '#8B5CF6',
+    color: '#00E0C7',
     fontWeight: '500',
   },
   requestMessage: {
     fontSize: 12,
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
     fontStyle: 'italic',
     marginBottom: 8,
   },
@@ -2001,13 +2002,13 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: '#EF4444',
-    backgroundColor: '#0F172A',
+    borderColor: '#FF5A65',
+    backgroundColor: '#0B0F14',
   },
   rejectButtonText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#EF4444',
+    color: '#FF5A65',
   },
   acceptButton: {
     flex: 1,
@@ -2021,7 +2022,7 @@ const styles = StyleSheet.create({
   acceptButtonText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#fff',
+    color: '#FFF',
   },
   // Call to War button styles
   callToWarButton: {
@@ -2030,15 +2031,15 @@ const styles = StyleSheet.create({
     gap: 4,
     paddingHorizontal: 10,
     paddingVertical: 6,
-    backgroundColor: '#EF444420',
+    backgroundColor: '#FF5A6520',
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: '#EF4444',
+    borderColor: '#FF5A65',
   },
   callToWarText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#EF4444',
+    color: '#FF5A65',
   },
   // Role Selection Modal Styles
   roleModalOverlay: {
@@ -2049,7 +2050,7 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   roleModalContent: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     borderRadius: 16,
     padding: 20,
     width: '100%',
@@ -2064,23 +2065,23 @@ const styles = StyleSheet.create({
   roleModalTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
   },
   roleModalCloseButton: {
     padding: 4,
   },
   roleModalSubtitle: {
     fontSize: 14,
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
     marginBottom: 4,
   },
   highlightText: {
-    color: '#F8FAFC',
+    color: '#F3F6FA',
     fontWeight: '600',
   },
   roleModalPopInfo: {
     fontSize: 12,
-    color: '#64748B',
+    color: 'rgba(243,246,250,0.48)',
     marginBottom: 16,
   },
   roleOptions: {
@@ -2091,13 +2092,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#0B0F14',
     padding: 14,
     borderRadius: 10,
     borderWidth: 2,
   },
   roleOptionDisabled: {
-    borderColor: '#334155',
+    borderColor: 'rgba(255,255,255,0.08)',
     opacity: 0.6,
   },
   roleIconContainer: {
@@ -2113,12 +2114,12 @@ const styles = StyleSheet.create({
   roleOptionTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
     marginBottom: 2,
   },
   roleOptionDesc: {
     fontSize: 11,
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
   },
   roleModalCancelButton: {
     paddingVertical: 10,
@@ -2126,7 +2127,7 @@ const styles = StyleSheet.create({
   },
   roleModalCancelText: {
     fontSize: 14,
-    color: '#64748B',
+    color: 'rgba(243,246,250,0.48)',
     fontWeight: '500',
   },
 });

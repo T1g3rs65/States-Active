@@ -430,12 +430,12 @@ export default function Nation() {
 
   const budgetData = [
     { label: 'Education', value: stats.budget_education, color: themeColor },
-    { label: 'Defense', value: stats.budget_defense, color: '#EF4444' },
-    { label: 'Healthcare', value: stats.budget_healthcare, color: '#10B981' },
-    { label: 'Welfare', value: stats.budget_welfare, color: '#F59E0B' },
-    { label: 'Environment', value: stats.budget_environment, color: '#10B981' },
+    { label: 'Defense', value: stats.budget_defense, color: '#FF5A65' },
+    { label: 'Healthcare', value: stats.budget_healthcare, color: '#27D17A' },
+    { label: 'Welfare', value: stats.budget_welfare, color: '#F2C94C' },
+    { label: 'Environment', value: stats.budget_environment, color: '#27D17A' },
     { label: 'Infrastructure', value: stats.budget_infrastructure, color: '#6366F1' },
-    { label: 'Other', value: stats.budget_other, color: '#8B5CF6' },
+    { label: 'Other', value: stats.budget_other, color: '#00E0C7' },
   ];
 
   // Calculate ACTUAL territory distribution based on player's capacity
@@ -455,7 +455,7 @@ export default function Nation() {
   
   // Fallback if no data
   const displayTerritoryData = territoryData.length > 0 ? territoryData : [
-    { name: 'Plains', population: 100, color: '#90EE90', legendFontColor: '#CBD5E1', legendFontSize: 12 }
+    { name: 'Plains', population: 100, color: '#90EE90', legendFontColor: 'rgba(243,246,250,0.70)', legendFontSize: 12 }
   ];
 
   const renderFlag = () => {
@@ -500,7 +500,7 @@ export default function Nation() {
           >
             <Ionicons name="notifications" size={24} color={themeColor} />
             {notificationCount > 0 && (
-              <View style={[styles.notificationBadge, { backgroundColor: '#EF4444' }]}>
+              <View style={[styles.notificationBadge, { backgroundColor: '#FF5A65' }]}>
                 <Text style={styles.notificationBadgeText}>{notificationCount}</Text>
               </View>
             )}
@@ -523,7 +523,7 @@ export default function Nation() {
           <RefreshControl refreshing={refreshing} onRefresh={refreshNation} tintColor={themeColor} />
         }
       >
-      <LinearGradient colors={['#1E293B', '#0F172A']} style={styles.headerCard}>
+      <LinearGradient colors={['#11171F', '#0B0F14']} style={styles.headerCard}>
         {renderFlag()}
         <Text style={styles.nationName}>{nation.name}</Text>
         <TouchableOpacity onPress={showRaceInfo} style={styles.raceRow} activeOpacity={0.7}>
@@ -573,7 +573,7 @@ export default function Nation() {
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>National Description</Text>
           <View style={styles.descriptionTimerContainer}>
-            <Ionicons name="time-outline" size={14} color="#64748B" />
+            <Ionicons name="time-outline" size={14} color="rgba(243,246,250,0.48)" />
             <Text style={styles.descriptionTimerText}>
               {descriptionTimer || 'Loading...'}
             </Text>
@@ -651,7 +651,7 @@ function StatItem({ label, value }: { label: string; value: string | number }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#0B0F14',
   },
   topHeader: {
     flexDirection: 'row',
@@ -660,14 +660,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     paddingTop: 48,
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     borderBottomWidth: 1,
-    borderBottomColor: '#334155',
+    borderBottomColor: 'rgba(255,255,255,0.08)',
   },
   topHeaderTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
   },
   headerButtons: {
     flexDirection: 'row',
@@ -692,7 +692,7 @@ const styles = StyleSheet.create({
   notificationBadgeText: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#fff',
+    color: '#FFF',
   },
   profileButton: {
     padding: 4,
@@ -705,7 +705,7 @@ const styles = StyleSheet.create({
   },
   leaderSection: {
     flexDirection: 'row',
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     borderRadius: 16,
     padding: 16,
     marginBottom: 16,
@@ -737,12 +737,12 @@ const styles = StyleSheet.create({
   leaderName: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
     marginBottom: 4,
   },
   leaderGovType: {
     fontSize: 13,
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
   },
   headerCard: {
     padding: 24,
@@ -755,7 +755,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     overflow: 'hidden',
     borderWidth: 2,
-    borderColor: '#334155',
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   hexFlagContainer: {
     marginBottom: 16,
@@ -769,7 +769,7 @@ const styles = StyleSheet.create({
   nationName: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
     textAlign: 'center',
     marginBottom: 8,
   },
@@ -786,17 +786,17 @@ const styles = StyleSheet.create({
   },
   governmentType: {
     fontSize: 16,
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
     marginBottom: 4,
   },
   sizeClass: {
     fontSize: 14,
-    color: '#10B981',
+    color: '#27D17A',
     fontWeight: '600',
   },
   motto: {
     fontSize: 14,
-    color: '#CBD5E1',
+    color: 'rgba(243,246,250,0.70)',
     fontStyle: 'italic',
     textAlign: 'center',
     marginBottom: 16,
@@ -806,25 +806,25 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderTopWidth: 1,
     borderBottomWidth: 1,
-    borderColor: '#334155',
+    borderColor: 'rgba(255,255,255,0.08)',
     width: '100%',
     gap: 6,
   },
   customizationText: {
     fontSize: 14,
-    color: '#E2E8F0',
+    color: '#F3F6FA',
     textAlign: 'center',
   },
   metaInfo: {
     marginTop: 16,
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: '#334155',
+    borderTopColor: 'rgba(255,255,255,0.08)',
     width: '100%',
   },
   metaText: {
     fontSize: 12,
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
     textAlign: 'center',
     marginBottom: 4,
   },
@@ -840,19 +840,19 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
   },
   regenerateButton: {
     padding: 8,
     borderRadius: 8,
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   descriptionTimerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
@@ -860,27 +860,27 @@ const styles = StyleSheet.create({
   },
   descriptionTimerText: {
     fontSize: 12,
-    color: '#64748B',
+    color: 'rgba(243,246,250,0.48)',
   },
   descriptionHint: {
     fontSize: 11,
-    color: '#64748B',
+    color: 'rgba(243,246,250,0.48)',
     fontStyle: 'italic',
     marginTop: 8,
   },
   regeneratingText: {
     fontSize: 12,
-    color: '#3B82F6',
+    color: '#00E0C7',
     marginTop: 8,
     textAlign: 'center',
     fontStyle: 'italic',
   },
   descriptionText: {
     fontSize: 14,
-    color: '#CBD5E1',
+    color: 'rgba(243,246,250,0.70)',
     lineHeight: 22,
     padding: 16,
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     borderRadius: 12,
   },
   statsGrid: {
@@ -889,32 +889,32 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   statItem: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     padding: 16,
     borderRadius: 12,
     flex: 1,
     minWidth: '45%',
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   statItemLabel: {
     fontSize: 12,
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
     marginBottom: 4,
   },
   statItemValue: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#3B82F6',
+    color: '#00E0C7',
   },
   budgetContainer: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     padding: 16,
     borderRadius: 12,
     alignItems: 'center',
   },
   noDataText: {
-    color: '#64748B',
+    color: 'rgba(243,246,250,0.48)',
     fontSize: 14,
     padding: 20,
     textAlign: 'center',
@@ -928,7 +928,7 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     flex: 1,
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     paddingVertical: 16,
     paddingHorizontal: 12,
     borderRadius: 12,
@@ -937,19 +937,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   actionButtonText: {
-    color: '#F8FAFC',
+    color: '#F3F6FA',
     fontSize: 14,
     fontWeight: '600',
   },
   footerText: {
     textAlign: 'center',
-    color: '#64748B',
+    color: 'rgba(243,246,250,0.48)',
     fontSize: 12,
     marginTop: 24,
     marginBottom: 16,
   },
   errorText: {
-    color: '#EF4444',
+    color: '#FF5A65',
     fontSize: 16,
     textAlign: 'center',
   },
@@ -962,36 +962,36 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   modalContent: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     borderRadius: 16,
     padding: 24,
     maxWidth: 400,
     width: '100%',
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   modalTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
     marginBottom: 12,
     textAlign: 'center',
   },
   modalText: {
     fontSize: 15,
-    color: '#CBD5E1',
+    color: 'rgba(243,246,250,0.70)',
     lineHeight: 22,
     marginBottom: 20,
   },
   modalButton: {
-    backgroundColor: '#3B82F6',
+    backgroundColor: '#00E0C7',
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 8,
     alignItems: 'center',
   },
   modalButtonText: {
-    color: '#FFFFFF',
+    color: '#F3F6FA',
     fontSize: 16,
     fontWeight: '600',
   },

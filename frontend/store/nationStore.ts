@@ -16,6 +16,7 @@ interface NationStore {
   loadNation: () => Promise<void>;
   saveNation: (nation: Nation) => Promise<void>;
   clearNation: () => Promise<void>;
+  refreshNation: () => Promise<void>;
 }
 
 export const useNationStore = create<NationStore>((set, get) => ({
@@ -55,6 +56,22 @@ export const useNationStore = create<NationStore>((set, get) => ({
       set({ nation: null, issues: [] });
     } catch (error) {
       console.error('Error clearing nation:', error);
+    }
+  },
+
+  refreshNation: async () => {
+    try {
+      const { nation } = get();
+      const nationId = nation?.id || nation?._id;
+      if (!nationId) return;
+      const response = await fetch(`${process.env.EXPO_PUBLIC_BACKEND_URL || ''}/api/nations/${nationId}`);
+      const data = await response.json();
+      if (data.success) {
+        await AsyncStorage.setItem('nation', JSON.stringify(data.nation));
+        set({ nation: data.nation });
+      }
+    } catch (error) {
+      console.error('Error refreshing nation:', error);
     }
   },
 }));

@@ -319,10 +319,10 @@ export default function Advisors() {
   };
 
   const getAbilityColor = (ability: number) => {
-    if (ability >= 80) return '#10B981';
-    if (ability >= 60) return '#3B82F6';
-    if (ability >= 40) return '#F59E0B';
-    return '#EF4444';
+    if (ability >= 80) return '#27D17A';
+    if (ability >= 60) return '#00E0C7';
+    if (ability >= 40) return '#F2C94C';
+    return '#FF5A65';
   };
 
   const getAbilityLabel = (ability: number) => {
@@ -333,9 +333,9 @@ export default function Advisors() {
   };
 
   const getApprovalColor = (approval: number) => {
-    if (approval >= 70) return '#10B981';
-    if (approval >= 50) return '#F59E0B';
-    return '#EF4444';
+    if (approval >= 70) return '#27D17A';
+    if (approval >= 50) return '#F2C94C';
+    return '#FF5A65';
   };
 
   const canSendTaskToday = () => {
@@ -529,7 +529,7 @@ export default function Advisors() {
           >
             <Ionicons name="notifications" size={24} color={themeColor} />
             {notificationCount > 0 && (
-              <View style={[styles.notificationBadge, { backgroundColor: '#EF4444' }]}>
+              <View style={[styles.notificationBadge, { backgroundColor: '#FF5A65' }]}>
                 <Text style={styles.notificationBadgeText}>{notificationCount}</Text>
               </View>
             )}
@@ -597,7 +597,7 @@ export default function Advisors() {
 
       {!canSendTaskToday() && (
         <View style={styles.dailyLimitBanner}>
-          <Ionicons name="time-outline" size={20} color="#F59E0B" />
+          <Ionicons name="time-outline" size={20} color="#F2C94C" />
           <Text style={styles.dailyLimitText}>Daily task limit reached. Try again tomorrow.</Text>
         </View>
       )}
@@ -640,12 +640,12 @@ export default function Advisors() {
                 <TouchableOpacity
                   style={[
                     styles.warButton,
-                    { backgroundColor: canDeclareWar() ? '#EF4444' : '#64748B' }
+                    { backgroundColor: canDeclareWar() ? '#FF5A65' : 'rgba(243,246,250,0.48)' }
                   ]}
                   onPress={handleOpenDeclareWarModal}
                   disabled={!canDeclareWar()}
                 >
-                  <Ionicons name="flash" size={16} color="#FFFFFF" />
+                  <Ionicons name="flash" size={16} color="#F3F6FA" />
                   <Text style={styles.warButtonText}>Declare War</Text>
                 </TouchableOpacity>
 
@@ -653,14 +653,14 @@ export default function Advisors() {
                   style={[
                     styles.warButton,
                     { 
-                      backgroundColor: hasActiveWar() ? '#F59E0B' : '#334155',
+                      backgroundColor: hasActiveWar() ? '#F2C94C' : 'rgba(255,255,255,0.08)',
                       opacity: hasActiveWar() ? 1 : 0.6
                     }
                   ]}
                   onPress={handleViewActiveWar}
                   disabled={!hasActiveWar()}
                 >
-                  <Ionicons name={hasActiveWar() ? "flame" : "moon-outline"} size={14} color="#FFFFFF" />
+                  <Ionicons name={hasActiveWar() ? "flame" : "moon-outline"} size={14} color="#F3F6FA" />
                   <Text style={styles.warButtonText}>
                     {hasActiveWar() ? 'View Active War' : 'No Active War'}
                   </Text>
@@ -672,23 +672,23 @@ export default function Advisors() {
                 <TouchableOpacity
                   style={[
                     styles.warButton,
-                    { backgroundColor: '#10B981' }
+                    { backgroundColor: '#27D17A' }
                   ]}
                   onPress={() => router.push('/alliances')}
                 >
-                  <Ionicons name="shield-checkmark" size={16} color="#FFFFFF" />
+                  <Ionicons name="shield-checkmark" size={16} color="#F3F6FA" />
                   <Text style={styles.warButtonText}>Non-Aggression Pacts</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
                   style={[
                     styles.sendTaskButton,
-                    { backgroundColor: canSendTaskToday() ? themeColor : '#64748B' }
+                    { backgroundColor: canSendTaskToday() ? themeColor : 'rgba(243,246,250,0.48)' }
                   ]}
                   onPress={() => handleOpenTaskModal(advisor)}
                   disabled={!canSendTaskToday()}
                 >
-                  <Ionicons name="paper-plane" size={16} color="#FFFFFF" />
+                  <Ionicons name="paper-plane" size={16} color="#F3F6FA" />
                   <Text style={styles.sendTaskText}>Send Task</Text>
                 </TouchableOpacity>
               </>
@@ -698,12 +698,12 @@ export default function Advisors() {
                 <TouchableOpacity
                   style={[
                     styles.sendTaskButton,
-                    { backgroundColor: canSendTaskToday() ? themeColor : '#64748B' }
+                    { backgroundColor: canSendTaskToday() ? themeColor : 'rgba(243,246,250,0.48)' }
                   ]}
                   onPress={() => handleOpenTaskModal(advisor)}
                   disabled={!canSendTaskToday()}
                 >
-                  <Ionicons name="paper-plane" size={16} color="#FFFFFF" />
+                  <Ionicons name="paper-plane" size={16} color="#F3F6FA" />
                   <Text style={styles.sendTaskText}>Send Task</Text>
                 </TouchableOpacity>
 
@@ -711,7 +711,7 @@ export default function Advisors() {
                   style={[
                     styles.reformButton,
                     { 
-                      borderColor: canSendReform() && hasActivePolicies() ? themeColor : '#64748B',
+                      borderColor: canSendReform() && hasActivePolicies() ? themeColor : 'rgba(243,246,250,0.48)',
                       opacity: canSendReform() && hasActivePolicies() ? 1 : 0.5
                     }
                   ]}
@@ -721,11 +721,11 @@ export default function Advisors() {
                   <Ionicons 
                     name="construct" 
                     size={14} 
-                    color={canSendReform() && hasActivePolicies() ? themeColor : '#64748B'} 
+                    color={canSendReform() && hasActivePolicies() ? themeColor : 'rgba(243,246,250,0.48)'} 
                   />
                   <Text style={[
                     styles.reformButtonText, 
-                    { color: canSendReform() && hasActivePolicies() ? themeColor : '#64748B' }
+                    { color: canSendReform() && hasActivePolicies() ? themeColor : 'rgba(243,246,250,0.48)' }
                   ]}>
                     Reform
                   </Text>
@@ -739,7 +739,7 @@ export default function Advisors() {
       {/* Global Reform Cooldown Banner */}
       {!canSendReform() && hasActivePolicies() && (
         <View style={[styles.dailyLimitBanner, { marginTop: 16 }]}>
-          <Ionicons name="construct-outline" size={20} color="#F59E0B" />
+          <Ionicons name="construct-outline" size={20} color="#F2C94C" />
           <Text style={styles.dailyLimitText}>
             Reform cooldown: {getDaysUntilReformAvailable()} days remaining before another policy can be reformed.
           </Text>
@@ -783,7 +783,7 @@ export default function Advisors() {
                 value={taskDescription}
                 onChangeText={setTaskDescription}
                 placeholder="e.g., Investigate corruption in the treasury department"
-                placeholderTextColor="#64748B"
+                placeholderTextColor="rgba(243,246,250,0.48)"
                 multiline
                 numberOfLines={4}
                 textAlignVertical="top"
@@ -798,7 +798,7 @@ export default function Advisors() {
                   <Text style={styles.submitButtonText}>Sending...</Text>
                 ) : (
                   <>
-                    <Ionicons name="paper-plane" size={18} color="#FFFFFF" />
+                    <Ionicons name="paper-plane" size={18} color="#F3F6FA" />
                     <Text style={styles.submitButtonText}>Send Task</Text>
                   </>
                 )}
@@ -886,7 +886,7 @@ export default function Advisors() {
                   </View>
                 ) : (
                   <View style={styles.noPolicies}>
-                    <Ionicons name="document-outline" size={32} color="#64748B" />
+                    <Ionicons name="document-outline" size={32} color="rgba(243,246,250,0.48)" />
                     <Text style={styles.noPoliciesText}>No policies to reform yet</Text>
                   </View>
                 )}
@@ -901,7 +901,7 @@ export default function Advisors() {
                       value={reformInstructions}
                       onChangeText={setReformInstructions}
                       placeholder="e.g., Make it more business-friendly, reduce restrictions, add environmental protections..."
-                      placeholderTextColor="#64748B"
+                      placeholderTextColor="rgba(243,246,250,0.48)"
                       multiline
                       numberOfLines={3}
                       textAlignVertical="top"
@@ -910,7 +910,7 @@ export default function Advisors() {
                     <TouchableOpacity
                       style={[
                         styles.submitButton, 
-                        { backgroundColor: reformInstructions.trim() ? themeColor : '#64748B' }
+                        { backgroundColor: reformInstructions.trim() ? themeColor : 'rgba(243,246,250,0.48)' }
                       ]}
                       onPress={handleSendReform}
                       disabled={sendingReform || !reformInstructions.trim()}
@@ -919,7 +919,7 @@ export default function Advisors() {
                         <Text style={styles.submitButtonText}>Reforming...</Text>
                       ) : (
                         <>
-                          <Ionicons name="construct" size={18} color="#FFFFFF" />
+                          <Ionicons name="construct" size={18} color="#F3F6FA" />
                           <Text style={styles.submitButtonText}>Reform Policy</Text>
                         </>
                       )}
@@ -928,7 +928,7 @@ export default function Advisors() {
                 )}
 
                 <View style={styles.reformWarning}>
-                  <Ionicons name="information-circle" size={16} color="#F59E0B" />
+                  <Ionicons name="information-circle" size={16} color="#F2C94C" />
                   <Text style={styles.reformWarningText}>
                     Reform outcomes depend on advisor ability. High ability = improvements, low ability = may make things worse. Your nation can only reform one policy every 7 days. Be specific in your instructions!
                   </Text>
@@ -951,7 +951,7 @@ export default function Advisors() {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>⚔️ Declare War</Text>
               <TouchableOpacity onPress={() => setShowDeclareWarModal(false)}>
-                <Ionicons name="close" size={28} color="#64748B" />
+                <Ionicons name="close" size={28} color="rgba(243,246,250,0.48)" />
               </TouchableOpacity>
             </View>
 
@@ -971,7 +971,7 @@ export default function Advisors() {
                     <View style={styles.nationSelectHeader}>
                       <Text style={styles.nationSelectName}>{item.nation_name}</Text>
                       {item.faction_tag && (
-                        <View style={[styles.factionTagSmall, { backgroundColor: item.faction_color || '#8B5CF6' }]}>
+                        <View style={[styles.factionTagSmall, { backgroundColor: item.faction_color || '#00E0C7' }]}>
                           <Text style={styles.factionTagTextSmall}>{item.faction_tag}</Text>
                         </View>
                       )}
@@ -982,7 +982,7 @@ export default function Advisors() {
                       GDP: {item.gdp_display || '$0'}
                     </Text>
                   </View>
-                  <Ionicons name="chevron-forward" size={20} color="#64748B" />
+                  <Ionicons name="chevron-forward" size={20} color="rgba(243,246,250,0.48)" />
                 </TouchableOpacity>
               )}
               style={styles.nationList}
@@ -1001,7 +1001,7 @@ export default function Advisors() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#0B0F14',
   },
   topHeader: {
     flexDirection: 'row',
@@ -1010,14 +1010,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 48,
     paddingBottom: 12,
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     borderBottomWidth: 1,
-    borderBottomColor: '#334155',
+    borderBottomColor: 'rgba(255,255,255,0.08)',
   },
   topHeaderTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
   },
   headerButtons: {
     flexDirection: 'row',
@@ -1042,7 +1042,7 @@ const styles = StyleSheet.create({
   notificationBadgeText: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#fff',
+    color: '#FFF',
   },
   profileButton: {
     padding: 4,
@@ -1061,12 +1061,12 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
     marginLeft: 12,
   },
   subtitle: {
     fontSize: 14,
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
     marginBottom: 16,
   },
   dailyLimitBanner: {
@@ -1084,13 +1084,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   loadingText: {
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
     fontSize: 16,
     textAlign: 'center',
     marginTop: 100,
   },
   noDataText: {
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
     fontSize: 16,
     textAlign: 'center',
     marginTop: 100,
@@ -1102,10 +1102,10 @@ const styles = StyleSheet.create({
   },
   advisorCard: {
     width: (width - 44) / 2,
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: 'rgba(255,255,255,0.08)',
     padding: 16,
     alignItems: 'center',
   },
@@ -1114,7 +1114,7 @@ const styles = StyleSheet.create({
     height: 80,
     borderRadius: 40,
     borderWidth: 3,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#0B0F14',
     marginBottom: 12,
     overflow: 'hidden',
   },
@@ -1126,13 +1126,13 @@ const styles = StyleSheet.create({
   advisorTitle: {
     fontSize: 13,
     fontWeight: 'bold',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
     textAlign: 'center',
     marginBottom: 4,
   },
   advisorName: {
     fontSize: 11,
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
     textAlign: 'center',
     marginBottom: 12,
   },
@@ -1144,7 +1144,7 @@ const styles = StyleSheet.create({
   },
   statLabel: {
     fontSize: 11,
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
   },
   statValue: {
     fontSize: 13,
@@ -1165,13 +1165,13 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   sendTaskText: {
-    color: '#FFFFFF',
+    color: '#F3F6FA',
     fontSize: 12,
     fontWeight: '600',
   },
   modalContainer: {
     flex: 1,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#0B0F14',
   },
   modalHeader: {
     flexDirection: 'row',
@@ -1179,17 +1179,22 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#334155',
+    borderBottomColor: 'rgba(255,255,255,0.08)',
   },
   modalClose: {
-    color: '#EF4444',
+    color: '#FF5A65',
     fontSize: 16,
     fontWeight: '600',
   },
   modalTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    color: 'rgba(243,246,250,0.70)',
+    marginBottom: 16,
   },
   modalContent: {
     padding: 16,
@@ -1199,7 +1204,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
     padding: 16,
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     borderRadius: 12,
     marginBottom: 24,
   },
@@ -1208,32 +1213,32 @@ const styles = StyleSheet.create({
     height: 48,
     borderRadius: 24,
     borderWidth: 2,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#0B0F14',
     alignItems: 'center',
     justifyContent: 'center',
   },
   modalAdvisorTitle: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
   },
   modalAdvisorName: {
     fontSize: 14,
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
   },
   inputLabel: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
     marginBottom: 12,
   },
   taskInput: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: 'rgba(255,255,255,0.08)',
     borderRadius: 12,
     padding: 16,
-    color: '#F8FAFC',
+    color: '#F3F6FA',
     fontSize: 15,
     minHeight: 120,
   },
@@ -1247,13 +1252,13 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   submitButtonText: {
-    color: '#FFFFFF',
+    color: '#F3F6FA',
     fontSize: 16,
     fontWeight: '600',
   },
   helperText: {
     fontSize: 12,
-    color: '#64748B',
+    color: 'rgba(243,246,250,0.48)',
     textAlign: 'center',
     marginTop: 16,
     fontStyle: 'italic',
@@ -1281,10 +1286,10 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   policyItem: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: 'rgba(255,255,255,0.08)',
     padding: 14,
   },
   policyItemHeader: {
@@ -1295,31 +1300,31 @@ const styles = StyleSheet.create({
   policyItemName: {
     fontSize: 15,
     fontWeight: 'bold',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
     flex: 1,
   },
   policyItemCategory: {
     fontSize: 12,
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
     marginTop: 4,
     textTransform: 'capitalize',
   },
   policyItemDesc: {
     fontSize: 13,
-    color: '#CBD5E1',
+    color: 'rgba(243,246,250,0.70)',
     marginTop: 6,
     lineHeight: 18,
   },
   noPolicies: {
     alignItems: 'center',
     padding: 32,
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   noPoliciesText: {
-    color: '#64748B',
+    color: 'rgba(243,246,250,0.48)',
     fontSize: 14,
     marginTop: 12,
   },
@@ -1350,7 +1355,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   warButtonText: {
-    color: '#FFFFFF',
+    color: '#F3F6FA',
     fontSize: 13,
     fontWeight: '600',
   },
@@ -1363,11 +1368,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: 16,
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     borderRadius: 12,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   nationSelectInfo: {
     flex: 1,
@@ -1380,11 +1385,11 @@ const styles = StyleSheet.create({
   },
   nationSelectStats: {
     fontSize: 13,
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
   },
   emptyText: {
     textAlign: 'center',
-    color: '#64748B',
+    color: 'rgba(243,246,250,0.48)',
     fontSize: 14,
     marginTop: 40,
   },
@@ -1397,11 +1402,11 @@ const styles = StyleSheet.create({
   warModalContent: {
     width: '90%',
     maxHeight: '80%',
-    backgroundColor: '#0F172A',
+    backgroundColor: '#0B0F14',
     borderRadius: 16,
     padding: 20,
     borderWidth: 2,
-    borderColor: '#EF4444',
+    borderColor: '#FF5A65',
   },
   nationSelectHeader: {
     flexDirection: 'row',
@@ -1416,7 +1421,7 @@ const styles = StyleSheet.create({
   },
   factionTagTextSmall: {
     fontSize: 10,
-    color: '#FFFFFF',
+    color: '#F3F6FA',
     fontWeight: 'bold',
   },
 });

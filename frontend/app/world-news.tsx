@@ -42,7 +42,7 @@ interface InternationalVote {
   praise_count: number;
   condemn_count: number;
   neutral_count: number;
-  votes: Array<{ nation_id: string; nation_name: string; vote_type: string }>;
+  votes: { nation_id: string; nation_name: string; vote_type: string }[];
   created_at: string;
   ends_at: string;
   is_active: boolean;
@@ -86,7 +86,7 @@ export default function WorldNewsScreen() {
       const response = await api.getAlliances(nationId);
       console.log('Allies response:', response);
       if (response.success && response.allies) {
-        const allyIds = new Set(response.allies.map((a: AllyInfo) => a.ally_id));
+        const allyIds = new Set<string>(response.allies.map((a: AllyInfo) => a.ally_id));
         console.log('Ally IDs:', Array.from(allyIds));
         setAllies(allyIds);
       }
@@ -255,15 +255,15 @@ export default function WorldNewsScreen() {
           </View>
           {vote.is_active ? (
             <View style={styles.timeBadge}>
-              <Ionicons name="time" size={12} color="#F59E0B" />
+              <Ionicons name="time" size={12} color="#F2C94C" />
               <Text style={styles.timeText}>
                 {formatTimeRemaining(vote.time_remaining_hours || 0)} left
               </Text>
             </View>
           ) : (
             <View style={[styles.outcomeBadge, { 
-              backgroundColor: vote.outcome === 'praised' ? '#22C55E' : 
-                             vote.outcome === 'condemned' ? '#EF4444' : '#64748B'
+              backgroundColor: vote.outcome === 'praised' ? '#27D17A' : 
+                             vote.outcome === 'condemned' ? '#FF5A65' : 'rgba(243,246,250,0.48)'
             }]}>
               <Text style={styles.outcomeText}>
                 {vote.outcome?.toUpperCase() || 'ENDED'}
@@ -284,35 +284,35 @@ export default function WorldNewsScreen() {
         {vote.praise_sponsor && (
           <View style={styles.sponsorCard}>
             <View style={styles.sponsorHeader}>
-              <Ionicons name="thumbs-up" size={14} color="#22C55E" />
+              <Ionicons name="thumbs-up" size={14} color="#27D17A" />
               <Text style={styles.sponsorLabel}>PRAISE - {vote.praise_sponsor.nation_name}</Text>
             </View>
-            <Text style={styles.sponsorStatement}>"{vote.praise_sponsor.statement}"</Text>
+            <Text style={styles.sponsorStatement}>{'\u201c'}{vote.praise_sponsor.statement}{'\u201d'}</Text>
           </View>
         )}
         
         {vote.condemn_sponsor && (
           <View style={styles.sponsorCard}>
             <View style={styles.sponsorHeader}>
-              <Ionicons name="thumbs-down" size={14} color="#EF4444" />
+              <Ionicons name="thumbs-down" size={14} color="#FF5A65" />
               <Text style={styles.sponsorLabel}>CONDEMN - {vote.condemn_sponsor.nation_name}</Text>
             </View>
-            <Text style={styles.sponsorStatement}>"{vote.condemn_sponsor.statement}"</Text>
+            <Text style={styles.sponsorStatement}>{'\u201c'}{vote.condemn_sponsor.statement}{'\u201d'}</Text>
           </View>
         )}
 
         {/* Vote Counts */}
         <View style={styles.voteCounts}>
           <View style={styles.voteCountItem}>
-            <Ionicons name="thumbs-up" size={16} color="#22C55E" />
+            <Ionicons name="thumbs-up" size={16} color="#27D17A" />
             <Text style={styles.voteCount}>{vote.praise_count}</Text>
           </View>
           <View style={styles.voteCountItem}>
-            <Ionicons name="thumbs-down" size={16} color="#EF4444" />
+            <Ionicons name="thumbs-down" size={16} color="#FF5A65" />
             <Text style={styles.voteCount}>{vote.condemn_count}</Text>
           </View>
           <View style={styles.voteCountItem}>
-            <Ionicons name="remove-circle" size={16} color="#64748B" />
+            <Ionicons name="remove-circle" size={16} color="rgba(243,246,250,0.48)" />
             <Text style={styles.voteCount}>{vote.neutral_count}</Text>
           </View>
           <Text style={styles.totalVotes}>{totalVotes} total votes</Text>
@@ -339,11 +339,11 @@ export default function WorldNewsScreen() {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#3B82F6" />
+          <Ionicons name="arrow-back" size={24} color="#00E0C7" />
         </TouchableOpacity>
         <Text style={styles.title}>World News</Text>
         <TouchableOpacity onPress={onRefresh} style={styles.refreshButton}>
-          <Ionicons name="refresh" size={24} color="#3B82F6" />
+          <Ionicons name="refresh" size={24} color="#00E0C7" />
         </TouchableOpacity>
       </View>
 
@@ -356,7 +356,7 @@ export default function WorldNewsScreen() {
           <Ionicons 
             name="flame" 
             size={18} 
-            color={activeTab === 'active' ? '#F59E0B' : '#64748B'} 
+            color={activeTab === 'active' ? '#F2C94C' : 'rgba(243,246,250,0.48)'} 
           />
           <Text style={[styles.tabText, activeTab === 'active' && styles.activeTabText]}>
             Active Votes ({activeVotes.length})
@@ -369,7 +369,7 @@ export default function WorldNewsScreen() {
           <Ionicons 
             name="checkmark-circle" 
             size={18} 
-            color={activeTab === 'ended' ? '#22C55E' : '#64748B'} 
+            color={activeTab === 'ended' ? '#27D17A' : 'rgba(243,246,250,0.48)'} 
           />
           <Text style={[styles.tabText, activeTab === 'ended' && styles.activeTabText]}>
             Results
@@ -380,7 +380,7 @@ export default function WorldNewsScreen() {
       {/* Content */}
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#3B82F6" />
+          <ActivityIndicator size="large" color="#00E0C7" />
           <Text style={styles.loadingText}>Loading world news...</Text>
         </View>
       ) : (
@@ -394,7 +394,7 @@ export default function WorldNewsScreen() {
           {activeTab === 'active' ? (
             activeVotes.length === 0 ? (
               <View style={styles.emptyState}>
-                <Ionicons name="globe-outline" size={64} color="#475569" />
+                <Ionicons name="globe-outline" size={64} color="rgba(255,255,255,0.08)" />
                 <Text style={styles.emptyTitle}>No Active Votes</Text>
                 <Text style={styles.emptyText}>
                   When nations make international decisions,{'\n'}
@@ -407,7 +407,7 @@ export default function WorldNewsScreen() {
           ) : (
             endedVotes.length === 0 ? (
               <View style={styles.emptyState}>
-                <Ionicons name="archive-outline" size={64} color="#475569" />
+                <Ionicons name="archive-outline" size={64} color="rgba(255,255,255,0.08)" />
                 <Text style={styles.emptyTitle}>No Past Votes</Text>
                 <Text style={styles.emptyText}>
                   Completed votes and their outcomes{'\n'}
@@ -433,7 +433,7 @@ export default function WorldNewsScreen() {
             <Text style={styles.modalTitle}>Cast Your Vote</Text>
             <Text style={styles.modalSubtitle}>
               {selectedVote && isAlly(selectedVote.source_nation_id) ? '⭐ ' : ''}
-              {selectedVote?.source_nation_name}'s decision
+              {selectedVote?.source_nation_name}{'\u2019'}s decision
             </Text>
             
             {/* Ally Notice - only for active votes */}
@@ -460,7 +460,7 @@ export default function WorldNewsScreen() {
                 ]}
                 onPress={() => setSelectedVoteType('praise')}
               >
-                <Ionicons name="thumbs-up" size={24} color="#22C55E" />
+                <Ionicons name="thumbs-up" size={24} color="#27D17A" />
                 <Text style={styles.voteOptionText}>Praise</Text>
                 {!selectedVote?.praise_sponsor && (
                   <Text style={styles.sponsorHint}>Be the sponsor!</Text>
@@ -475,7 +475,7 @@ export default function WorldNewsScreen() {
                 ]}
                 onPress={() => setSelectedVoteType('neutral')}
               >
-                <Ionicons name="remove-circle" size={24} color="#64748B" />
+                <Ionicons name="remove-circle" size={24} color="rgba(243,246,250,0.48)" />
                 <Text style={styles.voteOptionText}>Neutral</Text>
               </TouchableOpacity>
 
@@ -501,7 +501,7 @@ export default function WorldNewsScreen() {
                 <Ionicons 
                   name="thumbs-down" 
                   size={24} 
-                  color={selectedVote && selectedVote.is_active && isAlly(selectedVote.source_nation_id) ? '#475569' : '#EF4444'} 
+                  color={selectedVote && selectedVote.is_active && isAlly(selectedVote.source_nation_id) ? 'rgba(255,255,255,0.08)' : '#FF5A65'} 
                 />
                 <Text style={[
                   styles.voteOptionText,
@@ -526,7 +526,7 @@ export default function WorldNewsScreen() {
                   <TextInput
                     style={styles.statementInput}
                     placeholder={`Why should others ${selectedVoteType} this decision?`}
-                    placeholderTextColor="#64748B"
+                    placeholderTextColor="rgba(243,246,250,0.48)"
                     value={sponsorStatement}
                     onChangeText={setSponsorStatement}
                     multiline
@@ -552,7 +552,7 @@ export default function WorldNewsScreen() {
                 disabled={!selectedVoteType || voting}
               >
                 {voting ? (
-                  <ActivityIndicator size="small" color="#fff" />
+                  <ActivityIndicator size="small" color="#FFF" />
                 ) : (
                   <Text style={styles.submitButtonText}>Submit Vote</Text>
                 )}
@@ -568,7 +568,7 @@ export default function WorldNewsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#0B0F14',
   },
   header: {
     flexDirection: 'row',
@@ -577,7 +577,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#1E293B',
+    borderBottomColor: '#11171F',
   },
   backButton: {
     padding: 8,
@@ -585,7 +585,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
   },
   refreshButton: {
     padding: 8,
@@ -603,21 +603,21 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 6,
     paddingVertical: 10,
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     borderRadius: 8,
   },
   activeTab: {
     backgroundColor: '#1E3A5F',
     borderWidth: 1,
-    borderColor: '#3B82F6',
+    borderColor: '#00E0C7',
   },
   tabText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#64748B',
+    color: 'rgba(243,246,250,0.48)',
   },
   activeTabText: {
-    color: '#F8FAFC',
+    color: '#F3F6FA',
   },
   scrollView: {
     flex: 1,
@@ -634,7 +634,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 14,
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
   },
   emptyState: {
     alignItems: 'center',
@@ -645,20 +645,20 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
   },
   emptyText: {
     fontSize: 14,
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
     textAlign: 'center',
     lineHeight: 20,
   },
   voteCard: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   voteHeader: {
     flexDirection: 'row',
@@ -694,10 +694,10 @@ const styles = StyleSheet.create({
   sourceNation: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#3B82F6',
+    color: '#00E0C7',
   },
   ownBadge: {
-    backgroundColor: '#8B5CF6',
+    backgroundColor: '#00E0C7',
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 4,
@@ -705,7 +705,7 @@ const styles = StyleSheet.create({
   ownBadgeText: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#fff',
+    color: '#FFF',
   },
   timeBadge: {
     flexDirection: 'row',
@@ -719,7 +719,7 @@ const styles = StyleSheet.create({
   timeText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#F59E0B',
+    color: '#F2C94C',
   },
   outcomeBadge: {
     paddingHorizontal: 8,
@@ -729,23 +729,23 @@ const styles = StyleSheet.create({
   outcomeText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#fff',
+    color: '#FFF',
   },
   decisionSummary: {
     fontSize: 15,
     fontWeight: '500',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
     lineHeight: 22,
     marginBottom: 8,
   },
   issueTitle: {
     fontSize: 12,
-    color: '#64748B',
+    color: 'rgba(243,246,250,0.48)',
     fontStyle: 'italic',
     marginBottom: 12,
   },
   sponsorCard: {
-    backgroundColor: '#0F172A',
+    backgroundColor: '#0B0F14',
     borderRadius: 8,
     padding: 12,
     marginBottom: 8,
@@ -759,11 +759,11 @@ const styles = StyleSheet.create({
   sponsorLabel: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
   },
   sponsorStatement: {
     fontSize: 13,
-    color: '#F8FAFC',
+    color: '#F3F6FA',
     fontStyle: 'italic',
     lineHeight: 18,
   },
@@ -774,7 +774,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#334155',
+    borderTopColor: 'rgba(255,255,255,0.08)',
   },
   voteCountItem: {
     flexDirection: 'row',
@@ -784,11 +784,11 @@ const styles = StyleSheet.create({
   voteCount: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
   },
   totalVotes: {
     fontSize: 12,
-    color: '#64748B',
+    color: 'rgba(243,246,250,0.48)',
     marginLeft: 'auto',
   },
   voteStatus: {
@@ -798,16 +798,16 @@ const styles = StyleSheet.create({
   votedText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#22C55E',
+    color: '#27D17A',
   },
   cannotVoteText: {
     fontSize: 14,
-    color: '#64748B',
+    color: 'rgba(243,246,250,0.48)',
   },
   tapToVoteText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#3B82F6',
+    color: '#00E0C7',
   },
   modalOverlay: {
     flex: 1,
@@ -817,7 +817,7 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   modalContent: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     borderRadius: 16,
     padding: 24,
     width: '100%',
@@ -826,20 +826,20 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
     textAlign: 'center',
     marginBottom: 4,
   },
   modalSubtitle: {
     fontSize: 14,
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
     textAlign: 'center',
     marginBottom: 16,
   },
   modalDecision: {
     fontSize: 14,
-    color: '#F8FAFC',
-    backgroundColor: '#0F172A',
+    color: '#F3F6FA',
+    backgroundColor: '#0B0F14',
     padding: 12,
     borderRadius: 8,
     marginBottom: 20,
@@ -856,29 +856,29 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 8,
     borderWidth: 2,
-    borderColor: '#334155',
+    borderColor: 'rgba(255,255,255,0.08)',
     gap: 4,
   },
   praiseOption: {
     borderColor: '#14532D',
   },
   neutralOption: {
-    borderColor: '#334155',
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   condemnOption: {
-    borderColor: '#7F1D1D',
+    borderColor: '#FF5A65',
   },
   selectedOption: {
     backgroundColor: '#1E3A5F',
-    borderColor: '#3B82F6',
+    borderColor: '#00E0C7',
   },
   disabledVoteOption: {
     opacity: 0.5,
-    borderColor: '#1E293B',
-    backgroundColor: '#0F172A',
+    borderColor: '#11171F',
+    backgroundColor: '#0B0F14',
   },
   disabledVoteText: {
-    color: '#475569',
+    color: 'rgba(255,255,255,0.08)',
   },
   allyBlockedHint: {
     fontSize: 10,
@@ -888,34 +888,34 @@ const styles = StyleSheet.create({
   voteOptionText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
   },
   sponsorHint: {
     fontSize: 10,
-    color: '#F59E0B',
+    color: '#F2C94C',
   },
   sponsorInput: {
     marginBottom: 20,
   },
   sponsorInputLabel: {
     fontSize: 13,
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
     marginBottom: 8,
   },
   statementInput: {
-    backgroundColor: '#0F172A',
+    backgroundColor: '#0B0F14',
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: 'rgba(255,255,255,0.08)',
     borderRadius: 8,
     padding: 12,
     fontSize: 14,
-    color: '#F8FAFC',
+    color: '#F3F6FA',
     minHeight: 80,
     textAlignVertical: 'top',
   },
   charCount: {
     fontSize: 11,
-    color: '#64748B',
+    color: 'rgba(243,246,250,0.48)',
     textAlign: 'right',
     marginTop: 4,
   },
@@ -928,27 +928,27 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 8,
     alignItems: 'center',
-    backgroundColor: '#334155',
+    backgroundColor: 'rgba(255,255,255,0.08)',
   },
   cancelButtonText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
   },
   submitButton: {
     flex: 1,
     paddingVertical: 14,
     borderRadius: 8,
     alignItems: 'center',
-    backgroundColor: '#3B82F6',
+    backgroundColor: '#00E0C7',
   },
   submitButtonText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#fff',
+    color: '#FFF',
   },
   disabledButton: {
-    backgroundColor: '#475569',
+    backgroundColor: 'rgba(255,255,255,0.08)',
     opacity: 0.7,
   },
 });

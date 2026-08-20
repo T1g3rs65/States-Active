@@ -277,22 +277,22 @@ export default function WorldMap() {
         }
         if (territory.ownerId === nationId) {
           // Player's nation - Yellow
-          return '#FBBF24';
+          return '#F2C94C';
         }
         if (diplomaticData.factionMemberIds.has(territory.ownerId)) {
           // Faction member - Purple
-          return '#8B5CF6';
+          return '#00E0C7';
         }
         if (diplomaticData.vassalIds.has(territory.ownerId)) {
           // Vassal - Pink
-          return '#EC4899';
+          return '#00B8B8';
         }
         if (diplomaticData.napPartnerIds.has(territory.ownerId)) {
           // Non-aggression pact - Green
-          return '#22C55E';
+          return '#27D17A';
         }
         // Everyone else - Red
-        return '#EF4444';
+        return '#FF5A65';
         
       case 'political':
       default:
@@ -306,21 +306,21 @@ export default function WorldMap() {
     
     switch (mapMode) {
       case 'terrain':
-        return { color: '#1E293B', width: baseWidth };
+        return { color: '#11171F', width: baseWidth };
         
       case 'resources':
-        return { color: '#1E293B', width: baseWidth };
+        return { color: '#11171F', width: baseWidth };
         
       case 'faction':
         if (isOwned) {
-          return { color: '#FFFFFF', width: isBorder ? 2.5 : 1.2 };
+          return { color: '#F3F6FA', width: isBorder ? 2.5 : 1.2 };
         }
-        return { color: '#1E293B', width: baseWidth };
+        return { color: '#11171F', width: baseWidth };
         
       case 'political':
       default:
         return {
-          color: isBorder ? '#FBBF24' : isOwned ? '#FFFFFF' : '#2D3748',
+          color: isBorder ? '#F2C94C' : isOwned ? '#F3F6FA' : '#2D3748',
           width: isBorder ? 2.5 : isOwned ? 1.2 : baseWidth
         };
     }
@@ -588,7 +588,7 @@ export default function WorldMap() {
         color = '#002244';
       } else if (territory.normalized < 0.35) {
         biome = 'deep_ocean';
-        color = '#1c0dff';
+        color = '#1C0DFF';
       } else if (territory.normalized < 0.45) {
         biome = 'shallow_sea';
         color = '#0064C8';
@@ -672,7 +672,7 @@ export default function WorldMap() {
         }
       } else if (elevation < 0.25 && moisture > 0.5) {
         biome = 'wetland';
-        color = '#27ff87';
+        color = '#27FF87';
       }
       // FORESTS
       else if (moisture > 0.40) {
@@ -687,10 +687,10 @@ export default function WorldMap() {
           color = '#1F3F1F';
         } else if (moisture > 0.45) {
           biome = 'evergreen_forest';
-          color = '#05450a';
+          color = '#05450A';
         } else {
           biome = 'deciduous_forest';
-          color = '#78d203';
+          color = '#78D203';
         }
       } else if (moisture > 0.35) {
         biome = 'mixed_forest';
@@ -707,34 +707,34 @@ export default function WorldMap() {
             color = '#E3B98F';
           } else if (moisture < 0.03) {
             biome = 'savanna';
-            color = '#fbff13';
+            color = '#FBFF13';
           } else {
             biome = 'semi_arid_desert';
             color = '#D8B56B';
           }
         } else if (elevation > 0.6) {
           biome = 'barren';
-          color = '#f9ffa4';
+          color = '#F9FFA4';
         } else {
           const useSavanna = noise.noise2D(col / 3, row / 3) > 0.2;
           biome = useSavanna ? 'savanna' : 'semi_arid_desert';
-          color = useSavanna ? '#fbff13' : '#D8B56B';
+          color = useSavanna ? '#FBFF13' : '#D8B56B';
         }
       }
       // GRASSLANDS & SAVANNAS
       else if (moisture > 0.05) {
         if (latitude < 0.35 && moisture < 0.22) {
           biome = 'woody_savanna';
-          color = '#dade48';
+          color = '#DADE48';
         } else if (moisture < 0.25) {
           biome = 'shrubland';
           color = '#BFBB22';
         } else if (moisture < 0.28 && latitude < 0.45) {
           biome = 'savanna';
-          color = '#fbff13';
+          color = '#FBFF13';
         } else if (moisture > 0.22) {
           biome = 'grassland';
-          color = '#b6ff05';
+          color = '#B6FF05';
         } else {
           biome = 'temperate_grassland';
           color = '#C8C87A';
@@ -743,7 +743,7 @@ export default function WorldMap() {
       // DEFAULT GRASSLAND
       else {
         biome = 'grassland';
-        color = '#b6ff05';
+        color = '#B6FF05';
       }
 
       // RIVERS OVERLAY
@@ -841,12 +841,12 @@ export default function WorldMap() {
       
       // Nation colors
       const nationColors = [
-        '#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6', 
-        '#EC4899', '#06B6D4', '#84CC16', '#F97316', '#A855F7',
-        '#14B8A6', '#F43F5E', '#6366F1', '#22C55E', '#EAB308',
+        '#00E0C7', '#FF5A65', '#27D17A', '#F2C94C', '#00E0C7', 
+        '#00B8B8', '#06B6D4', '#84CC16', '#F97316', '#A855F7',
+        '#00E0C7', '#F43F5E', '#6366F1', '#27D17A', '#EAB308',
         '#D946EF', '#0EA5E9', '#78716C', '#FB7185', '#A3E635',
-        '#818CF8', '#2DD4BF', '#FACC15', '#E879F9', '#38BDF8',
-        '#34D399', '#FCA5A5', '#93C5FD', '#C084FC', '#FDE047'
+        '#818CF8', '#7FFFD4', '#FACC15', '#E879F9', '#38BDF8',
+        '#27D17A', '#FCA5A5', '#93C5FD', '#C084FC', '#FDE047'
       ];
       
       // DIJKSTRA COST-BASED EXPANSION
@@ -1008,7 +1008,7 @@ export default function WorldMap() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#3B82F6" />
+        <ActivityIndicator size="large" color="#00E0C7" />
         <Text style={styles.loadingText}>{loadingStatus}</Text>
         <Text style={styles.loadingSubtext}>Terrain is cached after first load for faster access</Text>
       </View>
@@ -1023,14 +1023,14 @@ export default function WorldMap() {
     <View style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#3B82F6" />
+          <Ionicons name="arrow-back" size={24} color="#00E0C7" />
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <Text style={styles.title}>World Map</Text>
           <Text style={styles.subtitle}>40,000 Territories</Text>
         </View>
         <TouchableOpacity onPress={zoomToMyNation} style={styles.myNationButton}>
-          <Ionicons name="locate" size={20} color="#F8FAFC" />
+          <Ionicons name="locate" size={20} color="#F3F6FA" />
         </TouchableOpacity>
       </View>
 
@@ -1043,35 +1043,35 @@ export default function WorldMap() {
           <Ionicons 
             name={MAP_MODES.find(m => m.key === mapMode)?.icon as any || 'flag'} 
             size={16} 
-            color="#F8FAFC" 
+            color="#F3F6FA" 
           />
           <Text style={styles.mapModeSelectorText}>
             {MAP_MODES.find(m => m.key === mapMode)?.label || 'Political'}
           </Text>
-          <Ionicons name="chevron-down" size={16} color="#94A3B8" />
+          <Ionicons name="chevron-down" size={16} color="rgba(243,246,250,0.70)" />
         </TouchableOpacity>
         
         {/* Faction mode legend */}
         {mapMode === 'faction' && (
           <View style={styles.factionLegend}>
             <View style={styles.legendDot}>
-              <View style={[styles.dot, { backgroundColor: '#FBBF24' }]} />
+              <View style={[styles.dot, { backgroundColor: '#F2C94C' }]} />
               <Text style={styles.legendDotText}>You</Text>
             </View>
             <View style={styles.legendDot}>
-              <View style={[styles.dot, { backgroundColor: '#8B5CF6' }]} />
+              <View style={[styles.dot, { backgroundColor: '#00E0C7' }]} />
               <Text style={styles.legendDotText}>Faction</Text>
             </View>
             <View style={styles.legendDot}>
-              <View style={[styles.dot, { backgroundColor: '#EC4899' }]} />
+              <View style={[styles.dot, { backgroundColor: '#00B8B8' }]} />
               <Text style={styles.legendDotText}>Vassal</Text>
             </View>
             <View style={styles.legendDot}>
-              <View style={[styles.dot, { backgroundColor: '#22C55E' }]} />
+              <View style={[styles.dot, { backgroundColor: '#27D17A' }]} />
               <Text style={styles.legendDotText}>NAP</Text>
             </View>
             <View style={styles.legendDot}>
-              <View style={[styles.dot, { backgroundColor: '#EF4444' }]} />
+              <View style={[styles.dot, { backgroundColor: '#FF5A65' }]} />
               <Text style={styles.legendDotText}>Other</Text>
             </View>
           </View>
@@ -1107,7 +1107,7 @@ export default function WorldMap() {
                 <Ionicons 
                   name={mode.icon as any} 
                   size={20} 
-                  color={mapMode === mode.key ? '#3B82F6' : '#CBD5E1'} 
+                  color={mapMode === mode.key ? '#00E0C7' : 'rgba(243,246,250,0.70)'} 
                 />
                 <Text style={[
                   styles.dropdownItemText,
@@ -1116,7 +1116,7 @@ export default function WorldMap() {
                   {mode.label}
                 </Text>
                 {mapMode === mode.key && (
-                  <Ionicons name="checkmark" size={20} color="#3B82F6" />
+                  <Ionicons name="checkmark" size={20} color="#00E0C7" />
                 )}
               </TouchableOpacity>
             ))}
@@ -1126,11 +1126,11 @@ export default function WorldMap() {
 
       <View style={styles.controls}>
         <TouchableOpacity style={styles.controlButton} onPress={handleZoomIn}>
-          <Ionicons name="add" size={20} color="#F8FAFC" />
+          <Ionicons name="add" size={20} color="#F3F6FA" />
         </TouchableOpacity>
         <Text style={styles.zoomText}>{zoom.toFixed(2)}x</Text>
         <TouchableOpacity style={styles.controlButton} onPress={handleZoomOut}>
-          <Ionicons name="remove" size={20} color="#F8FAFC" />
+          <Ionicons name="remove" size={20} color="#F3F6FA" />
         </TouchableOpacity>
       </View>
 
@@ -1176,8 +1176,8 @@ export default function WorldMap() {
                       cx={territory.x * zoom}
                       cy={territory.y * zoom}
                       r={Math.max(4, HEX_SIZE * zoom * 0.3)}
-                      fill={RESOURCE_BY_ID.get(territory.resourceId)?.color || '#FFFFFF'}
-                      stroke="#0F172A"
+                      fill={RESOURCE_BY_ID.get(territory.resourceId)?.color || '#F3F6FA'}
+                      stroke="#0B0F14"
                       strokeWidth={1}
                       opacity={0.9}
                     />
@@ -1239,7 +1239,7 @@ export default function WorldMap() {
                         y={centerY + 8}
                         width={flagWidth}
                         height={flagSize * 0.5}
-                        fill="#0F172A"
+                        fill="#0B0F14"
                         rx={4}
                         opacity={0.95}
                       />
@@ -1247,7 +1247,7 @@ export default function WorldMap() {
                         x={centerX}
                         y={centerY + 8 + (flagSize * 0.35)}
                         fontSize={Math.max(10, 12 * zoom)}
-                        fill="#F8FAFC"
+                        fill="#F3F6FA"
                         textAnchor="middle"
                         fontWeight="600"
                       >
@@ -1274,7 +1274,7 @@ export default function WorldMap() {
               </Text>
             </View>
             <TouchableOpacity onPress={() => setSelectedTerritory(null)}>
-              <Ionicons name="close-circle" size={28} color="#64748B" />
+              <Ionicons name="close-circle" size={28} color="rgba(243,246,250,0.48)" />
             </TouchableOpacity>
           </View>
           
@@ -1287,7 +1287,7 @@ export default function WorldMap() {
               </Text>
               {selectedTerritory.resourceId && (
                 <View style={styles.resourceInfo}>
-                  <View style={[styles.resourceDot, { backgroundColor: RESOURCE_BY_ID.get(selectedTerritory.resourceId)?.color || '#FFFFFF' }]} />
+                  <View style={[styles.resourceDot, { backgroundColor: RESOURCE_BY_ID.get(selectedTerritory.resourceId)?.color || '#F3F6FA' }]} />
                   <Text style={styles.resourceText}>
                     {RESOURCE_BY_ID.get(selectedTerritory.resourceId)?.name || selectedTerritory.resourceId}
                     <Text style={[styles.resourceTier, { color: TIER_COLORS[RESOURCE_BY_ID.get(selectedTerritory.resourceId)?.tier || 'common'] }]}>
@@ -1316,23 +1316,23 @@ function LegendItem({ color, label }: { color: string; label: string }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#0B0F14',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#0F172A',
+    backgroundColor: '#0B0F14',
   },
   loadingText: {
     marginTop: 16,
-    color: '#F8FAFC',
+    color: '#F3F6FA',
     fontSize: 18,
     fontWeight: '600',
   },
   loadingSubtext: {
     marginTop: 8,
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
     fontSize: 14,
   },
   header: {
@@ -1341,16 +1341,16 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     borderBottomWidth: 1,
-    borderBottomColor: '#334155',
+    borderBottomColor: 'rgba(255,255,255,0.08)',
   },
   backButton: {
     padding: 8,
   },
   myNationButton: {
     padding: 8,
-    backgroundColor: '#3B82F6',
+    backgroundColor: '#00E0C7',
     borderRadius: 8,
   },
   headerCenter: {
@@ -1359,20 +1359,20 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
   },
   subtitle: {
     fontSize: 11,
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
     marginTop: 2,
   },
   legend: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     padding: 10,
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     borderBottomWidth: 1,
-    borderBottomColor: '#334155',
+    borderBottomColor: 'rgba(255,255,255,0.08)',
     gap: 8,
   },
   legendItem: {
@@ -1385,11 +1385,11 @@ const styles = StyleSheet.create({
     height: 12,
     borderRadius: 2,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   legendText: {
     fontSize: 10,
-    color: '#CBD5E1',
+    color: 'rgba(243,246,250,0.70)',
   },
   controls: {
     position: 'absolute',
@@ -1397,11 +1397,11 @@ const styles = StyleSheet.create({
     bottom: 120,
     gap: 4,
     zIndex: 10,
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     borderRadius: 8,
     padding: 6,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   controlButton: {
     padding: 6,
@@ -1409,8 +1409,7 @@ const styles = StyleSheet.create({
   },
   zoomText: {
     fontSize: 10,
-    color: '#94A3B8',
-    textAnchor: 'center',
+    color: 'rgba(243,246,250,0.70)',
     paddingVertical: 2,
   },
   infoPanel: {
@@ -1418,10 +1417,10 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     padding: 16,
     borderTopWidth: 3,
-    borderTopColor: '#3B82F6',
+    borderTopColor: '#00E0C7',
   },
   infoPanelHeader: {
     flexDirection: 'row',
@@ -1432,12 +1431,12 @@ const styles = StyleSheet.create({
   infoTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
     marginBottom: 4,
   },
   infoCoords: {
     fontSize: 11,
-    color: '#64748B',
+    color: 'rgba(243,246,250,0.48)',
   },
   infoContent: {
     flexDirection: 'row',
@@ -1448,7 +1447,7 @@ const styles = StyleSheet.create({
     height: 50,
     borderRadius: 6,
     borderWidth: 2,
-    borderColor: '#334155',
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   infoDetails: {
     flex: 1,
@@ -1456,7 +1455,7 @@ const styles = StyleSheet.create({
   },
   infoText: {
     fontSize: 13,
-    color: '#CBD5E1',
+    color: 'rgba(243,246,250,0.70)',
     marginBottom: 4,
   },
   resourceInfo: {
@@ -1470,11 +1469,11 @@ const styles = StyleSheet.create({
     height: 12,
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   resourceText: {
     fontSize: 13,
-    color: '#F8FAFC',
+    color: '#F3F6FA',
     fontWeight: '500',
   },
   resourceTier: {
@@ -1487,22 +1486,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 12,
     paddingVertical: 8,
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     borderBottomWidth: 1,
-    borderBottomColor: '#334155',
+    borderBottomColor: 'rgba(255,255,255,0.08)',
     gap: 12,
   },
   mapModeSelector: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#334155',
+    backgroundColor: 'rgba(255,255,255,0.08)',
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
     gap: 8,
   },
   mapModeSelectorText: {
-    color: '#F8FAFC',
+    color: '#F3F6FA',
     fontSize: 14,
     fontWeight: '500',
   },
@@ -1525,11 +1524,11 @@ const styles = StyleSheet.create({
     borderRadius: 5,
   },
   legendDotText: {
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
     fontSize: 11,
   },
   resourcesLegendLabel: {
-    color: '#64748B',
+    color: 'rgba(243,246,250,0.48)',
     fontSize: 11,
     fontWeight: '600',
     marginRight: 4,
@@ -1543,14 +1542,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   dropdownContainer: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     borderRadius: 12,
     padding: 8,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   dropdownTitle: {
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
     fontSize: 12,
     fontWeight: '600',
     textTransform: 'uppercase',
@@ -1567,15 +1566,15 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   dropdownItemActive: {
-    backgroundColor: '#334155',
+    backgroundColor: 'rgba(255,255,255,0.08)',
   },
   dropdownItemText: {
-    color: '#CBD5E1',
+    color: 'rgba(243,246,250,0.70)',
     fontSize: 16,
     flex: 1,
   },
   dropdownItemTextActive: {
-    color: '#F8FAFC',
+    color: '#F3F6FA',
     fontWeight: '600',
   },
 });

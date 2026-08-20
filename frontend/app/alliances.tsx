@@ -250,14 +250,14 @@ export default function NonAggressionPacts() {
     <View key={pact.alliance_id} style={styles.allyCard}>
       <View style={styles.allyHeader}>
         <View style={styles.nationNameRow}>
-          <Ionicons name="shield-checkmark" size={20} color="#22C55E" />
+          <Ionicons name="shield-checkmark" size={20} color="#27D17A" />
           <Text style={styles.nationName}>{pact.ally_name}</Text>
         </View>
         <TouchableOpacity
           style={styles.breakButton}
           onPress={() => breakPact(pact.alliance_id, pact.ally_name)}
         >
-          <Ionicons name="close-circle" size={20} color="#EF4444" />
+          <Ionicons name="close-circle" size={20} color="#FF5A65" />
         </TouchableOpacity>
       </View>
       <Text style={styles.allyDate}>
@@ -287,14 +287,14 @@ export default function NonAggressionPacts() {
             style={[styles.actionButton, styles.acceptButton]}
             onPress={() => respondToRequest(request.id, true, request.from_nation_name)}
           >
-            <Ionicons name="checkmark" size={18} color="#fff" />
+            <Ionicons name="checkmark" size={18} color="#FFF" />
             <Text style={styles.actionButtonText}>Accept</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.actionButton, styles.rejectButton]}
             onPress={() => respondToRequest(request.id, false, request.from_nation_name)}
           >
-            <Ionicons name="close" size={18} color="#fff" />
+            <Ionicons name="close" size={18} color="#FFF" />
             <Text style={styles.actionButtonText}>Reject</Text>
           </TouchableOpacity>
         </View>
@@ -355,7 +355,7 @@ export default function NonAggressionPacts() {
           style={[styles.tab, activeTab === 'pacts' && [styles.activeTab, { borderColor: themeColor }]]}
           onPress={() => setActiveTab('pacts')}
         >
-          <Ionicons name="shield-checkmark" size={16} color={activeTab === 'pacts' ? '#10B981' : '#64748B'} />
+          <Ionicons name="shield-checkmark" size={16} color={activeTab === 'pacts' ? '#27D17A' : 'rgba(243,246,250,0.48)'} />
           <Text style={[styles.tabText, activeTab === 'pacts' && styles.activeTabText]}>
             Pacts ({pacts.length}/{MAX_PACTS})
           </Text>
@@ -364,7 +364,7 @@ export default function NonAggressionPacts() {
           style={[styles.tab, activeTab === 'requests' && [styles.activeTab, { borderColor: themeColor }]]}
           onPress={() => setActiveTab('requests')}
         >
-          <Ionicons name="mail" size={16} color={activeTab === 'requests' ? themeColor : '#64748B'} />
+          <Ionicons name="mail" size={16} color={activeTab === 'requests' ? themeColor : 'rgba(243,246,250,0.48)'} />
           <Text style={[styles.tabText, activeTab === 'requests' && styles.activeTabText]}>
             Requests ({incomingRequests.length})
           </Text>
@@ -374,8 +374,8 @@ export default function NonAggressionPacts() {
           onPress={() => setActiveTab('find')}
           disabled={atPactLimit}
         >
-          <Ionicons name="search" size={16} color={atPactLimit ? '#475569' : (activeTab === 'find' ? '#22C55E' : '#64748B')} />
-          <Text style={[styles.tabText, activeTab === 'find' && styles.activeTabText, atPactLimit && { color: '#475569' }]}>
+          <Ionicons name="search" size={16} color={atPactLimit ? 'rgba(255,255,255,0.08)' : (activeTab === 'find' ? '#27D17A' : 'rgba(243,246,250,0.48)')} />
+          <Text style={[styles.tabText, activeTab === 'find' && styles.activeTabText, atPactLimit && { color: 'rgba(255,255,255,0.08)' }]}>
             Find
           </Text>
         </TouchableOpacity>
@@ -384,7 +384,7 @@ export default function NonAggressionPacts() {
       {/* Pact Limit Warning */}
       {atPactLimit && (
         <View style={styles.limitBanner}>
-          <Ionicons name="information-circle" size={16} color="#F59E0B" />
+          <Ionicons name="information-circle" size={16} color="#F2C94C" />
           <Text style={styles.limitBannerText}>
             Pact limit reached ({MAX_PACTS}/{MAX_PACTS}). Break an existing pact to form a new one.
           </Text>
@@ -408,7 +408,7 @@ export default function NonAggressionPacts() {
           {activeTab === 'pacts' && (
             pacts.length === 0 ? (
               <View style={styles.emptyState}>
-                <Ionicons name="shield-outline" size={64} color="#475569" />
+                <Ionicons name="shield-outline" size={64} color="rgba(255,255,255,0.08)" />
                 <Text style={styles.emptyTitle}>No Pacts Yet</Text>
                 <Text style={styles.emptyText}>
                   Form Non-Aggression Pacts with other nations!{'\n'}
@@ -438,7 +438,7 @@ export default function NonAggressionPacts() {
               
               {incomingRequests.length === 0 && outgoingRequests.length === 0 && (
                 <View style={styles.emptyState}>
-                  <Ionicons name="mail-outline" size={64} color="#475569" />
+                  <Ionicons name="mail-outline" size={64} color="rgba(255,255,255,0.08)" />
                   <Text style={styles.emptyTitle}>No Pending Requests</Text>
                   <Text style={styles.emptyText}>
                     Pact requests you send or receive{'\n'}
@@ -453,25 +453,25 @@ export default function NonAggressionPacts() {
             <View>
               {/* Search Input */}
               <View style={styles.searchContainer}>
-                <Ionicons name="search" size={20} color="#64748B" />
+                <Ionicons name="search" size={20} color="rgba(243,246,250,0.48)" />
                 <TextInput
                   style={styles.searchInput}
                   placeholder="Search nations..."
-                  placeholderTextColor="#64748B"
+                  placeholderTextColor="rgba(243,246,250,0.48)"
                   value={searchQuery}
                   onChangeText={setSearchQuery}
                   autoCapitalize="none"
                 />
                 {searchQuery.length > 0 && (
                   <TouchableOpacity onPress={() => setSearchQuery('')}>
-                    <Ionicons name="close-circle" size={20} color="#64748B" />
+                    <Ionicons name="close-circle" size={20} color="rgba(243,246,250,0.48)" />
                   </TouchableOpacity>
                 )}
               </View>
               
               {filteredNations.length === 0 ? (
                 <View style={styles.emptyState}>
-                  <Ionicons name="globe-outline" size={64} color="#475569" />
+                  <Ionicons name="globe-outline" size={64} color="rgba(255,255,255,0.08)" />
                   <Text style={styles.emptyTitle}>
                     {searchQuery ? 'No Nations Found' : 'No Nations Available'}
                   </Text>
@@ -507,7 +507,7 @@ export default function NonAggressionPacts() {
             <TextInput
               style={styles.messageInput}
               placeholder="Add a message (optional)"
-              placeholderTextColor="#64748B"
+              placeholderTextColor="rgba(243,246,250,0.48)"
               value={requestMessage}
               onChangeText={setRequestMessage}
               multiline
@@ -533,10 +533,10 @@ export default function NonAggressionPacts() {
                 disabled={sending}
               >
                 {sending ? (
-                  <ActivityIndicator size="small" color="#fff" />
+                  <ActivityIndicator size="small" color="#FFF" />
                 ) : (
                   <>
-                    <Ionicons name="send" size={16} color="#fff" />
+                    <Ionicons name="send" size={16} color="#FFF" />
                     <Text style={styles.sendButtonText}>Send</Text>
                   </>
                 )}
@@ -552,7 +552,7 @@ export default function NonAggressionPacts() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#0B0F14',
   },
   header: {
     flexDirection: 'row',
@@ -561,7 +561,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#1E293B',
+    borderBottomColor: '#11171F',
   },
   backButton: {
     padding: 8,
@@ -569,7 +569,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
   },
   refreshButton: {
     padding: 8,
@@ -582,7 +582,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#F59E0B',
+    borderBottomColor: '#F2C94C',
   },
   limitBannerText: {
     flex: 1,
@@ -602,21 +602,21 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 4,
     paddingVertical: 10,
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     borderRadius: 8,
   },
   activeTab: {
     backgroundColor: '#1E3A5F',
     borderWidth: 1,
-    borderColor: '#3B82F6',
+    borderColor: '#00E0C7',
   },
   tabText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#64748B',
+    color: 'rgba(243,246,250,0.48)',
   },
   activeTabText: {
-    color: '#F8FAFC',
+    color: '#F3F6FA',
   },
   scrollView: {
     flex: 1,
@@ -633,7 +633,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 14,
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
   },
   emptyState: {
     alignItems: 'center',
@@ -644,11 +644,11 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
   },
   emptyText: {
     fontSize: 14,
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
     textAlign: 'center',
     lineHeight: 20,
   },
@@ -658,16 +658,16 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
     marginBottom: 12,
     textTransform: 'uppercase',
   },
   allyCard: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#22C55E',
+    borderColor: '#27D17A',
   },
   allyHeader: {
     flexDirection: 'row',
@@ -682,22 +682,22 @@ const styles = StyleSheet.create({
   nationName: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
   },
   allyDate: {
     fontSize: 12,
-    color: '#64748B',
+    color: 'rgba(243,246,250,0.48)',
     marginTop: 8,
   },
   breakButton: {
     padding: 4,
   },
   requestCard: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: 'rgba(255,255,255,0.08)',
     marginBottom: 12,
   },
   requestHeader: {
@@ -708,16 +708,16 @@ const styles = StyleSheet.create({
   },
   requestDirection: {
     fontSize: 12,
-    color: '#64748B',
+    color: 'rgba(243,246,250,0.48)',
   },
   requestNation: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
   },
   requestMessage: {
     fontSize: 14,
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
     fontStyle: 'italic',
     marginBottom: 12,
   },
@@ -735,30 +735,30 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   acceptButton: {
-    backgroundColor: '#22C55E',
+    backgroundColor: '#27D17A',
   },
   rejectButton: {
-    backgroundColor: '#EF4444',
+    backgroundColor: '#FF5A65',
   },
   actionButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#fff',
+    color: '#FFF',
   },
   pendingText: {
     fontSize: 13,
-    color: '#64748B',
+    color: 'rgba(243,246,250,0.48)',
     fontStyle: 'italic',
   },
   nationCard: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   nationCardDisabled: {
     opacity: 0.5,
@@ -768,12 +768,12 @@ const styles = StyleSheet.create({
   },
   nationGovt: {
     fontSize: 12,
-    color: '#64748B',
+    color: 'rgba(243,246,250,0.48)',
     marginTop: 2,
   },
   pendingBadge: {
     fontSize: 12,
-    color: '#F59E0B',
+    color: '#F2C94C',
     fontWeight: '600',
   },
   modalOverlay: {
@@ -784,7 +784,7 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   modalContent: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     borderRadius: 16,
     padding: 24,
     width: '100%',
@@ -793,30 +793,30 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
     textAlign: 'center',
     marginBottom: 4,
   },
   modalSubtitle: {
     fontSize: 14,
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
     textAlign: 'center',
     marginBottom: 20,
   },
   messageInput: {
-    backgroundColor: '#0F172A',
+    backgroundColor: '#0B0F14',
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: 'rgba(255,255,255,0.08)',
     borderRadius: 8,
     padding: 12,
     fontSize: 14,
-    color: '#F8FAFC',
+    color: '#F3F6FA',
     minHeight: 80,
     textAlignVertical: 'top',
   },
   charCount: {
     fontSize: 11,
-    color: '#64748B',
+    color: 'rgba(243,246,250,0.48)',
     textAlign: 'right',
     marginTop: 4,
     marginBottom: 16,
@@ -830,12 +830,12 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 8,
     alignItems: 'center',
-    backgroundColor: '#334155',
+    backgroundColor: 'rgba(255,255,255,0.08)',
   },
   cancelButtonText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
   },
   sendButton: {
     flex: 1,
@@ -849,12 +849,12 @@ const styles = StyleSheet.create({
   sendButtonText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#fff',
+    color: '#FFF',
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 8,
@@ -864,7 +864,7 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 14,
-    color: '#F8FAFC',
+    color: '#F3F6FA',
     paddingVertical: 4,
   },
 });

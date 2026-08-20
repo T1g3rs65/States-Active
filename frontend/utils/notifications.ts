@@ -7,7 +7,10 @@ Notifications.setNotificationHandler({
     shouldShowAlert: true,
     shouldPlaySound: true,
     shouldSetBadge: true,
-  }),
+    shouldShowBanner: true,
+    shouldShowList: true,
+    shouldLaunchAlert: true,
+  } as Notifications.NotificationBehavior),
 });
 
 export const notificationService = {
@@ -42,10 +45,11 @@ export const notificationService = {
           data: { type: 'daily_reminder' },
         },
         trigger: {
+          type: 'daily',
           hour,
           minute: 0,
           repeats: true,
-        },
+        } as Notifications.DailyTriggerInput,
       });
       
       return true;

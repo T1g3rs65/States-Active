@@ -173,7 +173,7 @@ export default function Quiz() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#3B82F6" />
+        <ActivityIndicator size="large" color="#00E0C7" />
         <Text style={styles.loadingText}>Loading quiz...</Text>
       </View>
     );
@@ -183,14 +183,14 @@ export default function Quiz() {
   if (showRaceSelection) {
     return (
       <SafeAreaView style={styles.container}>
-        <LinearGradient colors={['#0F172A', '#1E293B']} style={styles.gradient}>
+        <LinearGradient colors={['#0B0F14', '#11171F']} style={styles.gradient}>
           <ScrollView contentContainerStyle={styles.scrollContent}>
             <Text style={styles.title}>Choose Your Species</Text>
             <Text style={styles.subtitle}>Select the race for your nation</Text>
             
             {loadingRaces ? (
               <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#3B82F6" />
+                <ActivityIndicator size="large" color="#00E0C7" />
                 <Text style={styles.loadingText}>Loading races...</Text>
               </View>
             ) : (
@@ -209,7 +209,7 @@ export default function Quiz() {
                         <Ionicons 
                           name={race.id === 'human' ? 'person' : 'bug'} 
                           size={32} 
-                          color={selectedRace === race.id ? '#3B82F6' : '#64748B'} 
+                          color={selectedRace === race.id ? '#00E0C7' : 'rgba(243,246,250,0.48)'} 
                         />
                       </View>
                       <View style={styles.raceTitleContainer}>
@@ -220,7 +220,7 @@ export default function Quiz() {
                           {race.name}
                         </Text>
                         {selectedRace === race.id && (
-                          <Ionicons name="checkmark-circle" size={20} color="#3B82F6" />
+                          <Ionicons name="checkmark-circle" size={20} color="#00E0C7" />
                         )}
                       </View>
                     </View>
@@ -236,7 +236,7 @@ export default function Quiz() {
                   onPress={handleRaceSelected}
                 >
                   <Text style={styles.continueButtonText}>Continue</Text>
-                  <Ionicons name="arrow-forward" size={20} color="#fff" />
+                  <Ionicons name="arrow-forward" size={20} color="#FFF" />
                 </TouchableOpacity>
               </View>
             )}
@@ -249,13 +249,13 @@ export default function Quiz() {
   if (showFinalForm) {
     return (
       <SafeAreaView style={styles.container}>
-        <LinearGradient colors={['#0F172A', '#1E293B']} style={styles.gradient}>
+        <LinearGradient colors={['#0B0F14', '#11171F']} style={styles.gradient}>
           <ScrollView contentContainerStyle={styles.scrollContent}>
             <Text style={styles.title}>Name Your Nation</Text>
             
             {submitting && (
               <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#3B82F6" />
+                <ActivityIndicator size="large" color="#00E0C7" />
                 <Text style={styles.loadingText}>Creating your nation...</Text>
                 <Text style={styles.loadingSubtext}>This may take 15-20 seconds</Text>
               </View>
@@ -269,7 +269,7 @@ export default function Quiz() {
                   value={nationName}
                   onChangeText={setNationName}
                   placeholder="The United Republic of..."
-                  placeholderTextColor="#64748B"
+                  placeholderTextColor="rgba(243,246,250,0.48)"
                 />
 
                 <Text style={styles.label}>National Motto (Optional)</Text>
@@ -278,7 +278,7 @@ export default function Quiz() {
                   value={motto}
                   onChangeText={setMotto}
                   placeholder="Liberty, Equality, Prosperity"
-                  placeholderTextColor="#64748B"
+                  placeholderTextColor="rgba(243,246,250,0.48)"
                 />
 
                 <Text style={styles.label}>Currency Name</Text>
@@ -287,7 +287,7 @@ export default function Quiz() {
                   value={currency}
                   onChangeText={setCurrency}
                   placeholder="Credits"
-                  placeholderTextColor="#64748B"
+                  placeholderTextColor="rgba(243,246,250,0.48)"
                 />
 
                 <Text style={styles.label}>National Animal</Text>
@@ -296,7 +296,7 @@ export default function Quiz() {
                   value={nationalAnimal}
                   onChangeText={setNationalAnimal}
                   placeholder="Eagle"
-                  placeholderTextColor="#64748B"
+                  placeholderTextColor="rgba(243,246,250,0.48)"
                 />
 
                 <Text style={styles.label}>National Flag *</Text>
@@ -353,7 +353,7 @@ export default function Quiz() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <LinearGradient colors={['#0F172A', '#1E293B']} style={styles.gradient}>
+      <LinearGradient colors={['#0B0F14', '#11171F']} style={styles.gradient}>
         <View style={styles.header}>
           <Text style={styles.progressText}>
             Question {currentQuestion + 1} of {questions.length}
@@ -386,7 +386,7 @@ export default function Quiz() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#0B0F14',
   },
   gradient: {
     flex: 1,
@@ -395,18 +395,18 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#0F172A',
+    backgroundColor: '#0B0F14',
     padding: 32,
   },
   loadingText: {
     marginTop: 16,
-    color: '#F8FAFC',
+    color: '#F3F6FA',
     fontSize: 18,
     fontWeight: '600',
   },
   loadingSubtext: {
     marginTop: 8,
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
     fontSize: 14,
     textAlign: 'center',
   },
@@ -414,19 +414,19 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   progressText: {
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
     fontSize: 14,
     marginBottom: 8,
   },
   progressBar: {
     height: 4,
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     borderRadius: 2,
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
-    backgroundColor: '#3B82F6',
+    backgroundColor: '#00E0C7',
   },
   scrollContent: {
     padding: 24,
@@ -434,7 +434,7 @@ const styles = StyleSheet.create({
   questionText: {
     fontSize: 22,
     fontWeight: '600',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
     marginBottom: 32,
     lineHeight: 32,
   },
@@ -442,21 +442,21 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   optionButton: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     padding: 20,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   optionText: {
-    color: '#E2E8F0',
+    color: '#F3F6FA',
     fontSize: 16,
     lineHeight: 24,
   },
   title: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
     marginBottom: 32,
     textAlign: 'center',
   },
@@ -464,38 +464,38 @@ const styles = StyleSheet.create({
     gap: 20,
   },
   label: {
-    color: '#CBD5E1',
+    color: 'rgba(243,246,250,0.70)',
     fontSize: 16,
     fontWeight: '500',
     marginBottom: 8,
   },
   input: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: 'rgba(255,255,255,0.08)',
     borderRadius: 8,
     padding: 16,
     fontSize: 16,
-    color: '#F8FAFC',
+    color: '#F3F6FA',
   },
   flagButton: {
-    backgroundColor: '#334155',
+    backgroundColor: 'rgba(255,255,255,0.08)',
     padding: 16,
     borderRadius: 8,
     alignItems: 'center',
   },
   flagButtonText: {
-    color: '#E2E8F0',
+    color: '#F3F6FA',
     fontSize: 16,
     fontWeight: '500',
   },
   flagNote: {
-    color: '#10B981',
+    color: '#27D17A',
     fontSize: 14,
     textAlign: 'center',
   },
   submitButton: {
-    backgroundColor: '#3B82F6',
+    backgroundColor: '#00E0C7',
     padding: 18,
     borderRadius: 12,
     alignItems: 'center',
@@ -505,13 +505,13 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   submitButtonText: {
-    color: '#FFFFFF',
+    color: '#F3F6FA',
     fontSize: 18,
     fontWeight: '600',
   },
   modalContainer: {
     flex: 1,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#0B0F14',
   },
   modalHeader: {
     flexDirection: 'row',
@@ -519,23 +519,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#334155',
-    backgroundColor: '#1E293B',
+    borderBottomColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: '#11171F',
   },
   modalHeaderTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
   },
   modalClose: {
     fontSize: 16,
-    color: '#3B82F6',
+    color: '#00E0C7',
     fontWeight: '500',
   },
   // Race selection styles
   subtitle: {
     fontSize: 16,
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
     textAlign: 'center',
     marginBottom: 24,
   },
@@ -543,14 +543,14 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   raceCard: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     borderRadius: 16,
     padding: 20,
     borderWidth: 2,
-    borderColor: '#334155',
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   raceCardSelected: {
-    borderColor: '#3B82F6',
+    borderColor: '#00E0C7',
     backgroundColor: '#1E3A5F',
   },
   raceHeader: {
@@ -562,7 +562,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#0B0F14',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 16,
@@ -576,29 +576,29 @@ const styles = StyleSheet.create({
   raceName: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
   },
   raceNameSelected: {
-    color: '#60A5FA',
+    color: '#00E0C7',
   },
   raceDescription: {
     fontSize: 15,
-    color: '#CBD5E1',
+    color: 'rgba(243,246,250,0.70)',
     lineHeight: 22,
     marginBottom: 8,
   },
   raceLore: {
     fontSize: 13,
-    color: '#64748B',
+    color: 'rgba(243,246,250,0.48)',
     fontStyle: 'italic',
     lineHeight: 20,
     marginTop: 8,
     paddingTop: 8,
     borderTopWidth: 1,
-    borderTopColor: '#334155',
+    borderTopColor: 'rgba(255,255,255,0.08)',
   },
   continueButton: {
-    backgroundColor: '#3B82F6',
+    backgroundColor: '#00E0C7',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -608,7 +608,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   continueButtonText: {
-    color: '#FFFFFF',
+    color: '#F3F6FA',
     fontSize: 18,
     fontWeight: '600',
   },

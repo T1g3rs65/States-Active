@@ -144,7 +144,7 @@ export default function NewsFeed({ themeColor }: NewsFeedProps) {
             
             if (isWarEvent) {
               // Render war event
-              const warColor = '#EF4444'; // Red for war
+              const warColor = '#FF5A65'; // Red for war
               let warIcon = 'flash';
               if (item.event_type === 'war_declared') warIcon = 'flash';
               if (item.event_type === 'war_battle' || item.event_type === 'war_event') warIcon = 'skull';
@@ -225,7 +225,7 @@ export default function NewsFeed({ themeColor }: NewsFeedProps) {
               <View key={item.id || index} style={styles.feedItemWrapper}>
                 {/* Breaking News Banner for International Issues */}
                 {item.is_international && (
-                  <View style={[styles.breakingBanner, { backgroundColor: '#EF4444' }]}>
+                  <View style={[styles.breakingBanner, { backgroundColor: '#FF5A65' }]}>
                     <Ionicons name="alert-circle" size={14} color="#FFF" />
                     <Text style={styles.breakingText}>BREAKING: INTERNATIONAL IMPACT</Text>
                   </View>
@@ -242,14 +242,14 @@ export default function NewsFeed({ themeColor }: NewsFeedProps) {
                   <View style={styles.feedHeader}>
                     <View style={styles.nationInfo}>
                       {inSameFaction && (
-                        <Ionicons name="star" size={14} color="#8B5CF6" style={{ marginRight: 4 }} />
+                        <Ionicons name="star" size={14} color="#00E0C7" style={{ marginRight: 4 }} />
                       )}
                       <Ionicons name={raceIcon as any} size={14} color={nationColor} style={{ marginRight: 6 }} />
                       <Text style={[styles.nationName, { color: nationColor }]}>
                         {item.nation_name}
                       </Text>
                       {item.faction_tag && (
-                        <View style={[styles.factionTag, { backgroundColor: item.faction_color || '#8B5CF6' }]}>
+                        <View style={[styles.factionTag, { backgroundColor: item.faction_color || '#00E0C7' }]}>
                           <Text style={styles.factionTagText}>{item.faction_tag}</Text>
                         </View>
                       )}
@@ -287,11 +287,11 @@ export default function NewsFeed({ themeColor }: NewsFeedProps) {
                           <Ionicons 
                             name={getStatIcon(stat)} 
                             size={12} 
-                            color={change > 0 ? '#10B981' : '#EF4444'} 
+                            color={change > 0 ? '#27D17A' : '#FF5A65'} 
                           />
                           <Text style={[
                             styles.statChangeText,
-                            { color: change > 0 ? '#10B981' : '#EF4444' }
+                            { color: change > 0 ? '#27D17A' : '#FF5A65' }
                           ]}>
                             {stat.replace('_', ' ')}: {change > 0 ? '+' : ''}{change.toFixed(1)}
                           </Text>
@@ -327,7 +327,7 @@ export default function NewsFeed({ themeColor }: NewsFeedProps) {
               <Ionicons name="newspaper" size={24} color={themeColor} />
               <Text style={styles.modalTitle}>Law Details</Text>
               <TouchableOpacity onPress={() => setSelectedPolicy(null)}>
-                <Ionicons name="close" size={24} color="#94A3B8" />
+                <Ionicons name="close" size={24} color="rgba(243,246,250,0.70)" />
               </TouchableOpacity>
             </View>
             
@@ -364,7 +364,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
     marginLeft: 8,
   },
   loadingContainer: {
@@ -378,7 +378,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   emptyText: {
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
     fontSize: 14,
   },
   feedItemWrapper: {
@@ -419,16 +419,16 @@ const styles = StyleSheet.create({
   },
   warDescription: {
     fontSize: 14,
-    color: '#CBD5E1',
+    color: 'rgba(243,246,250,0.70)',
     lineHeight: 20,
     marginTop: 8,
   },
   feedItem: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   feedHeader: {
     flexDirection: 'row',
@@ -455,11 +455,11 @@ const styles = StyleSheet.create({
   factionTagText: {
     fontSize: 9,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: '#F3F6FA',
   },
   govType: {
     fontSize: 12,
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
     width: '100%',
   },
   politicalBadge: {
@@ -473,18 +473,18 @@ const styles = StyleSheet.create({
   },
   timeAgo: {
     fontSize: 12,
-    color: '#64748B',
+    color: 'rgba(243,246,250,0.48)',
     marginBottom: 4,
   },
   issueTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
     marginBottom: 8,
   },
   choiceText: {
     fontSize: 13,
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
     lineHeight: 18,
     marginBottom: 8,
   },
@@ -512,7 +512,7 @@ const styles = StyleSheet.create({
   statChange: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#0F172A',
+    backgroundColor: '#0B0F14',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
@@ -524,7 +524,7 @@ const styles = StyleSheet.create({
   },
   tapHint: {
     fontSize: 11,
-    color: '#64748B',
+    color: 'rgba(243,246,250,0.48)',
     fontStyle: 'italic',
     textAlign: 'center',
   },
@@ -535,11 +535,11 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   modalContent: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     borderRadius: 16,
     padding: 24,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   modalHeader: {
     flexDirection: 'row',
@@ -551,23 +551,23 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 18,
     fontWeight: '600',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
   },
   policyName: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
     marginBottom: 16,
   },
   policyFullDescription: {
     fontSize: 14,
-    color: '#CBD5E1',
+    color: 'rgba(243,246,250,0.70)',
     lineHeight: 22,
     marginBottom: 16,
   },
   nationInfoText: {
     fontSize: 12,
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
     fontStyle: 'italic',
   },
 });

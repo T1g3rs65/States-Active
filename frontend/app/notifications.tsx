@@ -27,7 +27,7 @@ export default function Notifications() {
   const [respondingTo, setRespondingTo] = useState<string | null>(null);
 
   const nationId = nation?.id || nation?._id;
-  const themeColor = getRaceTheme(nation?.race || 'human').primary;
+  const themeColor = getRaceTheme(nation?.race || 'human').color;
 
   useEffect(() => {
     if (nationId) {
@@ -125,13 +125,13 @@ export default function Notifications() {
   const getNotificationStyle = (type: string) => {
     switch (type) {
       case 'pact_accepted':
-        return { icon: 'shield-checkmark', color: '#22C55E', bg: '#22C55E20' };
+        return { icon: 'shield-checkmark', color: '#27D17A', bg: '#27D17A20' };
       case 'pact_declined':
-        return { icon: 'shield-outline', color: '#EF4444', bg: '#EF444420' };
+        return { icon: 'shield-outline', color: '#FF5A65', bg: '#FF5A6520' };
       case 'war_join_accepted':
-        return { icon: 'flame', color: '#22C55E', bg: '#22C55E20' };
+        return { icon: 'flame', color: '#27D17A', bg: '#27D17A20' };
       case 'war_join_declined':
-        return { icon: 'flame-outline', color: '#EF4444', bg: '#EF444420' };
+        return { icon: 'flame-outline', color: '#FF5A65', bg: '#FF5A6520' };
       default:
         return { icon: 'notifications', color: themeColor, bg: themeColor + '20' };
     }
@@ -142,7 +142,7 @@ export default function Notifications() {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#F8FAFC" />
+          <Ionicons name="arrow-back" size={24} color="#F3F6FA" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Notifications</Text>
         <View style={styles.headerRight}>
@@ -157,7 +157,7 @@ export default function Notifications() {
       <ScrollView
         style={styles.content}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#F8FAFC" />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#F3F6FA" />
         }
       >
         {loading ? (
@@ -166,7 +166,7 @@ export default function Notifications() {
           </View>
         ) : totalNotifications === 0 ? (
           <View style={styles.emptyContainer}>
-            <Ionicons name="notifications-off-outline" size={64} color="#475569" />
+            <Ionicons name="notifications-off-outline" size={64} color="rgba(255,255,255,0.08)" />
             <Text style={styles.emptyTitle}>No Notifications</Text>
             <Text style={styles.emptyText}>
               You're all caught up! Requests and notifications will appear here.
@@ -181,7 +181,7 @@ export default function Notifications() {
                 {warJoinRequests.map((request) => (
                   <View key={request.id || request._id} style={styles.requestCard}>
                     <View style={styles.requestIcon}>
-                      <Ionicons name="flame" size={24} color="#EF4444" />
+                      <Ionicons name="flame" size={24} color="#FF5A65" />
                     </View>
                     <View style={styles.requestContent}>
                       <Text style={styles.requestTitle}>Call to Arms!</Text>
@@ -200,10 +200,10 @@ export default function Notifications() {
                           disabled={respondingTo === (request.id || request._id)}
                         >
                           {respondingTo === (request.id || request._id) ? (
-                            <ActivityIndicator size="small" color="#EF4444" />
+                            <ActivityIndicator size="small" color="#FF5A65" />
                           ) : (
                             <>
-                              <Ionicons name="close" size={16} color="#EF4444" />
+                              <Ionicons name="close" size={16} color="#FF5A65" />
                               <Text style={styles.rejectButtonText}>Decline</Text>
                             </>
                           )}
@@ -215,10 +215,10 @@ export default function Notifications() {
                           disabled={respondingTo === (request.id || request._id)}
                         >
                           {respondingTo === (request.id || request._id) ? (
-                            <ActivityIndicator size="small" color="#fff" />
+                            <ActivityIndicator size="small" color="#FFF" />
                           ) : (
                             <>
-                              <Ionicons name="checkmark" size={16} color="#fff" />
+                              <Ionicons name="checkmark" size={16} color="#FFF" />
                               <Text style={styles.acceptButtonText}>Join War!</Text>
                             </>
                           )}
@@ -240,8 +240,8 @@ export default function Notifications() {
                 <Text style={styles.sectionTitle}>🤝 Non-Aggression Pact Requests</Text>
                 {pactRequests.map((request) => (
                   <View key={request.id || request._id} style={styles.requestCard}>
-                    <View style={[styles.requestIcon, { backgroundColor: '#22C55E20' }]}>
-                      <Ionicons name="shield-checkmark" size={24} color="#22C55E" />
+                    <View style={[styles.requestIcon, { backgroundColor: '#27D17A20' }]}>
+                      <Ionicons name="shield-checkmark" size={24} color="#27D17A" />
                     </View>
                     <View style={styles.requestContent}>
                       <Text style={styles.requestTitle}>Pact Request</Text>
@@ -262,25 +262,25 @@ export default function Notifications() {
                           disabled={respondingTo === (request.id || request._id)}
                         >
                           {respondingTo === (request.id || request._id) ? (
-                            <ActivityIndicator size="small" color="#EF4444" />
+                            <ActivityIndicator size="small" color="#FF5A65" />
                           ) : (
                             <>
-                              <Ionicons name="close" size={16} color="#EF4444" />
+                              <Ionicons name="close" size={16} color="#FF5A65" />
                               <Text style={styles.rejectButtonText}>Decline</Text>
                             </>
                           )}
                         </TouchableOpacity>
                         
                         <TouchableOpacity
-                          style={[styles.acceptButton, { backgroundColor: '#22C55E' }]}
+                          style={[styles.acceptButton, { backgroundColor: '#27D17A' }]}
                           onPress={() => handlePactRespond(request.id || request._id, true, request.from_nation_name)}
                           disabled={respondingTo === (request.id || request._id)}
                         >
                           {respondingTo === (request.id || request._id) ? (
-                            <ActivityIndicator size="small" color="#fff" />
+                            <ActivityIndicator size="small" color="#FFF" />
                           ) : (
                             <>
-                              <Ionicons name="checkmark" size={16} color="#fff" />
+                              <Ionicons name="checkmark" size={16} color="#FFF" />
                               <Text style={styles.acceptButtonText}>Accept Pact</Text>
                             </>
                           )}
@@ -348,7 +348,7 @@ export default function Notifications() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#0B0F14',
   },
   header: {
     flexDirection: 'row',
@@ -357,7 +357,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#1E293B',
+    borderBottomColor: '#11171F',
   },
   backButton: {
     padding: 8,
@@ -365,7 +365,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
   },
   headerRight: {
     width: 40,
@@ -381,7 +381,7 @@ const styles = StyleSheet.create({
   badgeText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#fff',
+    color: '#FFF',
   },
   content: {
     flex: 1,
@@ -402,12 +402,12 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
     marginTop: 16,
   },
   emptyText: {
     fontSize: 14,
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
     textAlign: 'center',
     marginTop: 8,
     paddingHorizontal: 40,
@@ -418,23 +418,23 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
     marginBottom: 12,
   },
   requestCard: {
     flexDirection: 'row',
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   requestIcon: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#EF444420',
+    backgroundColor: '#FF5A6520',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
@@ -445,22 +445,22 @@ const styles = StyleSheet.create({
   requestTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
     marginBottom: 4,
   },
   requestMessage: {
     fontSize: 14,
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
     lineHeight: 20,
     marginBottom: 8,
   },
   highlightText: {
-    color: '#F8FAFC',
+    color: '#F3F6FA',
     fontWeight: '600',
   },
   requestTime: {
     fontSize: 12,
-    color: '#64748B',
+    color: 'rgba(243,246,250,0.48)',
     marginBottom: 12,
   },
   requestActions: {
@@ -477,13 +477,13 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#EF4444',
-    backgroundColor: '#0F172A',
+    borderColor: '#FF5A65',
+    backgroundColor: '#0B0F14',
   },
   rejectButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#EF4444',
+    color: '#FF5A65',
   },
   acceptButton: {
     flex: 1,
@@ -497,25 +497,25 @@ const styles = StyleSheet.create({
   acceptButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#fff',
+    color: '#FFF',
   },
   warningText: {
     fontSize: 11,
-    color: '#F59E0B',
+    color: '#F2C94C',
     fontStyle: 'italic',
   },
   pactMessage: {
     fontSize: 13,
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
     fontStyle: 'italic',
     marginBottom: 8,
     paddingLeft: 8,
     borderLeftWidth: 2,
-    borderLeftColor: '#22C55E',
+    borderLeftColor: '#27D17A',
   },
   infoText: {
     fontSize: 11,
-    color: '#22C55E',
+    color: '#27D17A',
     fontStyle: 'italic',
   },
   unreadDot: {

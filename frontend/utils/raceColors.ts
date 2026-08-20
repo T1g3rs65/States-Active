@@ -1,27 +1,28 @@
+import { colors } from './theme';
+
 /**
  * Race color utilities for SovereignHex
- * Replaces the political compass colors with race-based colors
+ * Direction B dark glassmorphism palette.
  */
 
-// Race color definitions
 const RACE_COLORS: Record<string, { color: string; colorLight: string; colorDark: string; name: string }> = {
   human: {
-    color: '#3B82F6',
-    colorLight: '#60A5FA',
-    colorDark: '#1E40AF',
+    color: colors.human.primary,
+    colorLight: colors.human.light,
+    colorDark: colors.human.accent,
     name: 'Human',
   },
   zythera: {
-    color: '#14B8A6',
-    colorLight: '#2DD4BF',
-    colorDark: '#0F766E',
+    color: colors.zythera.primary,
+    colorLight: colors.zythera.light,
+    colorDark: colors.zythera.accent,
     name: 'Zythera',
   },
   // Default fallback
   unknown: {
-    color: '#6B7280',
-    colorLight: '#9CA3AF',
-    colorDark: '#4B5563',
+    color: colors.text.muted,
+    colorLight: colors.text.secondary,
+    colorDark: colors.surfaceSolid,
     name: 'Unknown',
   },
 };

@@ -62,6 +62,29 @@ export interface Nation {
   created_at: string;
   last_issue_time?: string;
   total_decisions: number;
+  // UI-facing derived / optional fields
+  gdp_display?: string;
+  gdp_value?: number;
+  territory_center_col?: number;
+  territory_center_row?: number;
+  currency?: string;
+  national_animal?: string;
+  leader_name?: string;
+  territory_counts?: Record<string, number>;
+  total_territories?: number;
+  resource_counts?: Record<string, number>;
+  advisors?: Advisor[];
+  last_reform_sent?: string;
+  policies?: Policy[];
+}
+
+export interface Advisor {
+  slot: number;
+  name: string;
+  role: string;
+  race?: string;
+  portrait?: string;
+  expertise?: string[];
 }
 
 export interface IssueChoice {
@@ -92,7 +115,55 @@ export interface QuizAnswer {
   answer_index: number;
 }
 
+export interface Advisor {
+  slot: number;
+  name: string;
+  role: string;
+  race?: string;
+  portrait?: string;
+  expertise?: string[];
+  title?: string;
+  ability?: number;
+  approval?: number;
+  last_task_sent?: string;
+  last_reform_sent?: string;
+}
+
+export interface MultiAlliance {
+  _id?: string;
+  id?: string;
+  name: string;
+  tag: string;
+  description?: string;
+  motto?: string;
+  color?: string;
+  members?: any[];
+  vassals?: any[];
+  max_members?: number;
+  is_public?: boolean;
+  requires_approval?: boolean;
+  min_reputation?: number;
+  min_population?: number;
+  allowed_races?: string[];
+  allowed_ideologies?: string[];
+  ideology_restrictions?: { allowed?: string[]; banned?: string[] };
+  created_at?: string;
+  member_count?: number;
+}
+
+export interface AllianceInvite {
+  _id?: string;
+  id?: string;
+  alliance_id: string;
+  alliance_name: string;
+  invited_by_nation_name: string;
+  message: string;
+  created_at: string;
+}
+
 export interface Policy {
+  _id?: string;
+  id?: string;
   name: string;
   category: string;
   short_description: string;

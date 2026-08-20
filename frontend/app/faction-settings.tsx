@@ -19,8 +19,8 @@ import { useNationStore } from '../store/nationStore';
 import { getRaceTheme } from '../utils/raceColors';
 
 const ALLIANCE_COLORS = [
-  '#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6', 
-  '#EC4899', '#14B8A6', '#F97316', '#6366F1', '#84CC16'
+  '#00E0C7', '#FF5A65', '#27D17A', '#F2C94C', '#00E0C7', 
+  '#00B8B8', '#00E0C7', '#F97316', '#6366F1', '#84CC16'
 ];
 
 const AVAILABLE_RACES = ['human', 'zythera'];
@@ -29,21 +29,21 @@ const AVAILABLE_RACES = ['human', 'zythera'];
 const IDEOLOGY_QUADRANTS = [
   // Authoritarian (libertarian < 35)
   { id: 'stalinist', name: 'Stalinist', color: '#991B1B', description: 'Totalitarian Communist' },
-  { id: 'monarchist', name: 'Monarchist', color: '#7C3AED', description: 'Absolute Royalist' },
+  { id: 'monarchist', name: 'Monarchist', color: '#00B8B8', description: 'Absolute Royalist' },
   { id: 'autocrat', name: 'Autocrat', color: '#78350F', description: 'Authoritarian State' },
   
   // Center-Auth (libertarian 35-50)
-  { id: 'socialist', name: 'Socialist', color: '#DC2626', description: 'Democratic Socialist' },
-  { id: 'corporatist', name: 'Corporatist', color: '#1D4ED8', description: 'State Capitalist' },
+  { id: 'socialist', name: 'Socialist', color: '#FF5A65', description: 'Democratic Socialist' },
+  { id: 'corporatist', name: 'Corporatist', color: '#00B8B8', description: 'State Capitalist' },
   { id: 'statist', name: 'Statist', color: '#71717A', description: 'Big Government' },
   
   // Center-Lib (libertarian 50-65)
-  { id: 'progressive', name: 'Progressive', color: '#EC4899', description: 'Social Democrat' },
-  { id: 'centrist', name: 'Centrist', color: '#6B7280', description: 'Moderate Pragmatist' },
+  { id: 'progressive', name: 'Progressive', color: '#00B8B8', description: 'Social Democrat' },
+  { id: 'centrist', name: 'Centrist', color: 'rgba(243,246,250,0.48)', description: 'Moderate Pragmatist' },
   { id: 'conservative', name: 'Conservative', color: '#0EA5E9', description: 'Traditional Capitalist' },
   
   // Libertarian (libertarian > 65)
-  { id: 'anarchist', name: 'Anarchist', color: '#059669', description: 'Libertarian Socialist' },
+  { id: 'anarchist', name: 'Anarchist', color: '#27D17A', description: 'Libertarian Socialist' },
   { id: 'libertarian', name: 'Libertarian', color: '#F97316', description: 'Civil Libertarian' },
   { id: 'minarchist', name: 'Minarchist', color: '#EAB308', description: 'Free Market Capitalist' },
 ];
@@ -68,7 +68,7 @@ export default function FactionSettingsScreen() {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [motto, setMotto] = useState('');
-  const [color, setColor] = useState('#3B82F6');
+  const [color, setColor] = useState('#00E0C7');
   const [isPublic, setIsPublic] = useState(true);
   const [requiresApproval, setRequiresApproval] = useState(true);
   const [minReputation, setMinReputation] = useState('0');
@@ -108,7 +108,7 @@ export default function FactionSettingsScreen() {
         setName(a.name || '');
         setDescription(a.description || '');
         setMotto(a.motto || '');
-        setColor(a.color || '#3B82F6');
+        setColor(a.color || '#00E0C7');
         setIsPublic(a.is_public ?? true);
         setRequiresApproval(a.requires_approval ?? true);
         setMinReputation(String(a.min_reputation || 0));
@@ -308,7 +308,7 @@ export default function FactionSettingsScreen() {
           <View style={{ width: 40 }} />
         </View>
         <View style={styles.errorContainer}>
-          <Ionicons name="lock-closed" size={48} color="#64748B" />
+          <Ionicons name="lock-closed" size={48} color="rgba(243,246,250,0.48)" />
           <Text style={styles.errorText}>You don't have permission to edit this faction</Text>
         </View>
       </SafeAreaView>
@@ -342,7 +342,7 @@ export default function FactionSettingsScreen() {
             value={name}
             onChangeText={setName}
             placeholder="Faction Name"
-            placeholderTextColor="#64748B"
+            placeholderTextColor="rgba(243,246,250,0.48)"
             maxLength={30}
           />
           
@@ -352,7 +352,7 @@ export default function FactionSettingsScreen() {
             value={description}
             onChangeText={setDescription}
             placeholder="What is your faction about?"
-            placeholderTextColor="#64748B"
+            placeholderTextColor="rgba(243,246,250,0.48)"
             multiline
             numberOfLines={3}
             maxLength={200}
@@ -364,7 +364,7 @@ export default function FactionSettingsScreen() {
             value={motto}
             onChangeText={setMotto}
             placeholder="Faction motto"
-            placeholderTextColor="#64748B"
+            placeholderTextColor="rgba(243,246,250,0.48)"
             maxLength={50}
           />
           
@@ -396,7 +396,7 @@ export default function FactionSettingsScreen() {
             <Switch
               value={isPublic}
               onValueChange={setIsPublic}
-              trackColor={{ false: '#334155', true: themeColor }}
+              trackColor={{ false: 'rgba(255,255,255,0.08)', true: themeColor }}
             />
           </View>
           
@@ -408,7 +408,7 @@ export default function FactionSettingsScreen() {
             <Switch
               value={requiresApproval}
               onValueChange={setRequiresApproval}
-              trackColor={{ false: '#334155', true: themeColor }}
+              trackColor={{ false: 'rgba(255,255,255,0.08)', true: themeColor }}
             />
           </View>
           
@@ -425,7 +425,7 @@ export default function FactionSettingsScreen() {
               }
             }}
             placeholder="10"
-            placeholderTextColor="#64748B"
+            placeholderTextColor="rgba(243,246,250,0.48)"
             keyboardType="numeric"
             maxLength={2}
           />
@@ -442,7 +442,7 @@ export default function FactionSettingsScreen() {
             value={minReputation}
             onChangeText={setMinReputation}
             placeholder="0"
-            placeholderTextColor="#64748B"
+            placeholderTextColor="rgba(243,246,250,0.48)"
             keyboardType="numeric"
             maxLength={3}
           />
@@ -468,7 +468,7 @@ export default function FactionSettingsScreen() {
                 <Ionicons
                   name={allowedRaces.includes(race) ? 'checkbox' : 'square-outline'}
                   size={20}
-                  color={allowedRaces.includes(race) ? themeColor : '#64748B'}
+                  color={allowedRaces.includes(race) ? themeColor : 'rgba(243,246,250,0.48)'}
                 />
                 <Text style={[
                   styles.raceOptionText,
@@ -502,7 +502,7 @@ export default function FactionSettingsScreen() {
                 <Ionicons
                   name={allowedIdeologies.includes(ideology.id) ? 'checkbox' : 'square-outline'}
                   size={18}
-                  color={allowedIdeologies.includes(ideology.id) ? ideology.color : '#64748B'}
+                  color={allowedIdeologies.includes(ideology.id) ? ideology.color : 'rgba(243,246,250,0.48)'}
                 />
                 <View style={styles.ideologyInfo}>
                   <Text style={[
@@ -537,18 +537,18 @@ export default function FactionSettingsScreen() {
                 <View style={styles.memberActions}>
                   {member.role !== 'leader' && (
                     <TouchableOpacity
-                      style={[styles.actionButton, { borderColor: '#10B981' }]}
+                      style={[styles.actionButton, { borderColor: '#27D17A' }]}
                       onPress={() => handlePromoteMember(member.nation_id, 'leader')}
                     >
-                      <Ionicons name="arrow-up" size={16} color="#10B981" />
+                      <Ionicons name="arrow-up" size={16} color="#27D17A" />
                     </TouchableOpacity>
                   )}
                   {member.role === 'leader' && (
                     <TouchableOpacity
-                      style={[styles.actionButton, { borderColor: '#F59E0B' }]}
+                      style={[styles.actionButton, { borderColor: '#F2C94C' }]}
                       onPress={() => handlePromoteMember(member.nation_id, 'member')}
                     >
-                      <Ionicons name="arrow-down" size={16} color="#F59E0B" />
+                      <Ionicons name="arrow-down" size={16} color="#F2C94C" />
                     </TouchableOpacity>
                   )}
                   <TouchableOpacity
@@ -593,7 +593,7 @@ export default function FactionSettingsScreen() {
                   setSelectedRequest(null);
                 }}
               >
-                <Ionicons name="close" size={24} color="#94A3B8" />
+                <Ionicons name="close" size={24} color="rgba(243,246,250,0.70)" />
               </TouchableOpacity>
             </View>
             
@@ -608,12 +608,12 @@ export default function FactionSettingsScreen() {
             <View style={styles.roleOptions}>
               {/* Member Option */}
               <TouchableOpacity
-                style={[styles.roleOption, { borderColor: '#10B981' }]}
+                style={[styles.roleOption, { borderColor: '#27D17A' }]}
                 onPress={() => processJoinRequest(selectedRequest?.id, true, 'member')}
                 disabled={processingRequestId === selectedRequest?.id}
               >
                 <View style={styles.roleIconContainer}>
-                  <Ionicons name="people" size={28} color="#10B981" />
+                  <Ionicons name="people" size={28} color="#27D17A" />
                 </View>
                 <View style={styles.roleInfo}>
                   <Text style={styles.roleTitle}>Full Member</Text>
@@ -622,20 +622,20 @@ export default function FactionSettingsScreen() {
                   </Text>
                 </View>
                 {processingRequestId === selectedRequest?.id ? (
-                  <ActivityIndicator size="small" color="#10B981" />
+                  <ActivityIndicator size="small" color="#27D17A" />
                 ) : (
-                  <Ionicons name="chevron-forward" size={20} color="#64748B" />
+                  <Ionicons name="chevron-forward" size={20} color="rgba(243,246,250,0.48)" />
                 )}
               </TouchableOpacity>
               
               {/* Vassal Option */}
               <TouchableOpacity
-                style={[styles.roleOption, { borderColor: '#8B5CF6' }]}
+                style={[styles.roleOption, { borderColor: '#00E0C7' }]}
                 onPress={() => processJoinRequest(selectedRequest?.id, true, 'vassal')}
                 disabled={processingRequestId === selectedRequest?.id}
               >
                 <View style={styles.roleIconContainer}>
-                  <Ionicons name="shield-half" size={28} color="#8B5CF6" />
+                  <Ionicons name="shield-half" size={28} color="#00E0C7" />
                 </View>
                 <View style={styles.roleInfo}>
                   <Text style={styles.roleTitle}>Vassal</Text>
@@ -644,9 +644,9 @@ export default function FactionSettingsScreen() {
                   </Text>
                 </View>
                 {processingRequestId === selectedRequest?.id ? (
-                  <ActivityIndicator size="small" color="#8B5CF6" />
+                  <ActivityIndicator size="small" color="#00E0C7" />
                 ) : (
-                  <Ionicons name="chevron-forward" size={20} color="#64748B" />
+                  <Ionicons name="chevron-forward" size={20} color="rgba(243,246,250,0.48)" />
                 )}
               </TouchableOpacity>
             </View>
@@ -672,14 +672,14 @@ const getRoleColor = (role: string) => {
     case 'founder': return '#FFD700';
     case 'leader': return '#C0C0C0';
     case 'officer': return '#CD7F32';
-    default: return '#64748B';
+    default: return 'rgba(243,246,250,0.48)';
   }
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#0B0F14',
   },
   header: {
     flexDirection: 'row',
@@ -688,7 +688,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#1E293B',
+    borderBottomColor: '#11171F',
   },
   backButton: {
     padding: 8,
@@ -696,7 +696,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
   },
   saveButton: {
     fontSize: 16,
@@ -713,7 +713,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   loadingText: {
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
     fontSize: 14,
   },
   errorContainer: {
@@ -724,7 +724,7 @@ const styles = StyleSheet.create({
     padding: 32,
   },
   errorText: {
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
     fontSize: 16,
     textAlign: 'center',
   },
@@ -734,28 +734,28 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
     marginBottom: 8,
   },
   sectionDescription: {
     fontSize: 12,
-    color: '#64748B',
+    color: 'rgba(243,246,250,0.48)',
     marginBottom: 12,
   },
   inputLabel: {
     fontSize: 14,
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
     marginBottom: 6,
     marginTop: 12,
   },
   input: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     borderRadius: 8,
     padding: 12,
-    color: '#F8FAFC',
+    color: '#F3F6FA',
     fontSize: 16,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   textArea: {
     minHeight: 80,
@@ -781,21 +781,21 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#1E293B',
+    borderBottomColor: '#11171F',
   },
   toggleLabel: {
     fontSize: 14,
-    color: '#F8FAFC',
+    color: '#F3F6FA',
     fontWeight: '500',
   },
   toggleDescription: {
     fontSize: 12,
-    color: '#64748B',
+    color: 'rgba(243,246,250,0.48)',
     marginTop: 2,
   },
   inputHint: {
     fontSize: 11,
-    color: '#64748B',
+    color: 'rgba(243,246,250,0.48)',
     marginTop: 4,
     fontStyle: 'italic',
   },
@@ -808,16 +808,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   raceOptionText: {
     fontSize: 14,
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
   },
   ideologyGrid: {
     flexDirection: 'column',
@@ -827,12 +827,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     paddingHorizontal: 12,
     paddingVertical: 12,
     borderRadius: 8,
     borderWidth: 2,
-    borderColor: '#334155',
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   ideologyInfo: {
     flex: 1,
@@ -840,17 +840,17 @@ const styles = StyleSheet.create({
   ideologyOptionText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
   },
   ideologyDescription: {
     fontSize: 11,
-    color: '#64748B',
+    color: 'rgba(243,246,250,0.48)',
     marginTop: 2,
   },
   memberRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     padding: 12,
     borderRadius: 8,
     marginBottom: 8,
@@ -861,7 +861,7 @@ const styles = StyleSheet.create({
   memberName: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
   },
   memberRole: {
     fontSize: 12,
@@ -878,17 +878,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#0B0F14',
   },
   youBadge: {
-    backgroundColor: '#334155',
+    backgroundColor: 'rgba(255,255,255,0.08)',
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 4,
   },
   youBadgeText: {
     fontSize: 10,
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
     fontWeight: '600',
   },
   // Pending Requests Styles
@@ -906,15 +906,15 @@ const styles = StyleSheet.create({
   requestCountText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#fff',
+    color: '#FFF',
   },
   requestCard: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   requestHeader: {
     flexDirection: 'row',
@@ -928,7 +928,7 @@ const styles = StyleSheet.create({
   requestNationName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
     marginBottom: 4,
   },
   requestMeta: {
@@ -938,31 +938,31 @@ const styles = StyleSheet.create({
   },
   requestPopulation: {
     fontSize: 13,
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
   },
   vassalEligibleBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#8B5CF620',
+    backgroundColor: '#00E0C720',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
   },
   vassalEligibleText: {
     fontSize: 11,
-    color: '#8B5CF6',
+    color: '#00E0C7',
     fontWeight: '500',
   },
   requestMessage: {
     fontSize: 13,
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
     fontStyle: 'italic',
     marginBottom: 8,
   },
   requestDate: {
     fontSize: 11,
-    color: '#64748B',
+    color: 'rgba(243,246,250,0.48)',
     marginBottom: 12,
   },
   requestActions: {
@@ -978,13 +978,13 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#EF4444',
-    backgroundColor: '#0F172A',
+    borderColor: '#FF5A65',
+    backgroundColor: '#0B0F14',
   },
   rejectButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#EF4444',
+    color: '#FF5A65',
   },
   acceptButton: {
     flex: 1,
@@ -998,7 +998,7 @@ const styles = StyleSheet.create({
   acceptButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#fff',
+    color: '#FFF',
   },
   // Modal Styles
   modalOverlay: {
@@ -1009,7 +1009,7 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   modalContent: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     borderRadius: 16,
     padding: 24,
     width: '100%',
@@ -1024,23 +1024,23 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
   },
   modalCloseButton: {
     padding: 4,
   },
   modalSubtitle: {
     fontSize: 15,
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
     marginBottom: 4,
   },
   highlightText: {
-    color: '#F8FAFC',
+    color: '#F3F6FA',
     fontWeight: '600',
   },
   modalPopInfo: {
     fontSize: 13,
-    color: '#64748B',
+    color: 'rgba(243,246,250,0.48)',
     marginBottom: 20,
   },
   roleOptions: {
@@ -1051,7 +1051,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#0B0F14',
     padding: 16,
     borderRadius: 12,
     borderWidth: 2,
@@ -1060,7 +1060,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1070,12 +1070,12 @@ const styles = StyleSheet.create({
   roleTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
     marginBottom: 4,
   },
   roleDescription: {
     fontSize: 12,
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
     lineHeight: 16,
   },
   modalCancelButton: {
@@ -1084,7 +1084,7 @@ const styles = StyleSheet.create({
   },
   modalCancelText: {
     fontSize: 14,
-    color: '#64748B',
+    color: 'rgba(243,246,250,0.48)',
     fontWeight: '500',
   },
 });

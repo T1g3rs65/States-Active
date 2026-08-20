@@ -41,7 +41,7 @@ interface ReputationCardProps {
 
 export const ReputationCard: React.FC<ReputationCardProps> = ({
   nationId,
-  themeColor = '#3B82F6',
+  themeColor = '#00E0C7',
   compact = false,
   onPress,
 }) => {
@@ -69,19 +69,19 @@ export const ReputationCard: React.FC<ReputationCardProps> = ({
 
   const getReputationLevel = (score: number): { label: string; color: string; icon: string } => {
     if (score >= 180) return { label: 'Legendary', color: '#FFD700', icon: 'star' };
-    if (score >= 150) return { label: 'Renowned', color: '#10B981', icon: 'shield-checkmark' };
-    if (score >= 120) return { label: 'Respected', color: '#3B82F6', icon: 'thumbs-up' };
-    if (score >= 80) return { label: 'Neutral', color: '#94A3B8', icon: 'remove' };
-    if (score >= 50) return { label: 'Questionable', color: '#F59E0B', icon: 'alert' };
-    if (score >= 20) return { label: 'Untrustworthy', color: '#EF4444', icon: 'warning' };
-    return { label: 'Infamous', color: '#7F1D1D', icon: 'skull' };
+    if (score >= 150) return { label: 'Renowned', color: '#27D17A', icon: 'shield-checkmark' };
+    if (score >= 120) return { label: 'Respected', color: '#00E0C7', icon: 'thumbs-up' };
+    if (score >= 80) return { label: 'Neutral', color: 'rgba(243,246,250,0.70)', icon: 'remove' };
+    if (score >= 50) return { label: 'Questionable', color: '#F2C94C', icon: 'alert' };
+    if (score >= 20) return { label: 'Untrustworthy', color: '#FF5A65', icon: 'warning' };
+    return { label: 'Infamous', color: '#FF5A65', icon: 'skull' };
   };
 
   const getReliabilityLevel = (score: number): { label: string; color: string } => {
-    if (score >= 150) return { label: 'Unbreakable', color: '#10B981' };
-    if (score >= 100) return { label: 'Reliable', color: '#3B82F6' };
-    if (score >= 50) return { label: 'Questionable', color: '#F59E0B' };
-    return { label: 'Unreliable', color: '#EF4444' };
+    if (score >= 150) return { label: 'Unbreakable', color: '#27D17A' };
+    if (score >= 100) return { label: 'Reliable', color: '#00E0C7' };
+    if (score >= 50) return { label: 'Questionable', color: '#F2C94C' };
+    return { label: 'Unreliable', color: '#FF5A65' };
   };
 
   if (loading) {
@@ -132,7 +132,7 @@ export const ReputationCard: React.FC<ReputationCardProps> = ({
           <Ionicons
             name={expanded ? 'chevron-up' : 'chevron-down'}
             size={20}
-            color="#64748B"
+            color="rgba(243,246,250,0.48)"
           />
         </View>
       </TouchableOpacity>
@@ -176,13 +176,13 @@ export const ReputationCard: React.FC<ReputationCardProps> = ({
               <Text style={styles.statLabel}>Alliances Honored</Text>
             </View>
             <View style={styles.statItem}>
-              <Text style={[styles.statValue, reputation.alliances_broken > 0 && { color: '#EF4444' }]}>
+              <Text style={[styles.statValue, reputation.alliances_broken > 0 && { color: '#FF5A65' }]}>
                 {reputation.alliances_broken}
               </Text>
               <Text style={styles.statLabel}>Alliances Broken</Text>
             </View>
             <View style={styles.statItem}>
-              <Text style={[styles.statValue, reputation.betrayal_rate > 30 && { color: '#EF4444' }]}>
+              <Text style={[styles.statValue, reputation.betrayal_rate > 30 && { color: '#FF5A65' }]}>
                 {reputation.betrayal_rate}%
               </Text>
               <Text style={styles.statLabel}>Betrayal Rate</Text>
@@ -216,7 +216,7 @@ export const ReputationCard: React.FC<ReputationCardProps> = ({
                 <View key={event.id || index} style={styles.eventItem}>
                   <View style={[
                     styles.eventIndicator,
-                    { backgroundColor: event.reputation_change >= 0 ? '#10B981' : '#EF4444' }
+                    { backgroundColor: event.reputation_change >= 0 ? '#27D17A' : '#FF5A65' }
                   ]} />
                   <View style={styles.eventContent}>
                     <Text style={styles.eventDescription}>{event.description}</Text>
@@ -228,7 +228,7 @@ export const ReputationCard: React.FC<ReputationCardProps> = ({
                   </View>
                   <Text style={[
                     styles.eventChange,
-                    { color: event.reputation_change >= 0 ? '#10B981' : '#EF4444' }
+                    { color: event.reputation_change >= 0 ? '#27D17A' : '#FF5A65' }
                   ]}>
                     {event.reputation_change >= 0 ? '+' : ''}{event.reputation_change}
                   </Text>
@@ -248,10 +248,10 @@ export const ReputationBadge: React.FC<{
   size?: 'small' | 'medium';
 }> = ({ score, size = 'small' }) => {
   const getColor = () => {
-    if (score >= 150) return '#10B981';
-    if (score >= 100) return '#3B82F6';
-    if (score >= 50) return '#F59E0B';
-    return '#EF4444';
+    if (score >= 150) return '#27D17A';
+    if (score >= 100) return '#00E0C7';
+    if (score >= 50) return '#F2C94C';
+    return '#FF5A65';
   };
 
   const isSmall = size === 'small';
@@ -280,7 +280,7 @@ export const ReputationBadge: React.FC<{
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     borderRadius: 12,
     padding: 16,
     borderLeftWidth: 4,
@@ -295,7 +295,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
@@ -307,7 +307,7 @@ const styles = StyleSheet.create({
   },
   compactScore: {
     fontSize: 12,
-    color: '#64748B',
+    color: 'rgba(243,246,250,0.48)',
   },
   header: {
     flexDirection: 'row',
@@ -322,7 +322,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
   },
   headerRight: {
     flexDirection: 'row',
@@ -346,7 +346,7 @@ const styles = StyleSheet.create({
   },
   scoreBar: {
     height: 8,
-    backgroundColor: '#334155',
+    backgroundColor: 'rgba(255,255,255,0.08)',
     borderRadius: 4,
     overflow: 'hidden',
     position: 'relative',
@@ -360,7 +360,7 @@ const styles = StyleSheet.create({
     top: -2,
     width: 2,
     height: 12,
-    backgroundColor: '#64748B',
+    backgroundColor: 'rgba(243,246,250,0.48)',
     marginLeft: -1,
   },
   scoreLabels: {
@@ -370,15 +370,15 @@ const styles = StyleSheet.create({
   },
   scoreLabelLeft: {
     fontSize: 10,
-    color: '#64748B',
+    color: 'rgba(243,246,250,0.48)',
   },
   scoreLabelCenter: {
     fontSize: 10,
-    color: '#64748B',
+    color: 'rgba(243,246,250,0.48)',
   },
   scoreLabelRight: {
     fontSize: 10,
-    color: '#64748B',
+    color: 'rgba(243,246,250,0.48)',
   },
   scoreValue: {
     fontSize: 24,
@@ -390,7 +390,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: '#334155',
+    borderTopColor: 'rgba(255,255,255,0.08)',
   },
   statsGrid: {
     flexDirection: 'row',
@@ -399,7 +399,7 @@ const styles = StyleSheet.create({
   },
   statItem: {
     width: '48%',
-    backgroundColor: '#0F172A',
+    backgroundColor: '#0B0F14',
     padding: 12,
     borderRadius: 8,
     alignItems: 'center',
@@ -407,11 +407,11 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
   },
   statLabel: {
     fontSize: 11,
-    color: '#64748B',
+    color: 'rgba(243,246,250,0.48)',
     marginTop: 4,
     textAlign: 'center',
   },
@@ -426,7 +426,7 @@ const styles = StyleSheet.create({
   },
   reliabilityTitle: {
     fontSize: 14,
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
     flex: 1,
   },
   reliabilityValue: {
@@ -435,7 +435,7 @@ const styles = StyleSheet.create({
   },
   reliabilityBar: {
     height: 6,
-    backgroundColor: '#334155',
+    backgroundColor: 'rgba(255,255,255,0.08)',
     borderRadius: 3,
     overflow: 'hidden',
   },
@@ -449,7 +449,7 @@ const styles = StyleSheet.create({
   eventsSectionTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
     marginBottom: 8,
   },
   eventItem: {
@@ -458,7 +458,7 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#334155',
+    borderBottomColor: 'rgba(255,255,255,0.08)',
   },
   eventIndicator: {
     width: 6,
@@ -470,11 +470,11 @@ const styles = StyleSheet.create({
   },
   eventDescription: {
     fontSize: 13,
-    color: '#CBD5E1',
+    color: 'rgba(243,246,250,0.70)',
   },
   eventRelated: {
     fontSize: 11,
-    color: '#64748B',
+    color: 'rgba(243,246,250,0.48)',
   },
   eventChange: {
     fontSize: 14,

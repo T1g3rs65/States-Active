@@ -254,6 +254,7 @@ export const api = {
     enabled_races?: string[];
     creator_nation_id?: string;
     creator_nation_name?: string;
+    allows_migration?: boolean;
   }) => {
     const response = await fetch(`${API_URL}/api/worlds`, {
       method: 'POST',
@@ -486,6 +487,12 @@ export const api = {
     const response = await fetch(`${API_URL}/api/multi-alliances/nation/${nationId}`);
     return response.json();
   },
+
+  // Alias used by older screens
+  getNationAlliance: async (nationId: string) => {
+    const response = await fetch(`${API_URL}/api/multi-alliances/nation/${nationId}`);
+    return response.json();
+  },
   
   // Invite to alliance
   inviteToAlliance: async (allianceId: string, inviterNationId: string, toNationId: string, message?: string) => {
@@ -610,6 +617,7 @@ export const api = {
     min_population?: number;
     max_members?: number;
     allowed_races?: string[];
+    allowed_ideologies?: string[];
     ideology_restrictions?: {
       min_auth?: number;
       max_auth?: number;

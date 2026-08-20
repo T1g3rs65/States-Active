@@ -119,7 +119,7 @@ export default function Policies() {
         </View>
       ) : policies.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Ionicons name="document-text-outline" size={64} color="#64748B" />
+          <Ionicons name="document-text-outline" size={64} color="rgba(243,246,250,0.48)" />
           <Text style={styles.emptyTitle}>No Policies Yet</Text>
           <Text style={styles.emptyText}>
             Make important decisions to create defining policies for your nation!
@@ -211,7 +211,7 @@ export default function Policies() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#0B0F14',
   },
   header: {
     flexDirection: 'row',
@@ -219,9 +219,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 16,
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     borderBottomWidth: 1,
-    borderBottomColor: '#334155',
+    borderBottomColor: 'rgba(255,255,255,0.08)',
   },
   backButton: {
     padding: 8,
@@ -229,7 +229,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
   },
   centerContainer: {
     flex: 1,
@@ -238,7 +238,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginTop: 16,
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
     fontSize: 14,
   },
   emptyContainer: {
@@ -250,12 +250,12 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
     marginTop: 16,
     marginBottom: 8,
   },
   emptyText: {
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
     fontSize: 14,
     textAlign: 'center',
     lineHeight: 20,
@@ -264,16 +264,16 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   statsCard: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     borderRadius: 12,
     padding: 16,
     marginBottom: 24,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   statsText: {
     fontSize: 16,
-    color: '#F8FAFC',
+    color: '#F3F6FA',
     fontWeight: '600',
   },
   statsNumber: {
@@ -282,7 +282,7 @@ const styles = StyleSheet.create({
   },
   statsSubtext: {
     fontSize: 12,
-    color: '#94A3B8',
+    color: 'rgba(243,246,250,0.70)',
     marginTop: 4,
   },
   categorySection: {
@@ -294,12 +294,12 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     paddingBottom: 8,
     borderBottomWidth: 2,
-    borderBottomColor: '#334155',
+    borderBottomColor: 'rgba(255,255,255,0.08)',
   },
   categoryTitle: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
     marginLeft: 8,
     flex: 1,
     letterSpacing: 1,
@@ -314,11 +314,11 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   policyCard: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#11171F',
     borderRadius: 12,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: 'rgba(255,255,255,0.08)',
     overflow: 'hidden',
   },
   policyContent: {
@@ -345,12 +345,12 @@ const styles = StyleSheet.create({
   policyName: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#F8FAFC',
+    color: '#F3F6FA',
     marginBottom: 4,
   },
   policyDate: {
     fontSize: 12,
-    color: '#64748B',
+    color: 'rgba(243,246,250,0.48)',
   },
   newsSnippet: {
     borderLeftWidth: 3,
@@ -359,12 +359,12 @@ const styles = StyleSheet.create({
   },
   newsSnippetText: {
     fontSize: 14,
-    color: '#CBD5E1',
+    color: 'rgba(243,246,250,0.70)',
     lineHeight: 22,
     fontStyle: 'italic',
   },
   errorText: {
-    color: '#F8FAFC',
+    color: '#F3F6FA',
     fontSize: 16,
   },
 });
