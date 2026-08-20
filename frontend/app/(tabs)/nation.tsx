@@ -6,26 +6,21 @@ import {
   ScrollView,
   Image,
   RefreshControl,
-  Dimensions,
   TouchableOpacity,
-  ActivityIndicator,
   Modal,
-  Platform,
 } from 'react-native';
 import { useNationStore } from '../../store/nationStore';
 import { LinearGradient } from 'expo-linear-gradient';
 import { format } from 'date-fns';
 import { api } from '../../utils/api';
-import { useFocusEffect , useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { SvgXml } from 'react-native-svg';
-import { PieChart } from 'react-native-chart-kit';
 import { Ionicons } from '@expo/vector-icons';
-import { calculateTerritoryBiomes, getBiomePieChartData } from '../../utils/territoryCalc';
-import { calculateCapacityFromPopulation, getNationSizeClass } from '../../utils/nationSize';
+import { getNationSizeClass } from '../../utils/nationSize';
 import { getRaceTheme, getRaceName, getRaceIcon } from '../../utils/raceColors';
+import { colors, typography, spacing, radii } from '../../utils/theme';
 import NewsFeed from '../../components/NewsFeed';
-
-const { width } = Dimensions.get('window');
+import CollapsibleSection from '../../components/CollapsibleSection';
 
 // Government type descriptions
 const GOVERNMENT_DESCRIPTIONS: Record<string, string> = {
@@ -417,45 +412,12 @@ export default function Nation() {
     );
   }
 
-  console.log('Nation data:', {
-    hasFlag: !!nation.flag_base64,
-    flagLength: nation.flag_base64?.length,
-    flagStart: nation.flag_base64?.substring(0, 50)
-  });
-
   const stats = nation.stats;
   const createdDate = new Date(nation.created_at);
   const daysOld = Math.floor((new Date().getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24));
 
-  const budgetData = [
-    { label: 'Education', value: stats.budget_education, color: themeColor },
-    { label: 'Defense', value: stats.budget_defense, color: '#FF5A65' },
-    { label: 'Healthcare', value: stats.budget_healthcare, color: '#27D17A' },
-    { label: 'Welfare', value: stats.budget_welfare, color: '#F2C94C' },
-    { label: 'Environment', value: stats.budget_environment, color: '#27D17A' },
-    { label: 'Infrastructure', value: stats.budget_infrastructure, color: '#6366F1' },
-    { label: 'Other', value: stats.budget_other, color: '#00E0C7' },
-  ];
-
-  // Calculate ACTUAL territory distribution based on player's capacity
   const centerCol = nation.territory_center_col || 100;
   const centerRow = nation.territory_center_row || 100;
-  
-  // Get capacity to know actual territory size
-  const actualCapacity = calculateCapacityFromPopulation(nation.stats.population);
-  const clusterRadius = Math.sqrt(actualCapacity); // Match map calculation
-  
-  const biomeCounts = calculateTerritoryBiomes(centerCol, centerRow, Math.ceil(clusterRadius));
-  const territoryData = getBiomePieChartData(biomeCounts);
-  
-  console.log('Territory center:', centerCol, centerRow);
-  console.log('Biome counts:', biomeCounts);
-  console.log('Territory data for chart:', territoryData);
-  
-  // Fallback if no data
-  const displayTerritoryData = territoryData.length > 0 ? territoryData : [
-    { name: 'Plains', population: 100, color: '#90EE90', legendFontColor: 'rgba(243,246,250,0.70)', legendFontSize: 12 }
-  ];
 
   const renderFlag = () => {
     if (!nation.flag_base64) return null;
@@ -499,7 +461,7 @@ export default function Nation() {
           >
             <Ionicons name="notifications" size={24} color={themeColor} />
             {notificationCount > 0 && (
-              <View style={[styles.notificationBadge, { backgroundColor: '#FF5A65' }]}>
+              <View style={[styles.notificationBadge, { backgroundColor: colors.danger }]}>
                 <Text style={styles.notificationBadgeText}>{notificationCount}</Text>
               </View>
             )}
@@ -522,7 +484,7 @@ export default function Nation() {
           <RefreshControl refreshing={refreshing} onRefresh={refreshNation} tintColor={themeColor} />
         }
       >
-      <LinearGradient colors={['#11171F', '#0B0F14']} style={styles.headerCard}>
+      <LinearGradient colors={[colors.surfaceSolid, colors.background]} style={styles.headerCard}>
         {renderFlag()}
         <Text style={styles.nationName}>{nation.name}</Text>
         <TouchableOpacity onPress={showRaceInfo} style={styles.raceRow} activeOpacity={0.7}>
@@ -537,75 +499,72 @@ export default function Nation() {
         {nation.motto && (
           <Text style={styles.motto}>{'\u201c'}{nation.motto}{'\u201d'}</Text>
         )}
-        <View style={styles.customizationInfo}>
-          <Text style={styles.customizationText}>💰 Currency: {nation.currency || 'Credits'}</Text>
-          <Text style={styles.customizationText}>🦅 National Animal: {nation.national_animal || 'Eagle'}</Text>
-        </View>
-        <View style={styles.metaInfo}>
-          <Text style={styles.metaText}>Founded: {format(createdDate, 'MMM d, yyyy')}</Text>
-          <Text style={styles.metaText}>Age: {daysOld} days</Text>
-          <Text style={styles.metaText}>Decisions: {nation.total_decisions}</Text>
-        </View>
       </LinearGradient>
 
-      {/* Leader Section */}
-      <View style={styles.leaderSection}>
-        <View style={styles.leaderPortraitContainer}>
-          <Image 
-            source={getLeaderPortrait(nation.race, nation.government_type, nation.leader_name || nation.name, nation.name)}
-            style={styles.leaderPortrait}
-            resizeMode="cover"
-          />
-        </View>
-        <View style={styles.leaderInfo}>
-          <Text style={styles.leaderTitle}>
-            {getLeaderTitle(nation.race, nation.government_type, nation.leader_name || nation.name)}
-          </Text>
-          <Text style={styles.leaderName}>{nation.leader_name || 'Unknown Leader'}</Text>
-          <TouchableOpacity onPress={showGovernmentInfo} activeOpacity={0.7}>
-            <Text style={[styles.leaderGovType, { textDecorationLine: 'underline' }]}>{nation.government_type}</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>National Description</Text>
-          <View style={styles.descriptionTimerContainer}>
-            <Ionicons name="time-outline" size={14} color="rgba(243,246,250,0.48)" />
-            <Text style={styles.descriptionTimerText}>
-              {descriptionTimer || 'Loading...'}
-            </Text>
-          </View>
-        </View>
-        <Text style={styles.descriptionText}>
-          {nation.description}
-        </Text>
-        <Text style={styles.descriptionHint}>
-          Descriptions update weekly based on your nation{'\u2019'}s progress
-        </Text>
-      </View>
-
       <View style={styles.actionButtons}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[styles.actionButton, { borderColor: themeColor }]}
           onPress={() => router.push('/world-map')}
         >
-          <Text style={styles.actionButtonText}>🌍 World Map</Text>
+          <Ionicons name="globe" size={16} color={colors.text.primary} style={{ marginRight: 8 }} />
+          <Text style={styles.actionButtonText}>World Map</Text>
         </TouchableOpacity>
-        
-        <TouchableOpacity 
+
+        <TouchableOpacity
           style={[styles.actionButton, { borderColor: themeColor }]}
           onPress={() => router.push('/policies')}
         >
-          <Text style={styles.actionButtonText}>📜 Policies</Text>
+          <Ionicons name="document-text" size={16} color={colors.text.primary} style={{ marginRight: 8 }} />
+          <Text style={styles.actionButtonText}>Policies</Text>
         </TouchableOpacity>
       </View>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Global News Feed</Text>
+      <CollapsibleSection title="Leader" initiallyOpen>
+        <View style={styles.leaderSection}>
+          <View style={[styles.leaderPortraitContainer, { borderColor: colors.accent.gold }]}>
+            <Image
+              source={getLeaderPortrait(nation.race, nation.government_type, nation.leader_name || nation.name, nation.name)}
+              style={styles.leaderPortrait}
+              resizeMode="cover"
+            />
+          </View>
+          <View style={styles.leaderInfo}>
+            <Text style={[styles.leaderTitle, { color: colors.accent.gold }]}>
+              {getLeaderTitle(nation.race, nation.government_type, nation.leader_name || nation.name)}
+            </Text>
+            <Text style={styles.leaderName}>{nation.leader_name || 'Unknown Leader'}</Text>
+            <TouchableOpacity onPress={showGovernmentInfo} activeOpacity={0.7}>
+              <Text style={styles.leaderGovType}>{nation.government_type}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </CollapsibleSection>
+
+      <CollapsibleSection title="National Description" initiallyOpen>
+        <View style={styles.sectionHeaderInline}>
+          <View style={styles.descriptionTimerContainer}>
+            <Ionicons name="time-outline" size={14} color={colors.text.muted} />
+            <Text style={styles.descriptionTimerText}>{descriptionTimer || 'Loading...'}</Text>
+          </View>
+        </View>
+        <Text style={styles.descriptionText}>{nation.description}</Text>
+        <Text style={styles.descriptionHint}>Descriptions update weekly based on your nation's progress</Text>
+      </CollapsibleSection>
+
+      <CollapsibleSection title="Realm Details">
+        <View style={styles.detailGrid}>
+          <Text style={styles.detailText}>Currency: {nation.currency || 'Credits'}</Text>
+          <Text style={styles.detailText}>National Animal: {nation.national_animal || 'Eagle'}</Text>
+          <Text style={styles.detailText}>Founded: {format(createdDate, 'MMM d, yyyy')}</Text>
+          <Text style={styles.detailText}>Age: {daysOld} days</Text>
+          <Text style={styles.detailText}>Decisions: {nation.total_decisions}</Text>
+          <Text style={styles.detailText}>Capital: ({centerCol}, {centerRow})</Text>
+        </View>
+      </CollapsibleSection>
+
+      <CollapsibleSection title="Global News Feed">
         <NewsFeed themeColor={themeColor} />
-      </View>
+      </CollapsibleSection>
 
       <Text style={styles.footerText}>SovereignHex v1.0.0</Text>
     </ScrollView>
@@ -638,43 +597,33 @@ export default function Nation() {
   );
 }
 
-function StatItem({ label, value }: { label: string; value: string | number }) {
-  return (
-    <View style={styles.statItem}>
-      <Text style={styles.statItemLabel}>{label}</Text>
-      <Text style={styles.statItemValue}>{value}</Text>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0B0F14',
+    backgroundColor: colors.background,
   },
   topHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
     paddingTop: 48,
-    backgroundColor: '#11171F',
+    backgroundColor: colors.surfaceSolid,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.08)',
+    borderBottomColor: colors.glass.border,
   },
   topHeaderTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#F3F6FA',
+    ...typography.headline,
+    color: colors.text.primary,
   },
   headerButtons: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: spacing.md,
   },
   notificationButton: {
-    padding: 4,
+    padding: spacing.xs,
     position: 'relative',
   },
   notificationBadge: {
@@ -689,75 +638,34 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   notificationBadgeText: {
-    fontSize: 10,
+    ...typography.small,
     fontWeight: '700',
-    color: '#FFF',
+    color: colors.text.primary,
   },
   profileButton: {
-    padding: 4,
+    padding: spacing.xs,
   },
   scrollContainer: {
     flex: 1,
   },
   content: {
-    padding: 16,
-  },
-  leaderSection: {
-    flexDirection: 'row',
-    backgroundColor: '#11171F',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
-    alignItems: 'center',
-  },
-  leaderPortraitContainer: {
-    width: 140,
-    height: 180,
-    borderRadius: 12,
-    overflow: 'hidden',
-    borderWidth: 3,
-    borderColor: '#FFD700',
-    marginRight: 16,
-  },
-  leaderPortrait: {
-    width: 140,
-    height: 180,
-    resizeMode: 'cover',
-  },
-  leaderInfo: {
-    flex: 1,
-  },
-  leaderTitle: {
-    fontSize: 14,
-    color: '#FFD700',
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  leaderName: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#F3F6FA',
-    marginBottom: 4,
-  },
-  leaderGovType: {
-    fontSize: 13,
-    color: 'rgba(243,246,250,0.70)',
+    padding: spacing.md,
   },
   headerCard: {
-    padding: 24,
-    borderRadius: 16,
-    marginBottom: 16,
+    padding: spacing.lg,
+    borderRadius: radii.md,
+    marginBottom: spacing.md,
     alignItems: 'center',
   },
   flagContainer: {
-    marginBottom: 16,
-    borderRadius: 8,
+    marginBottom: spacing.md,
+    borderRadius: radii.sm,
     overflow: 'hidden',
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderWidth: 1,
+    borderColor: colors.glass.border,
   },
   hexFlagContainer: {
-    marginBottom: 16,
+    marginBottom: spacing.md,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -766,232 +674,186 @@ const styles = StyleSheet.create({
     height: 100,
   },
   nationName: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#F3F6FA',
+    ...typography.display,
+    color: colors.text.primary,
     textAlign: 'center',
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
   raceRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    marginBottom: 6,
+    marginBottom: spacing.xs,
   },
   raceText: {
-    fontSize: 14,
+    ...typography.body,
     fontWeight: '600',
   },
   governmentType: {
-    fontSize: 16,
-    color: 'rgba(243,246,250,0.70)',
-    marginBottom: 4,
+    ...typography.body,
+    color: colors.text.secondary,
+    marginBottom: spacing.xs,
   },
   sizeClass: {
-    fontSize: 14,
-    color: '#27D17A',
+    ...typography.body,
     fontWeight: '600',
   },
   motto: {
-    fontSize: 14,
-    color: 'rgba(243,246,250,0.70)',
+    ...typography.body,
+    color: colors.text.secondary,
     fontStyle: 'italic',
     textAlign: 'center',
-    marginBottom: 16,
+    marginTop: spacing.md,
   },
-  customizationInfo: {
-    marginTop: 12,
-    paddingVertical: 12,
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-    width: '100%',
-    gap: 6,
-  },
-  customizationText: {
-    fontSize: 14,
-    color: '#F3F6FA',
-    textAlign: 'center',
-  },
-  metaInfo: {
-    marginTop: 16,
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.08)',
-    width: '100%',
-  },
-  metaText: {
-    fontSize: 12,
-    color: 'rgba(243,246,250,0.70)',
-    textAlign: 'center',
-    marginBottom: 4,
-  },
-  section: {
-    marginBottom: 24,
-  },
-  sectionHeader: {
+  actionButtons: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    gap: spacing.md,
+    marginBottom: spacing.md,
+  },
+  actionButton: {
+    flex: 1,
+    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#F3F6FA',
-  },
-  regenerateButton: {
-    padding: 8,
-    borderRadius: 8,
-    backgroundColor: '#11171F',
+    justifyContent: 'center',
+    backgroundColor: colors.glass.base,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.sm,
+    borderRadius: radii.md,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+  },
+  actionButtonText: {
+    ...typography.body,
+    color: colors.text.primary,
+    fontWeight: '600',
+  },
+  sectionHeaderInline: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginBottom: spacing.sm,
   },
   descriptionTimerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#11171F',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
+    backgroundColor: colors.surfaceSolid,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: radii.pill,
     gap: 4,
   },
   descriptionTimerText: {
-    fontSize: 12,
-    color: 'rgba(243,246,250,0.48)',
+    ...typography.small,
+    color: colors.text.muted,
   },
   descriptionHint: {
-    fontSize: 11,
-    color: 'rgba(243,246,250,0.48)',
+    ...typography.small,
+    color: colors.text.muted,
     fontStyle: 'italic',
-    marginTop: 8,
-  },
-  regeneratingText: {
-    fontSize: 12,
-    color: '#00E0C7',
-    marginTop: 8,
-    textAlign: 'center',
-    fontStyle: 'italic',
+    marginTop: spacing.sm,
   },
   descriptionText: {
-    fontSize: 14,
-    color: 'rgba(243,246,250,0.70)',
+    ...typography.body,
+    color: colors.text.secondary,
     lineHeight: 22,
-    padding: 16,
-    backgroundColor: '#11171F',
-    borderRadius: 12,
+    padding: spacing.md,
+    backgroundColor: colors.surfaceSolid,
+    borderRadius: radii.md,
   },
-  statsGrid: {
+  leaderSection: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  statItem: {
-    backgroundColor: '#11171F',
-    padding: 16,
-    borderRadius: 12,
-    flex: 1,
-    minWidth: '45%',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-  },
-  statItemLabel: {
-    fontSize: 12,
-    color: 'rgba(243,246,250,0.70)',
-    marginBottom: 4,
-  },
-  statItemValue: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#00E0C7',
-  },
-  budgetContainer: {
-    backgroundColor: '#11171F',
-    padding: 16,
-    borderRadius: 12,
+    backgroundColor: colors.surfaceSolid,
+    borderRadius: radii.md,
+    padding: spacing.md,
     alignItems: 'center',
   },
-  noDataText: {
-    color: 'rgba(243,246,250,0.48)',
-    fontSize: 14,
-    padding: 20,
-    textAlign: 'center',
-  },
-  actionButtons: {
-    flexDirection: 'row',
-    gap: 12,
-    paddingHorizontal: 16,
-    marginTop: 16,
-    marginBottom: 16,
-  },
-  actionButton: {
-    flex: 1,
-    backgroundColor: '#11171F',
-    paddingVertical: 16,
-    paddingHorizontal: 12,
-    borderRadius: 12,
+  leaderPortraitContainer: {
+    width: 100,
+    height: 130,
+    borderRadius: radii.md,
+    overflow: 'hidden',
     borderWidth: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
+    marginRight: spacing.md,
   },
-  actionButtonText: {
-    color: '#F3F6FA',
-    fontSize: 14,
-    fontWeight: '600',
+  leaderPortrait: {
+    width: 100,
+    height: 130,
+  },
+  leaderInfo: {
+    flex: 1,
+  },
+  leaderTitle: {
+    ...typography.label,
+    marginBottom: spacing.xs,
+  },
+  leaderName: {
+    ...typography.title,
+    color: colors.text.primary,
+    marginBottom: spacing.xs,
+  },
+  leaderGovType: {
+    ...typography.small,
+    color: colors.text.secondary,
+  },
+  detailGrid: {
+    backgroundColor: colors.surfaceSolid,
+    borderRadius: radii.md,
+    padding: spacing.md,
+    gap: spacing.sm,
+  },
+  detailText: {
+    ...typography.body,
+    color: colors.text.secondary,
   },
   footerText: {
+    ...typography.small,
     textAlign: 'center',
-    color: 'rgba(243,246,250,0.48)',
-    fontSize: 12,
-    marginTop: 24,
-    marginBottom: 16,
+    color: colors.text.muted,
+    marginTop: spacing.xl,
+    marginBottom: spacing.lg,
   },
   errorText: {
-    color: '#FF5A65',
-    fontSize: 16,
+    ...typography.body,
+    color: colors.danger,
     textAlign: 'center',
   },
-  // Modal styles
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.7)',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    padding: spacing.lg,
   },
   modalContent: {
-    backgroundColor: '#11171F',
-    borderRadius: 16,
-    padding: 24,
-    maxWidth: 400,
+    backgroundColor: colors.surfaceSolid,
+    borderRadius: radii.md,
+    padding: spacing.lg,
     width: '100%',
+    maxWidth: 400,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: colors.glass.border,
   },
   modalTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#F3F6FA',
-    marginBottom: 12,
+    ...typography.title,
+    color: colors.text.primary,
+    marginBottom: spacing.md,
     textAlign: 'center',
   },
   modalText: {
-    fontSize: 15,
-    color: 'rgba(243,246,250,0.70)',
+    ...typography.body,
+    color: colors.text.secondary,
     lineHeight: 22,
-    marginBottom: 20,
+    marginBottom: spacing.lg,
   },
   modalButton: {
-    backgroundColor: '#00E0C7',
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 8,
+    backgroundColor: colors.accent.primary,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    borderRadius: radii.md,
     alignItems: 'center',
   },
   modalButtonText: {
-    color: '#F3F6FA',
-    fontSize: 16,
-    fontWeight: '600',
+    ...typography.headline,
+    color: colors.background,
   },
 });
+;

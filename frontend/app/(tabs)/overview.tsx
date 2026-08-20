@@ -6,7 +6,6 @@ import {
   ScrollView,
   RefreshControl,
   TouchableOpacity,
-  Dimensions,
   Image,
 } from 'react-native';
 import { useRouter , useFocusEffect } from 'expo-router';
@@ -15,12 +14,11 @@ import { useNationStore } from '../../store/nationStore';
 import { api } from '../../utils/api';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SvgXml } from 'react-native-svg';
-import { PieChart } from 'react-native-chart-kit';
+import DonutChart from '../../components/DonutChart';
+import { colors, typography, spacing, radii } from '../../utils/theme';
 import { getNationSizeClass } from '../../utils/nationSize';
 import { getPoliticalCompassTheme } from '../../utils/politicalCompass';
 import { getRaceTheme } from '../../utils/raceColors';
-
-const { width } = Dimensions.get('window');
 
 export default function Overview() {
   const router = useRouter();
@@ -314,8 +312,7 @@ export default function Overview() {
             })()}
           </Text>
           <View style={styles.chartContainer}>
-            <PieChart
-              data={(() => {
+            <DonutChart data={(() => {
                 const budgets = [
                   { name: 'Defense', value: nation.stats.budget_defense || 10, color: '#FF5A65' },
                   { name: 'Education', value: nation.stats.budget_education || 15, color: '#00B8B8' },
@@ -333,15 +330,7 @@ export default function Overview() {
                   legendFontColor: 'rgba(243,246,250,0.70)',
                   legendFontSize: 12
                 }));
-              })()}
-              width={width - 64}
-              height={220}
-              chartConfig={{ color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})` }}
-              accessor="population"
-              backgroundColor="transparent"
-              paddingLeft="15"
-              absolute
-            />
+              })()} />
           </View>
         </View>
       )}
@@ -351,8 +340,7 @@ export default function Overview() {
           <Text style={styles.graphTitle}>The Economy</Text>
           <Text style={styles.graphSubtitle}>GDP: {nation.gdp_display} • {nation.stats.tax_rate.toFixed(0)}% Tax Rate</Text>
           <View style={styles.chartContainer}>
-            <PieChart
-              data={(() => {
+            <DonutChart data={(() => {
                 const sectors = [
                   { name: 'Private Sector', value: 100 - nation.stats.tax_rate - nation.stats.unemployment, color: '#27D17A' },
                   { name: 'Government', value: nation.stats.tax_rate, color: '#00E0C7' },
@@ -369,15 +357,7 @@ export default function Overview() {
                   legendFontColor: 'rgba(243,246,250,0.70)',
                   legendFontSize: 12
                 }));
-              })()}
-              width={width - 64}
-              height={220}
-              chartConfig={{ color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})` }}
-              accessor="population"
-              backgroundColor="transparent"
-              paddingLeft="15"
-              absolute
-            />
+              })()} />
           </View>
         </View>
       )}
@@ -387,8 +367,7 @@ export default function Overview() {
           <Text style={styles.graphTitle}>Leading Causes of Death</Text>
           <Text style={styles.graphSubtitle}>Health & Life Expectancy: {nation.stats.life_expectancy.toFixed(0)} years</Text>
           <View style={styles.chartContainer}>
-            <PieChart
-              data={(() => {
+            <DonutChart data={(() => {
                 const causes = [
                   { name: 'Old Age', value: Math.max(10, nation.stats.life_expectancy * 0.65), color: '#27D17A' },
                   { name: 'Heart Disease', value: Math.max(5, (100 - nation.stats.healthcare_quality) * 0.4), color: '#FF5A65' },
@@ -404,15 +383,7 @@ export default function Overview() {
                   legendFontColor: 'rgba(243,246,250,0.70)',
                   legendFontSize: 12
                 }));
-              })()}
-              width={width - 64}
-              height={220}
-              chartConfig={{ color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})` }}
-              accessor="population"
-              backgroundColor="transparent"
-              paddingLeft="15"
-              absolute
-            />
+              })()} />
           </View>
         </View>
       )}
@@ -424,8 +395,7 @@ export default function Overview() {
             Total Territory: {nation.total_territories || 0} tiles
           </Text>
           <View style={styles.chartContainer}>
-            <PieChart
-              data={(() => {
+            <DonutChart data={(() => {
                 const territoryCounts = nation.territory_counts || {};
                 
                 // Biome colors matching the world map
@@ -551,15 +521,7 @@ export default function Overview() {
                   legendFontColor: 'rgba(243,246,250,0.70)',
                   legendFontSize: 11
                 }));
-              })()}
-              width={width - 64}
-              height={220}
-              chartConfig={{ color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})` }}
-              accessor="population"
-              backgroundColor="transparent"
-              paddingLeft="15"
-              absolute
-            />
+              })()} />
           </View>
           {(!nation.territory_counts || Object.keys(nation.territory_counts).length === 0) && (
             <Text style={styles.noDataHint}>
@@ -639,8 +601,9 @@ export default function Overview() {
 
 const styles = StyleSheet.create({
   container: {
+    ...typography.title,
     flex: 1,
-    backgroundColor: '#0B0F14',
+    backgroundColor: colors.background,
   },
   topHeader: {
     flexDirection: 'row',
@@ -649,16 +612,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 48,
     paddingBottom: 12,
-    backgroundColor: '#11171F',
+    backgroundColor: colors.surfaceSolid,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.08)',
+    borderBottomColor: colors.glass.border,
   },
   topHeaderTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#F3F6FA',
+    color: colors.text.primary,
   },
   headerButtons: {
+    ...typography.small,
+    fontWeight: '700',
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
@@ -679,11 +642,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   notificationBadgeText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#FFF',
+    color: colors.text.primary,
   },
   profileButton: {
+    ...typography.value,
+    fontWeight: 'bold',
     padding: 4,
   },
   scrollView: {
@@ -708,54 +671,54 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     marginRight: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: colors.glass.border,
   },
   headerTextContainer: {
     flex: 1,
   },
   nationName: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#F3F6FA',
+    color: colors.text.primary,
     marginBottom: 8,
   },
   governmentType: {
-    fontSize: 16,
-    color: 'rgba(243,246,250,0.70)',
+    ...typography.body,
+    color: colors.text.secondary,
     marginBottom: 4,
   },
   sizeClass: {
-    fontSize: 14,
+    ...typography.body,
     fontWeight: '600',
   },
   motto: {
-    fontSize: 14,
-    color: 'rgba(243,246,250,0.70)',
+    ...typography.body,
+    color: colors.text.secondary,
     fontStyle: 'italic',
     marginBottom: 16,
   },
   statsRow: {
+    ...typography.title,
+    fontWeight: 'bold',
     flexDirection: 'row',
     justifyContent: 'space-around',
     marginTop: 16,
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.08)',
+    borderTopColor: colors.glass.border,
   },
   miniStat: {
     alignItems: 'center',
   },
   miniStatValue: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#00E0C7',
+    color: colors.accent.primary,
     marginBottom: 4,
   },
   miniStatLabel: {
-    fontSize: 12,
-    color: 'rgba(243,246,250,0.70)',
+    ...typography.small,
+    color: colors.text.secondary,
   },
   politicalBadge: {
+    ...typography.headline,
+    fontWeight: 'bold',
     marginTop: 16,
     padding: 12,
     borderRadius: 12,
@@ -763,42 +726,40 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   politicalName: {
-    fontSize: 16,
-    fontWeight: 'bold',
     marginBottom: 4,
   },
   politicalDesc: {
-    fontSize: 12,
-    color: 'rgba(243,246,250,0.70)',
+    ...typography.small,
+    color: colors.text.secondary,
   },
   descriptionText: {
-    fontSize: 14,
-    color: 'rgba(243,246,250,0.70)',
-    lineHeight: 22,
+    ...typography.body,
+    color: colors.text.secondary,
     marginBottom: 24,
     padding: 16,
-    backgroundColor: '#11171F',
+    backgroundColor: colors.surfaceSolid,
     borderRadius: 12,
   },
   actionButtons: {
+    ...typography.body,
+    fontWeight: '600',
     flexDirection: 'row',
     gap: 12,
     marginBottom: 24,
   },
   actionButton: {
     flex: 1,
-    backgroundColor: '#11171F',
+    backgroundColor: colors.surfaceSolid,
     padding: 16,
     borderRadius: 12,
     alignItems: 'center',
     borderWidth: 2,
   },
   actionButtonText: {
-    color: '#F3F6FA',
-    fontSize: 14,
-    fontWeight: '600',
+    color: colors.text.primary,
   },
   statsGrid: {
+    ...typography.small,
     flexDirection: 'row',
     flexWrap: 'wrap',
     paddingHorizontal: 8,
@@ -807,42 +768,42 @@ const styles = StyleSheet.create({
   allStatCard: {
     flex: 1,
     minWidth: '30%',
-    backgroundColor: '#11171F',
+    backgroundColor: colors.surfaceSolid,
     padding: 16,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: colors.glass.border,
     alignItems: 'center',
   },
   allStatLabel: {
-    fontSize: 12,
-    color: 'rgba(243,246,250,0.70)',
+    color: colors.text.secondary,
     marginBottom: 8,
     textAlign: 'center',
   },
   allStatValue: {
-    fontSize: 20,
+    ...typography.title,
     fontWeight: 'bold',
     textAlign: 'center',
   },
   allStatHint: {
-    fontSize: 10,
-    color: 'rgba(243,246,250,0.48)',
+    ...typography.small,
+    color: colors.text.muted,
     marginTop: 4,
     textAlign: 'center',
   },
   section: {
+    ...typography.headline,
+    fontWeight: '700',
     marginTop: 24,
     marginBottom: 8,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#F3F6FA',
+    color: colors.text.primary,
     marginBottom: 16,
     paddingHorizontal: 16,
   },
   keyStatsGrid: {
+    ...typography.small,
     flexDirection: 'row',
     flexWrap: 'wrap',
     paddingHorizontal: 8,
@@ -851,31 +812,32 @@ const styles = StyleSheet.create({
   keyStatCard: {
     flex: 1,
     minWidth: '30%',
-    backgroundColor: '#11171F',
+    backgroundColor: colors.surfaceSolid,
     padding: 16,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: colors.glass.border,
     alignItems: 'center',
   },
   keyStatLabel: {
-    fontSize: 12,
-    color: 'rgba(243,246,250,0.70)',
+    color: colors.text.secondary,
     marginBottom: 8,
     textAlign: 'center',
   },
   keyStatValue: {
-    fontSize: 20,
+    ...typography.title,
     fontWeight: 'bold',
     textAlign: 'center',
   },
   keyStatHint: {
-    fontSize: 10,
-    color: 'rgba(243,246,250,0.48)',
+    ...typography.small,
+    color: colors.text.muted,
     marginTop: 4,
     textAlign: 'center',
   },
   graphTabs: {
+    ...typography.body,
+    fontWeight: '600',
     flexDirection: 'row',
     paddingHorizontal: 16,
     marginTop: 16,
@@ -886,59 +848,57 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 8,
     borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.08)',
-    backgroundColor: '#11171F',
+    borderColor: colors.glass.border,
+    backgroundColor: colors.surfaceSolid,
     alignItems: 'center',
   },
   graphTabText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: 'rgba(243,246,250,0.70)',
+    color: colors.text.secondary,
   },
   graphTabTextActive: {
-    color: '#F3F6FA',
+    ...typography.title,
+    fontWeight: 'bold',
+    color: colors.text.primary,
   },
   graphSection: {
     paddingHorizontal: 16,
     marginTop: 16,
   },
   graphTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#F3F6FA',
+    color: colors.text.primary,
     marginBottom: 4,
   },
   graphSubtitle: {
-    fontSize: 14,
-    color: 'rgba(243,246,250,0.70)',
+    ...typography.body,
+    color: colors.text.secondary,
     marginBottom: 16,
   },
   chartContainer: {
-    backgroundColor: '#11171F',
+    ...typography.body,
+    backgroundColor: colors.surfaceSolid,
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: colors.glass.border,
     alignItems: 'center',
   },
   errorText: {
-    color: '#FF5A65',
-    fontSize: 16,
+    color: colors.danger,
     textAlign: 'center',
   },
   allStatsContainer: {
+    ...typography.headline,
+    fontWeight: '700',
     marginTop: 24,
   },
   allStatsTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#F3F6FA',
+    color: colors.text.primary,
     marginBottom: 16,
     paddingHorizontal: 16,
   },
   noDataHint: {
-    fontSize: 12,
-    color: 'rgba(243,246,250,0.48)',
+    ...typography.small,
+    color: colors.text.muted,
     textAlign: 'center',
     marginTop: 12,
     fontStyle: 'italic',

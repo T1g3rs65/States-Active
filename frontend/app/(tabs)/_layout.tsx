@@ -3,11 +3,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNationStore } from '../../store/nationStore';
 import { View, StyleSheet } from 'react-native';
 import { getRaceTheme } from '../../utils/raceColors';
+import { colors, spacing, typography } from '../../utils/theme';
 
 export default function TabLayout() {
   const { nation } = useNationStore();
-  
-  // Get race-based theme color
   const raceTheme = getRaceTheme(nation?.race);
   const themeColor = raceTheme.color;
 
@@ -15,20 +14,10 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: themeColor,
-        tabBarInactiveTintColor: 'rgba(243,246,250,0.48)',
-        tabBarStyle: {
-          backgroundColor: '#0B0F14',
-          borderTopColor: '#11171F',
-          borderTopWidth: 1,
-          height: 60,
-          paddingBottom: 8,
-          paddingTop: 8,
-        },
+        tabBarInactiveTintColor: colors.text.muted,
+        tabBarStyle: styles.tabBar,
         headerShown: false,
-        tabBarLabelStyle: {
-          fontSize: 11,
-          fontWeight: '600',
-        },
+        tabBarLabelStyle: styles.tabLabel,
       }}
     >
       <Tabs.Screen
@@ -41,40 +30,11 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="overview"
-        options={{
-          title: 'Stats',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="stats-chart" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
         name="issues"
         options={{
           title: 'Issues',
           tabBarIcon: ({ color, size }) => (
-            <View>
-              <Ionicons name="newspaper" size={size} color={color} />
-            </View>
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="advisors"
-        options={{
-          title: 'Cabinet',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="people" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="industry"
-        options={{
-          title: 'Industry',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="construct" size={size} color={color} />
+            <Ionicons name="newspaper" size={size} color={color} />
           ),
         }}
       />
@@ -87,6 +47,42 @@ export default function TabLayout() {
           ),
         }}
       />
+      <Tabs.Screen
+        name="more"
+        options={{
+          title: 'More',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="apps" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="overview"
+        options={{ href: null }}
+      />
+      <Tabs.Screen
+        name="advisors"
+        options={{ href: null }}
+      />
+      <Tabs.Screen
+        name="industry"
+        options={{ href: null }}
+      />
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  tabBar: {
+    backgroundColor: colors.background,
+    borderTopColor: colors.glass.border,
+    borderTopWidth: 1,
+    height: 64,
+    paddingBottom: spacing.sm,
+    paddingTop: spacing.xs,
+  },
+  tabLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
+});

@@ -1,10 +1,28 @@
-import { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, TextInput, Alert } from 'react-native';
+import { useEffect, useState, useRef } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ActivityIndicator,
+  TouchableOpacity,
+  TextInput,
+  Alert,
+  Animated,
+} from 'react-native';
 import { useRouter } from 'expo-router';
-import { useNationStore } from '../store/nationStore';
-import { api } from '../utils/api';
+import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useNationStore } from '../store/nationStore';
+import { api } from '../utils/api';
+import { colors, typography, spacing, radii } from '../utils/theme';
+
+const LOADING_NOTES = [
+  'Checking saved nation...',
+  'Connecting to the world...',
+  'Waking the territories...',
+  'Preparing your realm...',
+];
 
 export default function Index() {
   const router = useRouter();
@@ -12,37 +30,53 @@ export default function Index() {
   const [checking, setChecking] = useState(true);
   const [showLogin, setShowLogin] = useState(false);
   const [userId, setUserId] = useState('');
+  const [loadingNoteIndex, setLoadingNoteIndex] = useState(0);
+  const progress = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const noteTimer = setInterval(() => {
+      setLoadingNoteIndex(i => (i + 1) % LOADING_NOTES.length);
+    }, 2200);
+
+    Animated.timing(progress, {
+      toValue: 0.9,
+      duration: 8000,
+      useNativeDriver: false,
+    }).start();
+
+    return () => clearInterval(noteTimer);
+  }, []);
 
   useEffect(() => {
     checkForNation();
   }, []);
 
+  const finishLoading = () => {
+    Animated.timing(progress, {
+      toValue: 1,
+      duration: 250,
+      useNativeDriver: false,
+    }).start(() => setChecking(false));
+  };
+
   const checkForNation = async () => {
     setChecking(true);
-    
     try {
-      // Try to load from local storage first
       await loadNation();
-      
-      // Check if we have a saved user ID
       const savedUserId = await AsyncStorage.getItem('user_id');
-      
+
       if (savedUserId) {
-        // Try to fetch nation from server
         const response = await api.getNationByUser(savedUserId);
-        
         if (response.success && response.nation) {
           setNation(response.nation);
           router.replace('/(tabs)/nation');
           return;
         }
       }
-      
-      // No saved nation found
-      setChecking(false);
+      finishLoading();
     } catch (error) {
       console.error('Error checking for nation:', error);
-      setChecking(false);
+      finishLoading();
     }
   };
 
@@ -59,9 +93,7 @@ export default function Index() {
     setChecking(true);
     try {
       const response = await api.getNationByUser(userId.trim());
-      
       if (response.success && response.nation) {
-        // Save user ID for future logins
         await AsyncStorage.setItem('user_id', userId.trim());
         setNation(response.nation);
         router.replace('/(tabs)/nation');
@@ -79,22 +111,32 @@ export default function Index() {
   if (checking) {
     return (
       <View style={styles.container}>
-        <ActivityIndicator size="large" color="#00E0C7" />
-        <Text style={styles.loadingText}>Loading your nation...</Text>
+        <ActivityIndicator size="large" color={colors.accent.primary} />
+        <Text style={styles.loadingNote}>{LOADING_NOTES[loadingNoteIndex]}</Text>
+        <View style={styles.progressTrack}>
+          <Animated.View
+            style={[
+              styles.progressFill,
+              {
+                width: progress.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: ['0%', '100%'],
+                }),
+              },
+            ]}
+          />
+        </View>
       </View>
     );
   }
 
   if (showLogin) {
     return (
-      <LinearGradient
-        colors={['#0B0F14', '#11171F', 'rgba(255,255,255,0.08)']}
-        style={styles.container}
-      >
+      <LinearGradient colors={landingGradient} style={styles.container}>
         <View style={styles.content}>
           <Text style={styles.title}>Welcome Back</Text>
           <Text style={styles.subtitle}>Login to Your Nation</Text>
-          
+
           <View style={styles.loginForm}>
             <Text style={styles.label}>User ID</Text>
             <TextInput
@@ -102,18 +144,15 @@ export default function Index() {
               value={userId}
               onChangeText={setUserId}
               placeholder="Enter your User ID"
-              placeholderTextColor="rgba(243,246,250,0.48)"
+              placeholderTextColor={colors.text.muted}
               autoCapitalize="none"
             />
-            
+
             <TouchableOpacity style={styles.button} onPress={handleLogin}>
               <Text style={styles.buttonText}>Login</Text>
             </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={styles.backButton} 
-              onPress={() => setShowLogin(false)}
-            >
+
+            <TouchableOpacity style={styles.backButton} onPress={() => setShowLogin(false)}>
               <Text style={styles.backButtonText}>Back</Text>
             </TouchableOpacity>
           </View>
@@ -123,33 +162,25 @@ export default function Index() {
   }
 
   return (
-    <LinearGradient
-      colors={['#0B0F14', '#11171F', 'rgba(255,255,255,0.08)']}
-      style={styles.container}
-    >
+    <LinearGradient colors={landingGradient} style={styles.container}>
       <View style={styles.content}>
-        <Text style={styles.title}>SovereignHex</Text>
-        <Text style={styles.subtitle}>Rule Your Nation</Text>
-        
-        <Text style={styles.description}>
-          Build your nation. Make critical decisions. Shape the destiny of millions.
-        </Text>
+        <WorldPreview />
+
+        <Text style={styles.title}>A World Awaits</Text>
+        <Text style={styles.subtitle}>Claim your nation. Shape its fate.</Text>
 
         <View style={styles.featuresContainer}>
-          <FeatureItem icon="🌍" text="Create your unique nation" />
-          <FeatureItem icon="⚖️" text="Face daily policy dilemmas" />
-          <FeatureItem icon="📊" text="Track 35+ national statistics" />
-          <FeatureItem icon="🏆" text="Compete in global rankings" />
+          <FeatureItem icon="earth" text="Create a unique nation" />
+          <FeatureItem icon="flame" text="Face daily dilemmas" />
+          <FeatureItem icon="stats-chart" text="Track national power" />
+          <FeatureItem icon="trophy" text="Rise in global rankings" />
         </View>
 
         <TouchableOpacity style={styles.button} onPress={startQuiz}>
           <Text style={styles.buttonText}>Begin Your Legacy</Text>
         </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={styles.secondaryButton} 
-          onPress={() => setShowLogin(true)}
-        >
+
+        <TouchableOpacity style={styles.secondaryButton} onPress={() => setShowLogin(true)}>
           <Text style={styles.secondaryButtonText}>Login to Existing Nation</Text>
         </TouchableOpacity>
       </View>
@@ -157,122 +188,185 @@ export default function Index() {
   );
 }
 
-function FeatureItem({ icon, text }: { icon: string; text: string }) {
+function WorldPreview() {
+  return (
+    <View style={styles.previewWrap}>
+      <View style={[styles.previewOrb, styles.previewOrbLeft, { backgroundColor: colors.zythera.primary }]} />
+      <View style={[styles.previewOrb, styles.previewOrbCenter, { backgroundColor: colors.accent.primary }]}>
+        <Ionicons name="flag" size={28} color={colors.background} />
+      </View>
+      <View style={[styles.previewOrb, styles.previewOrbRight, { backgroundColor: colors.human.primary }]} />
+      <View style={styles.previewGlow} />
+    </View>
+  );
+}
+
+function FeatureItem({ icon, text }: { icon: keyof typeof Ionicons.glyphMap; text: string }) {
   return (
     <View style={styles.featureItem}>
-      <Text style={styles.featureIcon}>{icon}</Text>
+      <Ionicons name={icon} size={22} color={colors.accent.primary} style={styles.featureIcon} />
       <Text style={styles.featureText}>{text}</Text>
     </View>
   );
 }
+
+const landingGradient: readonly [string, string, string] = [colors.background, colors.surfaceSolid, 'rgba(255,255,255,0.04)'];
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: colors.background,
   },
   content: {
-    width: '85%',
+    width: '88%',
+    maxWidth: 360,
     alignItems: 'center',
   },
+  previewWrap: {
+    width: 160,
+    height: 100,
+    marginBottom: spacing.xl,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  previewOrb: {
+    position: 'absolute',
+    borderRadius: radii.pill,
+    borderWidth: 1,
+    borderColor: colors.glass.border,
+  },
+  previewOrbLeft: {
+    width: 56,
+    height: 56,
+    left: 0,
+    top: 22,
+    opacity: 0.5,
+  },
+  previewOrbCenter: {
+    width: 64,
+    height: 64,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1,
+    opacity: 0.9,
+  },
+  previewOrbRight: {
+    width: 56,
+    height: 56,
+    right: 0,
+    top: 22,
+    opacity: 0.5,
+  },
+  previewGlow: {
+    position: 'absolute',
+    width: 140,
+    height: 30,
+    bottom: -8,
+    borderRadius: radii.pill,
+    backgroundColor: colors.accent.glow,
+    opacity: 0.25,
+    zIndex: 0,
+  },
   title: {
-    fontSize: 48,
-    fontWeight: 'bold',
-    color: '#F3F6FA',
-    marginBottom: 8,
-    letterSpacing: 2,
+    ...typography.title,
+    color: colors.text.primary,
+    marginBottom: spacing.sm,
+    textAlign: 'center',
   },
   subtitle: {
-    fontSize: 24,
-    color: 'rgba(243,246,250,0.70)',
-    marginBottom: 32,
-    letterSpacing: 1,
-  },
-  description: {
-    fontSize: 16,
-    color: 'rgba(243,246,250,0.70)',
+    ...typography.body,
+    color: colors.text.secondary,
+    marginBottom: spacing.xl,
     textAlign: 'center',
-    marginBottom: 40,
-    lineHeight: 24,
   },
   featuresContainer: {
     width: '100%',
-    marginBottom: 40,
+    marginBottom: spacing.xl,
+    gap: spacing.md,
   },
   featureItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
-    paddingHorizontal: 16,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.glass.base,
+    borderWidth: 1,
+    borderColor: colors.glass.border,
+    borderRadius: radii.md,
   },
   featureIcon: {
-    fontSize: 24,
-    marginRight: 16,
+    marginRight: spacing.md,
   },
   featureText: {
-    fontSize: 16,
-    color: '#F3F6FA',
+    ...typography.body,
+    color: colors.text.primary,
   },
   button: {
-    backgroundColor: '#00E0C7',
-    paddingHorizontal: 48,
-    paddingVertical: 16,
-    borderRadius: 12,
-    elevation: 4,
-    shadowColor: '#00E0C7',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
+    backgroundColor: colors.accent.primary,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.md,
+    borderRadius: radii.md,
     width: '100%',
     alignItems: 'center',
   },
   buttonText: {
-    color: '#F3F6FA',
-    fontSize: 18,
-    fontWeight: '600',
-    letterSpacing: 0.5,
+    ...typography.headline,
+    color: colors.background,
+    letterSpacing: 0.3,
   },
   secondaryButton: {
-    marginTop: 16,
-    paddingVertical: 16,
+    marginTop: spacing.md,
+    paddingVertical: spacing.md,
     width: '100%',
     alignItems: 'center',
   },
   secondaryButtonText: {
-    color: '#00E0C7',
-    fontSize: 16,
+    ...typography.body,
+    color: colors.accent.primary,
     fontWeight: '500',
   },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: 'rgba(243,246,250,0.48)',
+  loadingNote: {
+    marginTop: spacing.lg,
+    ...typography.body,
+    color: colors.text.secondary,
+  },
+  progressTrack: {
+    width: 200,
+    height: 4,
+    marginTop: spacing.md,
+    backgroundColor: colors.glass.base,
+    borderRadius: radii.pill,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: colors.accent.primary,
   },
   loginForm: {
     width: '100%',
-    gap: 16,
+    gap: spacing.md,
   },
   label: {
-    color: 'rgba(243,246,250,0.70)',
-    fontSize: 16,
-    fontWeight: '500',
+    ...typography.label,
+    color: colors.text.secondary,
   },
   input: {
-    backgroundColor: '#11171F',
+    backgroundColor: colors.surfaceSolid,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-    borderRadius: 8,
-    padding: 16,
-    fontSize: 16,
-    color: '#F3F6FA',
+    borderColor: colors.glass.border,
+    borderRadius: radii.md,
+    padding: spacing.md,
+    ...typography.body,
+    color: colors.text.primary,
   },
   backButton: {
-    paddingVertical: 12,
+    paddingVertical: spacing.sm,
     alignItems: 'center',
   },
   backButtonText: {
-    color: 'rgba(243,246,250,0.48)',
-    fontSize: 16,
+    ...typography.body,
+    color: colors.text.muted,
   },
 });

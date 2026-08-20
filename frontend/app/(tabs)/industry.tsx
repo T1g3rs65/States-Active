@@ -11,7 +11,8 @@ import {
 } from 'react-native';
 import { useRouter , useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { PieChart } from 'react-native-chart-kit';
+import DonutChart from '../../components/DonutChart';
+import { colors, typography, spacing, radii } from '../../utils/theme';
 import { useNationStore } from '../../store/nationStore';
 import { api } from '../../utils/api';
 import { getRaceTheme } from '../../utils/raceColors';
@@ -24,8 +25,6 @@ import {
   NationIndustryStats,
   ResourceDefinition,
 } from '../../utils/resources';
-
-const { width } = Dimensions.get('window');
 
 export default function Industry() {
   const router = useRouter();
@@ -259,18 +258,7 @@ export default function Industry() {
           <Text style={styles.sectionTitle}>Resource Distribution</Text>
         </View>
         <View style={styles.chartContainer}>
-          <PieChart
-            data={pieData}
-            width={width - 48}
-            height={200}
-            chartConfig={{
-              color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
-            }}
-            accessor="population"
-            backgroundColor="transparent"
-            paddingLeft="15"
-            absolute
-          />
+          <DonutChart data={pieData} size={160} />
         </View>
       </View>
     );
@@ -511,8 +499,9 @@ export default function Industry() {
 
 const styles = StyleSheet.create({
   container: {
+    ...typography.title,
     flex: 1,
-    backgroundColor: '#0B0F14',
+    backgroundColor: colors.background,
   },
   topHeader: {
     flexDirection: 'row',
@@ -521,16 +510,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 48,
     paddingBottom: 12,
-    backgroundColor: '#11171F',
+    backgroundColor: colors.surfaceSolid,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.08)',
+    borderBottomColor: colors.glass.border,
   },
   topHeaderTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#F3F6FA',
+    color: colors.text.primary,
   },
   headerButtons: {
+    ...typography.small,
+    fontWeight: '700',
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
@@ -551,34 +540,33 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   notificationBadgeText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#FFF',
+    color: colors.text.primary,
   },
   profileButton: {
+    ...typography.body,
+    fontWeight: '600',
     padding: 4,
   },
   tabContainer: {
     flexDirection: 'row',
     padding: 12,
     gap: 8,
-    backgroundColor: '#0B0F14',
+    backgroundColor: colors.background,
   },
   tab: {
     flex: 1,
     paddingVertical: 10,
     paddingHorizontal: 16,
     borderRadius: 8,
-    backgroundColor: '#11171F',
+    backgroundColor: colors.surfaceSolid,
     alignItems: 'center',
   },
   tabText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: 'rgba(243,246,250,0.70)',
+    color: colors.text.secondary,
   },
   tabTextActive: {
-    color: '#F3F6FA',
+    ...typography.body,
+    color: colors.text.primary,
   },
   content: {
     flex: 1,
@@ -590,84 +578,84 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadingText: {
-    color: 'rgba(243,246,250,0.70)',
+    color: colors.text.secondary,
     marginTop: 12,
-    fontSize: 16,
   },
   statsRow: {
+    ...typography.small,
     flexDirection: 'row',
     gap: 12,
     marginBottom: 12,
   },
   statCard: {
     flex: 1,
-    backgroundColor: '#11171F',
+    backgroundColor: colors.surfaceSolid,
     borderRadius: 12,
     padding: 16,
     borderLeftWidth: 4,
   },
   statLabel: {
-    fontSize: 12,
-    color: 'rgba(243,246,250,0.70)',
+    color: colors.text.secondary,
     marginBottom: 4,
   },
   statValue: {
-    fontSize: 24,
-    fontWeight: '700',
+    ...typography.title,
   },
   statSubtext: {
-    fontSize: 11,
-    color: 'rgba(243,246,250,0.48)',
+    ...typography.small,
+    color: colors.text.muted,
     marginTop: 2,
   },
   sectionHeader: {
+    ...typography.headline,
+    fontWeight: '700',
     marginTop: 24,
     marginBottom: 12,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#F3F6FA',
+    color: colors.text.primary,
   },
   sectionSubtitle: {
-    fontSize: 13,
-    color: 'rgba(243,246,250,0.70)',
+    ...typography.small,
+    color: colors.text.secondary,
     marginTop: 4,
   },
   tierRow: {
+    ...typography.small,
+    fontWeight: '600',
     flexDirection: 'row',
     gap: 8,
   },
   tierCard: {
     flex: 1,
-    backgroundColor: '#11171F',
+    backgroundColor: colors.surfaceSolid,
     borderRadius: 8,
     padding: 12,
     borderLeftWidth: 3,
   },
   tierLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#F3F6FA',
+    color: colors.text.primary,
     marginBottom: 4,
   },
   tierCount: {
-    fontSize: 14,
+    ...typography.body,
     fontWeight: '700',
-    color: '#F3F6FA',
+    color: colors.text.primary,
   },
   tierValue: {
-    fontSize: 11,
-    color: 'rgba(243,246,250,0.70)',
+    ...typography.small,
+    color: colors.text.secondary,
   },
   chartContainer: {
-    backgroundColor: '#11171F',
+    ...typography.body,
+    fontWeight: '700',
+    backgroundColor: colors.surfaceSolid,
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
   },
   resourceCard: {
-    backgroundColor: '#11171F',
+    backgroundColor: colors.surfaceSolid,
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
@@ -688,11 +676,11 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
   resourceName: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#F3F6FA',
+    color: colors.text.primary,
   },
   resourceMeta: {
+    ...typography.small,
+    fontWeight: '600',
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
@@ -704,74 +692,71 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   tierBadgeText: {
-    fontSize: 11,
-    fontWeight: '600',
   },
   resourceValue: {
-    fontSize: 12,
-    color: 'rgba(243,246,250,0.70)',
+    ...typography.small,
+    color: colors.text.secondary,
   },
   resourceStats: {
+    ...typography.title,
     alignItems: 'flex-end',
   },
   resourceCount: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#F3F6FA',
+    color: colors.text.primary,
   },
   resourceCountLabel: {
-    fontSize: 11,
-    color: 'rgba(243,246,250,0.48)',
+    ...typography.small,
+    color: colors.text.muted,
   },
   resourceFooter: {
+    ...typography.small,
     marginTop: 12,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.08)',
+    borderTopColor: colors.glass.border,
   },
   resourceDescription: {
-    fontSize: 13,
-    color: 'rgba(243,246,250,0.70)',
-    lineHeight: 18,
+    color: colors.text.secondary,
   },
   resourceValueRow: {
+    ...typography.small,
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: 8,
     gap: 6,
   },
   resourceTotalLabel: {
-    fontSize: 12,
-    color: 'rgba(243,246,250,0.48)',
+    color: colors.text.muted,
   },
   resourceTotalValue: {
-    fontSize: 16,
+    ...typography.body,
     fontWeight: '700',
   },
   resourcePercentage: {
-    fontSize: 12,
-    color: 'rgba(243,246,250,0.48)',
+    ...typography.small,
+    color: colors.text.muted,
   },
   emptyState: {
+    ...typography.headline,
     alignItems: 'center',
     paddingVertical: 48,
   },
   emptyStateText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#F3F6FA',
+    color: colors.text.primary,
     marginTop: 16,
   },
   emptyStateSubtext: {
-    fontSize: 14,
-    color: 'rgba(243,246,250,0.48)',
+    ...typography.body,
+    color: colors.text.muted,
     marginTop: 8,
     textAlign: 'center',
   },
   leaderboardEntry: {
+    ...typography.headline,
+    fontWeight: '700',
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#11171F',
+    backgroundColor: colors.surfaceSolid,
     borderRadius: 12,
     padding: 14,
     marginBottom: 10,
@@ -781,37 +766,37 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   rankText: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: 'rgba(243,246,250,0.70)',
+    color: colors.text.secondary,
   },
   leaderboardInfo: {
+    ...typography.body,
+    fontWeight: '600',
     flex: 1,
     marginLeft: 8,
   },
   leaderboardName: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#F3F6FA',
+    color: colors.text.primary,
   },
   leaderboardStats: {
-    fontSize: 12,
-    color: 'rgba(243,246,250,0.48)',
+    ...typography.small,
+    color: colors.text.muted,
     marginTop: 2,
   },
   leaderboardValue: {
+    ...typography.headline,
+    fontWeight: '700',
     alignItems: 'flex-end',
   },
   leaderboardValueText: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#27D17A',
+    color: colors.success,
   },
   leaderboardValueLabel: {
-    fontSize: 11,
-    color: 'rgba(243,246,250,0.48)',
+    ...typography.small,
+    color: colors.text.muted,
   },
   hintCard: {
+    ...typography.body,
+    fontWeight: '700',
     flexDirection: 'row',
     alignItems: 'flex-start',
     backgroundColor: '#78350F33',
@@ -822,21 +807,20 @@ const styles = StyleSheet.create({
     borderColor: '#78350F',
   },
   hintTitle: {
-    fontSize: 16,
-    fontWeight: '700',
     color: '#FCD34D',
     marginBottom: 4,
   },
   hintText: {
-    fontSize: 13,
+    ...typography.small,
     color: '#FCD34D',
-    lineHeight: 18,
     marginBottom: 12,
   },
   hintButton: {
+    ...typography.body,
+    fontWeight: '600',
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F2C94C',
+    backgroundColor: colors.accent.gold,
     paddingVertical: 10,
     paddingHorizontal: 16,
     borderRadius: 8,
@@ -844,8 +828,6 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   hintButtonText: {
-    color: '#F3F6FA',
-    fontSize: 14,
-    fontWeight: '600',
+    color: colors.text.primary,
   },
 });
