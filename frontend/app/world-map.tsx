@@ -619,16 +619,6 @@ export default function WorldMap() {
     }
   };
 
-  const getHexagonPoints = (_centerX: number, _centerY: number, _size: number): string => {
-    // Deprecated: Voronoi cells use their own polygon vertices.
-    return '';
-  };
-
-  const getSquareTiles = () => {
-    // Deprecated: no square fallback in Voronoi mode.
-    return [];
-  };
-
   const isBorderTerritory = (territory: Territory): boolean => {
     if (!territory.ownerId) return false;
     for (const n of territory.neighbors) {

@@ -115,11 +115,16 @@ function lloydRelaxVoronoi(
 
   for (let iter = 0; iter < iterations; iter++) {
     const delaunay = Delaunay.from(points);
-    const voronoi = delaunay.voronoi(bounds);
+    // d3-delaunay's voronoi() expects an iterable bounds array [xmin, ymin, xmax, ymax]
+    // (an object throws "object is not iterable").
+    const voronoi = delaunay.voronoi([bounds.xmin, bounds.ymin, bounds.xmax, bounds.ymax]);
     const nextPoints: Array<[number, number]> = [];
 
     let i = 0;
-    for (const [index, poly] of voronoi.cellPolygons()) {
+    // d3-delaunay v6 yields the polygon itself (with .index set), not a
+    // [index, polygon] tuple — so use poly.index for the cell index.
+    for (const poly of voronoi.cellPolygons()) {
+      const index = poly.index;
       const [cx, cy] = polygonCentroid(poly);
       nextPoints[index] = [
         Math.max(bounds.xmin + 0.01, Math.min(bounds.xmax - 0.01, cx)),
@@ -338,7 +343,8 @@ export function generateVoronoiCells(
 
   // PASS 3: build Delaunay/Voronoi from relaxed points
   const delaunay = Delaunay.from(relaxedPoints);
-  const voronoi = delaunay.voronoi(bounds);
+  // d3-delaunay's voronoi() expects an iterable bounds array [xmin, ymin, xmax, ymax].
+  const voronoi = delaunay.voronoi([bounds.xmin, bounds.ymin, bounds.xmax, bounds.ymax]);
 
   // Collect neighbor lists
   const neighbors: number[][] = [];
@@ -353,7 +359,10 @@ export function generateVoronoiCells(
   const cells: VoronoiCell[] = [];
   let waterCellCount = 0;
 
-  for (const [index, polyGrid] of voronoi.cellPolygons()) {
+  // d3-delaunay v6 yields the polygon itself (with .index set), not a
+  // [index, polygon] tuple — use polyGrid.index for the cell index.
+  for (const polyGrid of voronoi.cellPolygons()) {
+    const index = polyGrid.index;
     const [col, row] = relaxedPoints[index];
     const [cx, cy] = polygonCentroid(polyGrid);
     const centroidCol = cx;
