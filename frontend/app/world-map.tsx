@@ -270,10 +270,10 @@ export default function WorldMap() {
     
     switch (mapMode) {
       case 'terrain':
-        return { color: '#11171F', width: baseWidth };
+        return { color: 'rgba(255,255,255,0.10)', width: baseWidth };
         
       case 'resources':
-        return { color: '#11171F', width: baseWidth };
+        return { color: 'rgba(255,255,255,0.10)', width: baseWidth };
         
       case 'faction':
         if (isOwned) {
@@ -393,7 +393,7 @@ export default function WorldMap() {
 
   // Generate the base terrain (biomes, colors) - deterministic based on seed
   const generateBaseTerrain = (seed: number = WORLD_SEED): Territory[] => {
-    setLoadingStatus(`Generating ${VORONOI_CELLS} Voronoi cells...`);
+    setLoadingStatus('Shaping the world into territories...');
     return generateVoronoiCells(seed, MAP_COLS, MAP_ROWS, VORONOI_CELLS, CELL_SCALE).map(cell => ({
       ...cell,
       ownerId: null,
@@ -640,8 +640,27 @@ export default function WorldMap() {
     return false;
   };
 
-  const handleZoomIn = () => setZoom(prev => Math.min(prev * 1.3, 3));
+  const handleZoomIn = () => setZoom(prev => Math.min(prev * 1.3, 2.5));
   const handleZoomOut = () => setZoom(prev => Math.max(prev / 1.3, 0.12));
+
+  const handleTerritoryPress = (territory: Territory) => {
+    if (zoom <= 0.25) {
+      const targetZoom = 0.6;
+      setZoom(targetZoom);
+      const tx = territory.x * targetZoom;
+      const ty = territory.y * targetZoom;
+      const screenWidth = SCREEN_WIDTH;
+      const screenHeight = Dimensions.get('window').height - 150;
+      const scrollX = Math.max(0, tx - screenWidth / 2);
+      const scrollY = Math.max(0, ty - screenHeight / 2);
+      setTimeout(() => {
+        horizontalScrollRef.current?.scrollTo({ x: scrollX, animated: true });
+        verticalScrollRef.current?.scrollTo({ y: scrollY, animated: true });
+      }, 100);
+    } else {
+      setSelectedTerritory(territory);
+    }
+  };
 
   // Fix overlapping nation positions and reload map
   const handleFixOverlaps = async () => {
@@ -670,7 +689,7 @@ export default function WorldMap() {
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#00E0C7" />
         <Text style={styles.loadingText}>{loadingStatus}</Text>
-        <Text style={styles.loadingSubtext}>Terrain is cached after first load for faster access</Text>
+        <Text style={styles.loadingSubtext}>First load carves the world; later loads are much faster</Text>
       </View>
     );
   }
@@ -813,14 +832,15 @@ export default function WorldMap() {
                 t => t.col === cluster.centerCol && t.row === cluster.centerRow
               );
               if (!centerTerritory || !cluster.discRadius) return null;
+              const discR = Math.max(cluster.discRadius * CELL_SCALE * zoom * 1.1, 18);
               return (
                 <Circle
                   key={`disc-${cluster.nationId}`}
                   cx={centerTerritory.x * zoom}
                   cy={centerTerritory.y * zoom}
-                  r={cluster.discRadius * CELL_SCALE * zoom * 1.1}
+                  r={discR}
                   fill={cluster.color}
-                  opacity={0.14}
+                  opacity={0.22}
                   pointerEvents="none"
                 />
               );
@@ -839,11 +859,23 @@ export default function WorldMap() {
                     points={territory.polygon.map(([px, py]) => `${px * zoom},${py * zoom}`).join(' ')}
                     fill={fillColor}
                     stroke={stroke.color}
-                    strokeWidth={Math.max(0.8, stroke.width * zoom)}
-                    opacity={territory.biome === 'deep_ocean' ? 0.75 : territory.biome === 'shallow_sea' ? 0.65 : isOwned ? 1.0 : 0.78}
-                    onPress={() => setSelectedTerritory(territory)}
+                    strokeWidth={Math.max(1.0, stroke.width * zoom)}
+                    opacity={territory.biome === 'deep_ocean' ? 0.75 : territory.biome === 'shallow_sea' ? 0.65 : isOwned ? 1.0 : 0.9}
+                    onPress={() => handleTerritoryPress(territory)}
                   />
-                  
+
+                  {/* Low-zoom invisible hit target: makes tiny cells tappable without blocking scroll at high zoom */}
+                  {zoom <= 0.3 && (
+                    <Circle
+                      cx={territory.x * zoom}
+                      cy={territory.y * zoom}
+                      r={Math.max(20, CELL_SCALE * zoom * 2)}
+                      fill="rgba(0,0,0,0.01)"
+                      stroke="none"
+                      onPress={() => handleTerritoryPress(territory)}
+                    />
+                  )}
+
                   {/* Resource indicator for resources mode */}
                   {mapMode === 'resources' && territory.resourceId && zoom > 0.3 && (
                     <Circle
@@ -870,12 +902,25 @@ export default function WorldMap() {
               
               const centerX = centerTerritory.x * zoom;
               const centerY = centerTerritory.y * zoom;
-              const flagSize = Math.max(35, CELL_SCALE * zoom * 2.5);
+              const flagSize = Math.min(Math.max(CELL_SCALE * zoom * 4, 14), 48);
               const flagWidth = flagSize * 1.5;
               const flagHeight = flagSize;
-              
+              const labelVisible = zoom > 0.08;
+
               return (
                 <G key={`flag-${cluster.nationId}`}>
+                  {/* Fallback marker for nations without a flag */}
+                  {!cluster.flag && (
+                    <Circle
+                      cx={centerX}
+                      cy={centerY - flagHeight * 0.3}
+                      r={flagSize * 0.55}
+                      fill={cluster.color}
+                      stroke="#0B0F14"
+                      strokeWidth={1}
+                    />
+                  )}
+
                   {/* Render ACTUAL SVG flag (no border) */}
                   {cluster.flag && (() => {
                     const isSvg = cluster.flag.includes('svg');
@@ -906,7 +951,7 @@ export default function WorldMap() {
                   })()}
                   
                   {/* Nation name label (dark background only) */}
-                  {zoom > 0.25 && (
+                  {labelVisible && (
                     <G>
                       <Rect
                         x={centerX - flagWidth / 2}
@@ -920,7 +965,7 @@ export default function WorldMap() {
                       <SvgText
                         x={centerX}
                         y={centerY + 8 + (flagSize * 0.35)}
-                        fontSize={Math.max(10, 12 * zoom)}
+                        fontSize={Math.min(Math.max(10, 13 * zoom), 14)}
                         fill="#F3F6FA"
                         textAnchor="middle"
                         fontWeight="600"
