@@ -19,7 +19,6 @@ import { SimplexNoise } from '../utils/noise';
 import { api } from '../utils/api';
 import { lloydRelaxation, calculateBorderOwnership } from '../utils/borders';
 import { calculateCapacityFromPopulation } from '../utils/nationSize';
-import { dijkstraExpansion } from '../utils/dijkstra';
 import { assignResourceToTile, RESOURCE_BY_ID, TIER_COLORS } from '../utils/resources';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -79,6 +78,7 @@ interface NationCluster {
   centerCol: number;
   centerRow: number;
   color: string;
+  discRadius?: number;
 }
 
 // Map mode types
@@ -301,7 +301,7 @@ export default function WorldMap() {
 
   // Get stroke style based on map mode
   const getTerritoryStroke = (territory: Territory, isBorder: boolean, isOwned: boolean): { color: string; width: number } => {
-    const baseWidth = 0.5;
+    const baseWidth = 0.6;
     
     switch (mapMode) {
       case 'terrain':
@@ -312,7 +312,7 @@ export default function WorldMap() {
         
       case 'faction':
         if (isOwned) {
-          return { color: '#F3F6FA', width: isBorder ? 2.5 : 1.2 };
+          return { color: '#F3F6FA', width: isBorder ? 4 : 1.5 };
         }
         return { color: '#11171F', width: baseWidth };
         
@@ -320,7 +320,7 @@ export default function WorldMap() {
       default:
         return {
           color: isBorder ? '#F2C94C' : isOwned ? '#F3F6FA' : '#2D3748',
-          width: isBorder ? 2.5 : isOwned ? 1.2 : baseWidth
+          width: isBorder ? 4 : isOwned ? 1.5 : baseWidth
         };
     }
   };
@@ -832,68 +832,130 @@ export default function WorldMap() {
       
       setLoadingStatus('Calculating borders...');
       
-      // Calculate max radius per nation
+      // Calculate max radius per nation from capacity
       nationSeeds.forEach((seed) => {
-        seed.maxRadius = Math.sqrt(seed.capacity) * 1.1;
+        seed.maxRadius = Math.max(5, Math.sqrt(seed.capacity) * 1.4);
         console.log(`${seed.name}: capacity=${seed.capacity}, maxRadius=${seed.maxRadius.toFixed(1)}`);
       });
       
       // Nation colors
       const nationColors = [
-        '#00E0C7', '#FF5A65', '#27D17A', '#F2C94C', '#00E0C7', 
-        '#00B8B8', '#06B6D4', '#84CC16', '#F97316', '#A855F7',
-        '#00E0C7', '#F43F5E', '#6366F1', '#27D17A', '#EAB308',
-        '#D946EF', '#0EA5E9', '#78716C', '#FB7185', '#A3E635',
-        '#818CF8', '#7FFFD4', '#FACC15', '#E879F9', '#38BDF8',
-        '#27D17A', '#FCA5A5', '#93C5FD', '#C084FC', '#FDE047'
+        '#00E0C7', '#FF5A65', '#27D17A', '#F2C94C', '#00B8B8',
+        '#8B5CF6', '#EC4899', '#06B6D4', '#84CC16', '#F97316',
+        '#A855F7', '#14B8A6', '#F43F5E', '#6366F1', '#22C55E',
+        '#EAB308', '#D946EF', '#0EA5E9', '#78716C', '#FB7185',
+        '#A3E635', '#818CF8', '#2DD4BF', '#FACC15', '#E879F9',
+        '#38BDF8', '#34D399', '#FCA5A5', '#93C5FD', '#C084FC'
       ];
-      
-      // DIJKSTRA COST-BASED EXPANSION
-      for (let idx = 0; idx < nationSeeds.length; idx++) {
-        const seed = nationSeeds[idx];
-        const nationColor = nationColors[idx % nationColors.length];
-        
-        const expansionLimit = Math.min(
-          Math.sqrt(seed.capacity) * 1.5,
-          seed.capacity * 0.5
-        );
-        const maxTiles = Math.floor(seed.capacity * 0.8);
-        
-        const claimedTiles = dijkstraExpansion(
-          workingTerritories,
-          seed.col,
-          seed.row,
-          expansionLimit,
-          maxTiles
-        );
-        
-        console.log(`${seed.name}: claimed ${claimedTiles.size} tiles`);
-        
-        // Assign claimed territories to this nation
-        for (const tileId of claimedTiles) {
-          const territory = workingTerritories.find(t => t.id === tileId);
-          if (territory && !territory.ownerId) {
-            territory.ownerId = seed.nationId;
-            territory.ownerName = seed.name;
-            territory.color = nationColor;
+
+      // LLOYD RELAXATION + NOISE/CILLULAR BORDER OWNERSHIP (L21 faithful reuse)
+      // Use the prior Lloyd/noise/cellular border utilities from utils/borders.ts.
+      const borderNoise = new SimplexNoise(worldSeed + 789012);
+      const deepWaterBiomes = new Set(['abyss', 'midnight_zone', 'deep_ocean']);
+      const waterBiomes = new Set(['abyss', 'midnight_zone', 'deep_ocean', 'shallow_sea', 'river']);
+
+      // Relax seed positions for region shape (keeps flags anchored later)
+      const relaxedSeeds = lloydRelaxation(
+        nationSeeds.map(s => ({ col: s.col, row: s.row })),
+        5
+      );
+      relaxedSeeds.forEach((pos, idx) => {
+        nationSeeds[idx].col = pos.col;
+        nationSeeds[idx].row = pos.row;
+      });
+
+      // Helper: build a lookup for near-water tiles
+      const territoryMap = new Map<string, Territory>();
+      workingTerritories.forEach(t => territoryMap.set(t.id, t));
+      const neighborDeltas = [
+        [-1, 0], [1, 0], [0, -1], [0, 1],
+        [-1, -1], [-1, 1], [1, -1], [1, 1]
+      ];
+      const nearWaterSet = new Set<string>();
+      for (const t of workingTerritories) {
+        if (waterBiomes.has(t.biome)) continue;
+        for (const [dc, dr] of neighborDeltas) {
+          const n = territoryMap.get(`${t.col + dc}-${t.row + dr}`);
+          if (n && waterBiomes.has(n.biome)) {
+            nearWaterSet.add(t.id);
+            break;
           }
         }
       }
+
+      // Assign every land-ish tile to the best noise-warped seed within its radius.
+      // Skip deep ocean so nations don't own open water.
+      for (const territory of workingTerritories) {
+        if (deepWaterBiomes.has(territory.biome)) continue;
+
+        // Filter to seeds that can reach this tile by capacity radius
+        const reachableSeeds: typeof nationSeeds = [];
+        for (const seed of nationSeeds) {
+          const dist = Math.abs(territory.col - seed.col) + Math.abs(territory.row - seed.row);
+          if (dist <= seed.maxRadius) {
+            reachableSeeds.push(seed);
+          }
+        }
+        if (reachableSeeds.length === 0) continue;
+
+        const ownerId = calculateBorderOwnership(
+          territory.col,
+          territory.row,
+          reachableSeeds.map(s => ({ nationId: s.nationId, col: s.col, row: s.row })),
+          (x, y) => borderNoise.noise2D(x, y),
+          territory.normalized,
+          territory.biome === 'river',
+          nearWaterSet.has(territory.id)
+        );
+
+        if (ownerId) {
+          const seedIndex = nationSeeds.findIndex(s => s.nationId === ownerId);
+          territory.ownerId = ownerId;
+          territory.ownerName = nationSeeds[seedIndex]?.name;
+          territory.color = nationColors[seedIndex % nationColors.length];
+        }
+      }
+
+      console.log(
+        `Border ownership applied: ` +
+        `${workingTerritories.filter(t => t.ownerId).length} owned tiles, ` +
+        `${nationSeeds.length} nations`
+      );
       
       // Calculate territory counts for each nation and sync to backend
       setLoadingStatus('Syncing territory data...');
       await syncTerritoryCounts(workingTerritories, nationSeeds);
       
-      // Build cluster markers
+      // Build cluster markers anchored on the centroid of each nation's owned tiles
       for (let i = 0; i < nationSeeds.length; i++) {
         const seed = nationSeeds[i];
+        const owned = workingTerritories.filter(t => t.ownerId === seed.nationId);
+        let centerCol = seed.col;
+        let centerRow = seed.row;
+        let discRadius = 0;
+        if (owned.length > 0) {
+          const sumCol = owned.reduce((acc, t) => acc + t.col, 0);
+          const sumRow = owned.reduce((acc, t) => acc + t.row, 0);
+          centerCol = Math.round(sumCol / owned.length);
+          centerRow = Math.round(sumRow / owned.length);
+          // Covering radius of owned tiles from centroid, in hex units
+          discRadius = Math.max(
+            1,
+            Math.ceil(
+              Math.sqrt(
+                Math.max(...owned.map(t => Math.pow(t.col - centerCol, 2) + Math.pow(t.row - centerRow, 2)))
+              )
+            )
+          );
+        }
         clusters.push({
           nationId: seed.nationId,
           nationName: seed.name,
           flag: seed.flag,
-          centerCol: seed.col,
-          centerRow: seed.row,
+          centerCol,
+          centerRow,
           color: nationColors[i % nationColors.length],
+          discRadius,
         });
       }
       
@@ -1146,6 +1208,25 @@ export default function WorldMap() {
         >
           <Svg width={mapWidth * zoom} height={mapHeight * zoom}>
             {/* Pure hexagon map - perfect tiling */}
+
+            {/* Nation territory discs - make territories visible at global zoom */}
+            {nationClusters.map((cluster) => {
+              const centerTerritory = territories.find(
+                t => t.col === cluster.centerCol && t.row === cluster.centerRow
+              );
+              if (!centerTerritory || !cluster.discRadius) return null;
+              return (
+                <Circle
+                  key={`disc-${cluster.nationId}`}
+                  cx={centerTerritory.x * zoom}
+                  cy={centerTerritory.y * zoom}
+                  r={cluster.discRadius * HEX_HORIZ_SPACING * zoom * 1.1}
+                  fill={cluster.color}
+                  opacity={0.14}
+                  pointerEvents="none"
+                />
+              );
+            })}
             
             {/* Render hexagon territories */}
             {territories.map((territory) => {
@@ -1164,8 +1245,8 @@ export default function WorldMap() {
                     )}
                     fill={fillColor}
                     stroke={stroke.color}
-                    strokeWidth={stroke.width * zoom}
-                    opacity={territory.biome === 'deep_ocean' ? 0.8 : territory.biome === 'shallow_sea' ? 0.7 : isOwned ? 0.95 : 0.85}
+                    strokeWidth={Math.max(0.8, stroke.width * zoom)}
+                    opacity={territory.biome === 'deep_ocean' ? 0.75 : territory.biome === 'shallow_sea' ? 0.65 : isOwned ? 1.0 : 0.78}
                     onPress={() => setSelectedTerritory(territory)}
                   />
                   
