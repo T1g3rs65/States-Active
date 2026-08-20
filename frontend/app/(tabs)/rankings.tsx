@@ -11,7 +11,7 @@ import {
   Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect } from 'expo-router';
 import { api } from '../../utils/api';
 import { Ionicons } from '@expo/vector-icons';
 import { SvgXml } from 'react-native-svg';

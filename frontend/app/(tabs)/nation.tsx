@@ -16,7 +16,7 @@ import { useNationStore } from '../../store/nationStore';
 import { LinearGradient } from 'expo-linear-gradient';
 import { format } from 'date-fns';
 import { api } from '../../utils/api';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect } from 'expo-router';
 import { SvgXml } from 'react-native-svg';
 import { PieChart } from 'react-native-chart-kit';
 import { Ionicons } from '@expo/vector-icons';
