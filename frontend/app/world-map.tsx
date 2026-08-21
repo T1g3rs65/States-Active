@@ -35,6 +35,15 @@ const CELL_SCALE = 6; // Pixels per grid unit
 const MAP_WIDTH = MAP_COLS * CELL_SCALE;
 const MAP_HEIGHT = MAP_ROWS * CELL_SCALE;
 const VORONOI_CELLS = 40000; // Match prior 200×200 hex density, irregular cells
+const MAP_CHROME_HEIGHT = 150; // header + mode bar
+const MAX_ZOOM = 8;
+
+/** Whole world visible — never smaller than the viewport. */
+function getFitZoom(): number {
+  const { width, height } = Dimensions.get('window');
+  const availH = Math.max(200, height - MAP_CHROME_HEIGHT);
+  return Math.min(width / MAP_WIDTH, availH / MAP_HEIGHT);
+}
 
 interface Territory extends VoronoiCell {}
 
@@ -87,7 +96,7 @@ export default function WorldMap() {
   const [loading, setLoading] = useState(true);
   const [loadingStatus, setLoadingStatus] = useState('Initializing...');
   const [selectedTerritory, setSelectedTerritory] = useState<Territory | null>(null);
-  const [zoom, setZoom] = useState(0.12); // Start zoomed all the way out
+  const [zoom, setZoom] = useState(getFitZoom);
   const [mapMode, setMapMode] = useState<MapMode>('political');
   const [showModeDropdown, setShowModeDropdown] = useState(false);
   
@@ -710,12 +719,12 @@ export default function WorldMap() {
     if (best) handleTerritoryPress(best);
   };
 
-  const handleZoomIn = () => setZoom(prev => Math.min(prev * 1.3, 2.5));
-  const handleZoomOut = () => setZoom(prev => Math.max(prev / 1.3, 0.12));
+  const handleZoomIn = () => setZoom(prev => Math.min(prev * 1.3, MAX_ZOOM));
+  const handleZoomOut = () => setZoom(prev => Math.max(prev / 1.3, getFitZoom()));
 
   const handleTerritoryPress = (territory: Territory) => {
-    if (zoom <= 0.25) {
-      const targetZoom = 0.6;
+    if (zoom <= getFitZoom() * 1.2) {
+      const targetZoom = Math.min(Math.max(getFitZoom() * 3.5, 1.2), MAX_ZOOM);
       setZoom(targetZoom);
       const tx = territory.x * targetZoom;
       const ty = territory.y * targetZoom;
@@ -885,11 +894,13 @@ export default function WorldMap() {
       <ScrollView
         ref={horizontalScrollRef}
         horizontal
+        style={{ flex: 1 }}
         contentContainerStyle={{ width: mapWidth * zoom }}
         showsHorizontalScrollIndicator={true}
       >
         <ScrollView
           ref={verticalScrollRef}
+          style={{ flex: 1 }}
           contentContainerStyle={{ height: mapHeight * zoom }}
           showsVerticalScrollIndicator={true}
         >
