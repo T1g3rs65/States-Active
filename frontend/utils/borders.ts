@@ -170,6 +170,8 @@ export function colonizationCost(biome: string, elevation: number, nearWater: bo
 
 type ColonizeCell = {
   index: number;
+  col: number;
+  row: number;
   biome: string;
   normalized: number;
   nearWater: boolean;
@@ -199,82 +201,78 @@ export function colonizeFromCapitals(
   const byIndex = new Map<number, ColonizeCell>();
   for (const c of cells) byIndex.set(c.index, c);
 
-  type Offer = { nationId: string; cellIndex: number; cost: number };
-  const offers: Offer[] = [];
+  const cap = new Map(seeds.map(s => [s.nationId, Math.max(1, Math.floor(s.capacity))]));
+  const used = new Map<string, number>();
+  const heap: Array<[number, string, number]> = []; // cost, nation, cell
+
+  const heapPush = (c: number, nationId: string, i: number) => {
+    heap.push([c, nationId, i]);
+    let k = heap.length - 1;
+    while (k > 0) {
+      const p = (k - 1) >> 1;
+      if (heap[p][0] <= heap[k][0]) break;
+      const t = heap[p]; heap[p] = heap[k]; heap[k] = t;
+      k = p;
+    }
+  };
+  const heapPop = (): [number, string, number] => {
+    const top = heap[0];
+    const last = heap.pop()!;
+    if (heap.length) {
+      heap[0] = last;
+      let k = 0;
+      for (;;) {
+        let m = k;
+        const l = k * 2 + 1;
+        const r = l + 1;
+        if (l < heap.length && heap[l][0] < heap[m][0]) m = l;
+        if (r < heap.length && heap[r][0] < heap[m][0]) m = r;
+        if (m === k) break;
+        const t = heap[k]; heap[k] = heap[m]; heap[m] = t;
+        k = m;
+      }
+    }
+    return top;
+  };
+
+  const mapCols = 505;
+  const enqueue = (from: ColonizeCell, nationId: string, base: number) => {
+    for (const ni of from.neighbors || []) {
+      if (owner.has(ni)) continue;
+      const nxt = byIndex.get(ni);
+      if (!nxt) continue;
+      if (isWater(nxt.biome) && nxt.biome !== 'river') continue;
+      const jitter = noise ? 0.85 + 0.3 * ((noise(ni) + 1) / 2) : 1;
+      let step = colonizationCost(nxt.biome, nxt.normalized, nxt.nearWater, nxt.isRiver) * jitter;
+      const dc = Math.abs(from.col - nxt.col);
+      if (dc > mapCols * 0.5) {
+        const lat = Math.abs(from.row / 284 - 0.5) * 2;
+        step += 10 + lat * 18;
+      }
+      heapPush(base + step, nationId, ni);
+    }
+  };
 
   for (const seed of seeds) {
     const start = byIndex.get(seed.startIndex);
-    if (!start) continue;
-    const dist = new Map<number, number>();
-    dist.set(seed.startIndex, 0);
-    const heap: Array<[number, number]> = [[0, seed.startIndex]];
-
-    const heapPush = (c: number, i: number) => {
-      heap.push([c, i]);
-      let k = heap.length - 1;
-      while (k > 0) {
-        const p = (k - 1) >> 1;
-        if (heap[p][0] <= heap[k][0]) break;
-        const t = heap[p]; heap[p] = heap[k]; heap[k] = t;
-        k = p;
-      }
-    };
-    const heapPop = (): [number, number] => {
-      const top = heap[0];
-      const last = heap.pop()!;
-      if (heap.length) {
-        heap[0] = last;
-        let k = 0;
-        for (;;) {
-          let m = k;
-          const l = k * 2 + 1;
-          const r = l + 1;
-          if (l < heap.length && heap[l][0] < heap[m][0]) m = l;
-          if (r < heap.length && heap[r][0] < heap[m][0]) m = r;
-          if (m === k) break;
-          const t = heap[k]; heap[k] = heap[m]; heap[m] = t;
-          k = m;
-        }
-      }
-      return top;
-    };
-
-    while (heap.length) {
-      const [cost, idx] = heapPop();
-      if (cost !== dist.get(idx)) continue;
-      const cell = byIndex.get(idx);
-      if (!cell) continue;
-      for (const ni of cell.neighbors || []) {
-        const nxt = byIndex.get(ni);
-        if (!nxt) continue;
-        if (isWater(nxt.biome) && nxt.biome !== 'river') continue;
-        const jitter = noise ? 0.85 + 0.3 * ((noise(ni) + 1) / 2) : 1;
-        const step = colonizationCost(nxt.biome, nxt.normalized, nxt.nearWater, nxt.isRiver) * jitter;
-        const nc = cost + step;
-        if (nc < (dist.get(ni) ?? Infinity)) {
-          dist.set(ni, nc);
-          heapPush(nc, ni);
-        }
-      }
-    }
-
-    const ranked = [...dist.entries()].sort((a, b) => a[1] - b[1]);
-    const take = Math.max(1, Math.floor(seed.capacity * 1.35));
-    for (let i = 0; i < ranked.length && i < take; i++) {
-      offers.push({ nationId: seed.nationId, cellIndex: ranked[i][0], cost: ranked[i][1] });
-    }
+    if (!start || owner.has(seed.startIndex)) continue;
+    if (isWater(start.biome) && start.biome !== 'river') continue;
+    owner.set(seed.startIndex, seed.nationId);
+    used.set(seed.nationId, 1);
+    enqueue(start, seed.nationId, 0);
   }
 
-  offers.sort((a, b) => a.cost - b.cost || a.cellIndex - b.cellIndex);
-  const used = new Map<string, number>();
-  const cap = new Map(seeds.map(s => [s.nationId, Math.max(1, Math.floor(s.capacity))]));
-
-  for (const o of offers) {
-    if (owner.has(o.cellIndex)) continue;
-    const have = used.get(o.nationId) || 0;
-    if (have >= (cap.get(o.nationId) || 0)) continue;
-    owner.set(o.cellIndex, o.nationId);
-    used.set(o.nationId, have + 1);
+  while (heap.length) {
+    const [cost, nationId, idx] = heapPop();
+    if (owner.has(idx)) continue;
+    const have = used.get(nationId) || 0;
+    if (have >= (cap.get(nationId) || 0)) continue;
+    const cell = byIndex.get(idx);
+    if (!cell) continue;
+    owner.set(idx, nationId);
+    used.set(nationId, have + 1);
+    enqueue(cell, nationId, cost);
   }
+
   return owner;
 }

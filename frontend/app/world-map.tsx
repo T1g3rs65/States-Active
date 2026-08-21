@@ -38,7 +38,7 @@ import {
 } from '../utils/mapConstants';
 
 const WORLD_SEED = 123456;
-const MAP_CACHE_KEY = `world_map_terrain_v10_cyl_merc_${WORLD_SEED}`;
+const MAP_CACHE_KEY = `world_map_terrain_v11_cyl_merc_${WORLD_SEED}`;
 const MAX_ZOOM = 8;
 
 function fitZoomFor(_width: number, height: number): number {
@@ -356,7 +356,7 @@ export default function WorldMap() {
       }
       
       // v5 = 40k Voronoi. Older caches were hex or 1500-cell and must not be reused.
-      const worldCacheKey = `world_map_terrain_v10_cyl_merc_${mapSeed}`;
+      const worldCacheKey = `world_map_terrain_v11_cyl_merc_${mapSeed}`;
       
       setLoadingStatus('Checking cache...');
       
@@ -390,7 +390,7 @@ export default function WorldMap() {
     } catch (error) {
       console.error('Error loading map:', error);
       // Fallback to generating terrain
-      await generateAndCacheTerrain(worldSeed, `world_map_terrain_v10_cyl_merc_${worldSeed}`);
+      await generateAndCacheTerrain(worldSeed, `world_map_terrain_v11_cyl_merc_${worldSeed}`);
     }
   };
 
@@ -556,6 +556,8 @@ export default function WorldMap() {
       const claims = colonizeFromCapitals(
         workingTerritories.map(t => ({
           index: t.index,
+          col: t.col,
+          row: t.row,
           biome: t.biome,
           normalized: t.normalized,
           nearWater: t.nearWater,
@@ -780,6 +782,7 @@ export default function WorldMap() {
 
   const mapWidth = MAP_WIDTH;
   const mapHeight = MAP_HEIGHT;
+  const sliceW = Math.round(mapWidth * zoom);
 
   return (
     <View style={styles.container}>
@@ -942,9 +945,9 @@ export default function WorldMap() {
                   source={{ uri: mapImageUri }}
                   style={{
                     position: 'absolute',
-                    left: Math.round(copy * mapWidth * zoom),
+                    left: copy * sliceW,
                     top: 0,
-                    width: mapWidth * zoom,
+                    width: sliceW + 2,
                     height: mapHeight * zoom,
                   }}
                   resizeMode="stretch"
@@ -959,7 +962,7 @@ export default function WorldMap() {
             pointerEvents="none"
           >
             {[0, 1, 2].map((copy) => (
-              <G key={`wrap-${copy}`} x={copy * mapWidth * zoom}>
+              <G key={`wrap-${copy}`} x={copy * sliceW}>
             {/* Nation territory discs - make territories visible at global zoom */}
             {nationClusters.map((cluster) => {
               const centerTerritory = territories.find(

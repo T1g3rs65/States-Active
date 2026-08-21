@@ -98,8 +98,8 @@ function wrapOffsets(poly: number[][], mapWidth: number): number[] {
     if (p[0] > maxx) maxx = p[0];
   }
   const d: number[] = [0];
-  if (minx < 40) d.push(mapWidth);
-  if (maxx > mapWidth - 40) d.push(-mapWidth);
+  if (minx < 80) d.push(mapWidth);
+  if (maxx > mapWidth - 80) d.push(-mapWidth);
   return d;
 }
 
@@ -364,8 +364,11 @@ export function rasterizeWorldMap(opts: {
 
   const grain = ctx.getImageData(0, 0, canvas.width, canvas.height);
   const d = grain.data;
+  const gw = canvas.width;
   for (let i = 0; i < d.length; i += 16) {
-    const n = ((i * 1103515245 + 12345) >>> 8) & 31;
+    const px = (i / 4) % gw;
+    const py = Math.floor((i / 4) / gw);
+    const n = ((px * 374761393 + py * 668265263) >>> 8) & 31;
     d[i] = Math.min(255, d[i] + n - 12);
     d[i + 1] = Math.min(255, d[i + 1] + n - 12);
     d[i + 2] = Math.min(255, d[i + 2] + n - 12);
