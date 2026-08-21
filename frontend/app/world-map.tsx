@@ -12,9 +12,10 @@ import {
   Image,
   GestureResponderEvent,
   LayoutChangeEvent,
+  Alert,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useNationStore } from '../store/nationStore';
 import Svg, { Polygon, G, Text as SvgText, Rect, Circle , SvgXml } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
@@ -97,7 +98,9 @@ const darkenColor = (hex: string, factor: number): string => {
 
 export default function WorldMap() {
   const router = useRouter();
-  const { nation } = useNationStore();
+  const { nation, saveNation } = useNationStore();
+  const params = useLocalSearchParams<{ place?: string }>();
+  const placing = params.place === '1';
   const [territories, setTerritories] = useState<Territory[]>([]);
   const [mapImageUri, setMapImageUri] = useState<string | null>(null);
   const [nationClusters, setNationClusters] = useState<NationCluster[]>([]);
@@ -118,10 +121,15 @@ export default function WorldMap() {
     const host = window.location.host;
     const referrer = document.referrer || '';
     const fromThisApp = referrer.includes(host);
-    if (!fromThisApp && window.history.length <= 2) {
+    if (!placing && !fromThisApp && window.history.length <= 2) {
       router.replace('/');
     }
-  }, [router]);
+  }, [router, placing]);
+
+  useEffect(() => {
+    if (!placing) return;
+    AsyncStorage.getItem('selected_world_id').then((id) => setPlaceWorldId(id));
+  }, [placing]);
 
   useEffect(() => {
     if (loading) return;
@@ -133,7 +141,9 @@ export default function WorldMap() {
   }, [loading, fitZoom]);
   
   // World-specific data
-  const worldId = nation?.world_id || null;
+  const [placeWorldId, setPlaceWorldId] = useState<string | null>(null);
+  const worldId = nation?.world_id || placeWorldId;
+  const placingBusy = useRef(false);
   const [worldSeed, setWorldSeed] = useState<number>(WORLD_SEED);
   
   // Diplomatic data for faction mode
@@ -194,8 +204,9 @@ export default function WorldMap() {
   };
 
   useEffect(() => {
+    if (placing && !placeWorldId) return;
     loadMap();
-  }, []);
+  }, [worldId]);
 
   // Load diplomatic data when faction mode is selected
   useEffect(() => {
@@ -780,7 +791,65 @@ export default function WorldMap() {
   };
 
   const handleTerritoryPress = (territory: Territory) => {
+    if (placing) {
+      void confirmCapital(territory);
+      return;
+    }
     setSelectedTerritory(territory);
+  };
+
+  const confirmCapital = async (territory: Territory) => {
+    if (placingBusy.current) return;
+    if (WATER_BIOMES.has(territory.biome)) {
+      Alert.alert('Water', 'Found your capital on land, not in the ocean.');
+      return;
+    }
+    if (territory.ownerId) {
+      Alert.alert('Claimed', `${territory.ownerName || 'Another nation'} already holds this land.`);
+      return;
+    }
+    placingBusy.current = true;
+    Alert.alert(
+      'Found your capital here?',
+      `${territory.biome.replace(/_/g, ' ')} at (${Math.round(territory.col)}, ${Math.round(territory.row)})`,
+      [
+        { text: 'Cancel', style: 'cancel', onPress: () => { placingBusy.current = false; } },
+        {
+          text: 'Found here',
+          onPress: async () => {
+            try {
+              const raw = await AsyncStorage.getItem('pending_nation');
+              if (!raw) {
+                Alert.alert('Missing quiz', 'Go back and finish founding first.');
+                placingBusy.current = false;
+                return;
+              }
+              const pending = JSON.parse(raw);
+              setLoading(true);
+              setLoadingStatus('Founding your nation...');
+              const response = await api.createNation(
+                pending.userId,
+                pending.quizResult,
+                pending.race || 'human',
+                pending.worldId,
+                { col: Math.round(territory.col), row: Math.round(territory.row) }
+              );
+              if (!response.success || !response.nation) {
+                throw new Error(response.detail || 'Create failed');
+              }
+              await AsyncStorage.setItem('user_id', pending.userId);
+              await AsyncStorage.removeItem('pending_nation');
+              await saveNation(response.nation);
+              router.replace('/(tabs)/overview');
+            } catch (e: any) {
+              setLoading(false);
+              placingBusy.current = false;
+              Alert.alert('Could not found here', e?.message || 'Try another tile.');
+            }
+          },
+        },
+      ]
+    );
   };
 
   // Fix overlapping nation positions and reload map
@@ -822,16 +891,18 @@ export default function WorldMap() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.replace('/(tabs)/nation')} style={styles.backButton}>
+        <TouchableOpacity onPress={() => router.replace(placing ? '/quiz' : '/(tabs)/nation')} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="#00E0C7" />
         </TouchableOpacity>
         <View style={styles.headerCenter}>
-          <Text style={styles.title}>World Map</Text>
-          <Text style={styles.subtitle}>Voronoi Territories</Text>
+          <Text style={styles.title}>{placing ? 'Place Capital' : 'World Map'}</Text>
+          <Text style={styles.subtitle}>{placing ? 'Tap unclaimed land' : 'Voronoi Territories'}</Text>
         </View>
+        {!placing && (
         <TouchableOpacity onPress={zoomToMyNation} style={styles.myNationButton}>
           <Ionicons name="locate" size={20} color="#F3F6FA" />
         </TouchableOpacity>
+        )}
       </View>
 
       {/* Map Mode Selector */}

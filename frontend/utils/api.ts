@@ -35,7 +35,7 @@ export const api = {
   },
   
   // Nation
-  createNation: async (userId: string, quizResult: any, race: string = 'human', worldId?: string) => {
+  createNation: async (userId: string, quizResult: any, race: string = 'human', worldId?: string, capital?: { col: number; row: number }) => {
     // Use AbortController with 60 second timeout (OpenAI takes ~20 seconds)
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 seconds
@@ -44,7 +44,13 @@ export const api = {
       const response = await fetch(`${API_URL}/api/nations`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: userId, quiz_result: quizResult, race, world_id: worldId }),
+        body: JSON.stringify({
+          user_id: userId,
+          quiz_result: quizResult,
+          race,
+          world_id: worldId,
+          ...(capital ? { capital_col: capital.col, capital_row: capital.row } : {}),
+        }),
         signal: controller.signal,
       });
       clearTimeout(timeoutId);

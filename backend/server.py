@@ -31,7 +31,7 @@ from ai_service import AIService
 from economy_utils import calculate_realistic_gdp, format_gdp_display
 from budget_utils import normalize_budget
 from advisor_utils import generate_advisors, regenerate_advisor_names
-from terrain_utils import find_land_position, is_land_tile
+from terrain_utils import find_land_position, is_land_tile, validate_capital_site
 from advisor_effects import apply_daily_ticks, publicize_advisors, reveal_trust, ROLE
 from race_service import get_races_for_api, get_race_ai_description, is_race_enabled, get_race_display_info
 from grok_client import LlmChat, UserMessage
@@ -184,22 +184,31 @@ async def create_nation(request: CreateNationRequest):
         # Get existing nations' positions from the same world to avoid conflicts
         world_query = {"world_id": request.world_id} if request.world_id else {}
         existing_nations = await db.nations.find(
-            world_query, 
-            {"territory_center_col": 1, "territory_center_row": 1}
+            world_query,
+            {"territory_center_col": 1, "territory_center_row": 1, "stats.population": 1}
         ).to_list(length=None)
-        
+
+        others = []
         existing_positions = set()
         for n in existing_nations:
             col = n.get("territory_center_col", 100)
             row = n.get("territory_center_row", 100)
+            pop = (n.get("stats") or {}).get("population", 2.5)
             existing_positions.add((col, row))
-        
-        # Find a valid land position using terrain utilities with world seed
-        territory_col, territory_row = find_land_position(
-            existing_positions=existing_positions,
-            seed=world_seed,
-            min_distance=25
-        )
+            others.append((col, row, pop))
+
+        if request.capital_col is not None and request.capital_row is not None:
+            err = validate_capital_site(request.capital_col, request.capital_row, world_seed, others)
+            if err:
+                raise HTTPException(status_code=400, detail=err)
+            territory_col = int(request.capital_col) % 505
+            territory_row = int(request.capital_row)
+        else:
+            territory_col, territory_row = find_land_position(
+                existing_positions=existing_positions,
+                seed=world_seed,
+                min_distance=25
+            )
         
         logger.info(f"Found valid LAND position ({territory_col}, {territory_row}) for new {race_info['name']} nation '{request.quiz_result.nation_name}' in world seed {world_seed}")
         

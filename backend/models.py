@@ -298,6 +298,8 @@ class CreateNationRequest(BaseModel):
     quiz_result: QuizResult
     race: str = "human"  # Race ID from races.json
     world_id: Optional[str] = None  # World to join (optional)
+    capital_col: Optional[int] = None
+    capital_row: Optional[int] = None
 
 class SubmitDecisionRequest(BaseModel):
     nation_id: str

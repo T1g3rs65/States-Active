@@ -189,3 +189,46 @@ def find_land_position(existing_positions: set, seed: int = 123456, min_distance
                 return (grid_col, grid_row)
 
     return (center_col, center_row)
+
+
+def _wrap_dx(a: int, b: int) -> float:
+    d = (a - b) % _MAP_COLS
+    if d > _MAP_COLS / 2:
+        d -= _MAP_COLS
+    return d
+
+
+def capacity_from_population(population: float) -> int:
+    p = float(population or 0)
+    if p < 1: return 3
+    if p < 5: return 10
+    if p < 10: return 20
+    if p < 50: return 40
+    if p < 100: return 70
+    if p < 500: return 150
+    if p < 1000: return 250
+    if p < 5000: return 500
+    if p < 10000: return 800
+    if p < 25000: return 1200
+    if p < 50000: return 1800
+    if p < 100000: return 2500
+    if p < 200000: return 3500
+    if p < 300000: return 4000
+    return 5000
+
+
+def validate_capital_site(col: int, row: int, seed: int, others: list) -> str:
+    """others: list of (col, row, population). Empty string if ok."""
+    col = int(col) % _MAP_COLS
+    row = int(row)
+    if row < 2 or row > _MAP_ROWS - 3:
+        return "Too close to the poles."
+    if not is_land_tile(col, row, seed):
+        return "That tile is water."
+    for ex_col, ex_row, pop in others:
+        cap = capacity_from_population(pop)
+        radius = max(6, math.sqrt(cap) * 1.15)
+        dist = math.hypot(_wrap_dx(col, int(ex_col)), row - int(ex_row))
+        if dist < radius:
+            return "That land is already claimed."
+    return ""

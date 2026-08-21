@@ -121,53 +121,28 @@ export default function Quiz() {
     try {
       // Generate unique user ID
       const userId = 'user_' + Date.now() + '_' + Math.random().toString(36).substring(7);
-      
-      // Get selected world ID from server-select screen
       const selectedWorldId = await AsyncStorage.getItem('selected_world_id');
-      
-      console.log('Creating nation with userId:', userId, 'race:', selectedRace, 'world:', selectedWorldId);
-      console.log('Answers:', answers.length);
-      
-      const response = await api.createNation(userId, {
+      const quizResult = {
         answers,
         nation_name: nationName,
         motto: motto || undefined,
         flag_base64: flagBase64 || undefined,
         currency: currency || 'Credits',
         national_animal: nationalAnimal || 'Eagle',
-      }, selectedRace, selectedWorldId || undefined);
-
-      console.log('Create nation response:', response);
-
-      if (response.success && response.nation) {
-        // Save user ID for future logins
-        await AsyncStorage.setItem('user_id', userId);
-        await saveNation(response.nation);
-        
-        console.log('Nation saved, navigating to overview');
-        
-        // Navigate immediately, show ID later
-        router.replace('/(tabs)/overview');
-        
-        // Show user their ID after a delay
-        setTimeout(() => {
-          Alert.alert(
-            'Welcome!',
-            `Your nation has been created!\\n\\nYour User ID: ${userId}\\n\\nSave this ID to login from other devices.`,
-            [{ text: 'Got it!' }]
-          );
-        }, 1000);
-      } else {
-        console.error('Invalid response:', response);
-        Alert.alert('Error', 'Failed to create nation. Please try again.');
-        setSubmitting(false);
-      }
+      };
+      await AsyncStorage.setItem('pending_nation', JSON.stringify({
+        userId,
+        quizResult,
+        race: selectedRace,
+        worldId: selectedWorldId || undefined,
+      }));
+      router.replace('/world-map?place=1');
     } catch (error: any) {
       console.error('Error creating nation:', error);
-      console.error('Error details:', error.message, error.stack);
-      Alert.alert('Error', `Failed to create nation: ${error.message || 'Unknown error'}`);
+      Alert.alert('Error', `Failed to start founding: ${error.message || 'Unknown error'}`);
       setSubmitting(false);
     }
+
   };
 
   if (loading) {
