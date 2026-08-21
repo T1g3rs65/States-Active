@@ -129,7 +129,7 @@ function blendedFill(
   for (const ni of t.neighbors || []) {
     const o = byIndex.get(ni);
     if (!o || o.biome === t.biome) continue;
-    rgb = mixRgb(rgb, parseHex(fillFor(o)), 0.16);
+    rgb = mixRgb(rgb, parseHex(fillFor(o)), 0.28);
     w += 0.16;
   }
   return rgb;
@@ -288,7 +288,7 @@ export function rasterizeWorldMap(opts: {
     if (!Array.isArray(t.polygon) || t.polygon.length < 3) continue;
     const water = WATER_BIOMES.has(t.biome);
     const shade = hillshade(t, byIndex);
-    const j = cellJitter(t.index) * 0.55;
+    const j = political ? cellJitter(t.index) * 0.25 : cellJitter(t.index) * 0.08;
     const mixed = blendedFill(t, fillFor, byIndex);
     pathCell(ctx, t.polygon);
     ctx.globalAlpha = 1;
@@ -299,23 +299,7 @@ export function rasterizeWorldMap(opts: {
     ctx.fill();
   }
 
-  // Soft biome seams — both sides paint a mixed stroke so textures meet, not cut.
-  ctx.globalAlpha = 0.42;
-  ctx.lineWidth = 2.4;
-  for (const t of territories) {
-    if (!t.polygon || t.polygon.length < 3) continue;
-    for (const ni of t.neighbors || []) {
-      if (ni <= t.index) continue;
-      const o = byIndex.get(ni);
-      if (!o || o.biome === t.biome || !o.polygon) continue;
-      pathCell(ctx, t.polygon);
-      ctx.strokeStyle = toCss(...mixRgb(parseHex(fillFor(t)), parseHex(fillFor(o)), 0.5));
-      ctx.stroke();
-    }
-  }
-  ctx.globalAlpha = 1;
-
-  const texAlpha = political ? 0.22 : 0.85;
+  const texAlpha = political ? 0.12 : 0.32;
   ctx.globalAlpha = texAlpha;
   for (const t of territories) {
     if (!t.polygon || t.polygon.length < 3) continue;
