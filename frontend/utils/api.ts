@@ -153,6 +153,15 @@ export const api = {
     });
     return response.json();
   },
+
+  probeAdvisorTrust: async (nationId: string, targetSlot: number) => {
+    const response = await fetch(`${API_URL}/api/nations/${nationId}/advisor-probe`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ target_slot: targetSlot }),
+    });
+    return response.json();
+  },
   
   sendAdvisorReform: async (nationId: string, advisorSlot: number, policyName: string, reformInstructions: string) => {
     const response = await fetch(`${API_URL}/api/nations/${nationId}/advisor-reform`, {

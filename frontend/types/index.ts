@@ -127,6 +127,14 @@ export interface Advisor {
   approval?: number;
   last_task_sent?: string;
   last_reform_sent?: string;
+  last_effect?: string;
+  role_id?: string;
+  role_blurb?: string;
+  task_hint?: string;
+  trust_known?: number | null;
+  trust_known_at?: string | null;
+  trust_is_stale?: boolean;
+  trust_age_days?: number | null;
 }
 
 export interface MultiAlliance {

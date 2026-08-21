@@ -181,6 +181,9 @@ class Advisor(BaseModel):
     trustworthiness: int = 50  # 0-100, hidden - affects chance of betrayal/corruption
     last_task_sent: Optional[datetime] = None  # When last regular task was sent (1-day cooldown)
     last_reform_sent: Optional[datetime] = None  # When last reform task was sent (7-day cooldown)
+    last_effect: Optional[str] = None  # What they did on the last daily tick
+    trust_known: Optional[int] = None  # Snapshot the spymaster last revealed
+    trust_known_at: Optional[datetime] = None
 
 class DecisionFeedItem(BaseModel):
     id: Optional[str] = None

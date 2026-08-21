@@ -106,6 +106,8 @@ export default function Advisors() {
   const [reformInstructions, setReformInstructions] = useState('');
   const [sendingTask, setSendingTask] = useState(false);
   const [sendingReform, setSendingReform] = useState(false);
+  const [showProbeModal, setShowProbeModal] = useState(false);
+  const [probing, setProbing] = useState(false);
   const [notificationCount, setNotificationCount] = useState(0);
   
   // War-related state
@@ -191,27 +193,20 @@ export default function Advisors() {
            title.includes('secretary general');
   };
 
-  // Filter to only show feature-complete advisors
-  const isFeatureComplete = (advisor: any) => {
-    // Explicitly exclude non-complete advisors
+  const isSpymaster = (advisor: any) => {
+    if (advisor.slot === 5 || advisor.role_id === 'spy') return true;
     const title = advisor.title?.toLowerCase() || '';
-    if (title.includes('builder') || 
-        title.includes('infrastructure') ||
-        title.includes('culture') ||
-        title.includes('arts') ||
-        title.includes('education') ||
-        title.includes('economic') ||
-        title.includes('finance') ||
-        title.includes('treasury') ||
-        title.includes('intelligence') ||
-        title.includes('spy') ||
-        title.includes('interior') ||
-        title.includes('health') ||
-        title.includes('environment')) {
-      return false;
-    }
-    
-    return isMilitaryAdvisor(advisor) || isForeignAdvisor(advisor) || isFirstMinister(advisor);
+    return title.includes('spy') || title.includes('whisper') || title.includes('inquisitor') || title.includes('intelligence');
+  };
+
+  const isFeatureComplete = (_advisor: any) => true;
+
+  const trustLine = (advisor: any) => {
+    if (advisor.trust_known == null || advisor.trust_known === undefined) return null;
+    if (advisor.trust_is_stale) return `Trust ${advisor.trust_known} — stale, spy again`;
+    const age = advisor.trust_age_days || 0;
+    if (age <= 0) return `Trust ${advisor.trust_known} (today)`;
+    return `Trust ${advisor.trust_known} (${age}d ago)`;
   };
   
   const handleOpenDeclareWarModal = async () => {
@@ -383,6 +378,7 @@ export default function Advisors() {
       return;
     }
     setSelectedAdvisor(advisor);
+    setTaskDescription(advisor.task_hint || '');
     setShowTaskModal(true);
   };
 
@@ -633,6 +629,15 @@ export default function Advisors() {
               </Text>
             </View>
 
+            {advisor.last_effect ? (
+              <Text style={styles.effectLine}>{advisor.last_effect}</Text>
+            ) : advisor.role_blurb ? (
+              <Text style={styles.effectLine}>{advisor.role_blurb}</Text>
+            ) : null}
+            {trustLine(advisor) ? (
+              <Text style={styles.trustLine}>{trustLine(advisor)}</Text>
+            ) : null}
+
             {isMilitaryAdvisor(advisor) ? (
               // War buttons for Military advisor
               <>
@@ -731,6 +736,26 @@ export default function Advisors() {
                 </TouchableOpacity>
               </>
             )}
+
+            {isSpymaster(advisor) && (
+              <TouchableOpacity
+                style={[
+                  styles.sendTaskButton,
+                  { backgroundColor: canSendTaskToday() ? '#8B5CF6' : 'rgba(243,246,250,0.48)', marginTop: 8 }
+                ]}
+                onPress={() => {
+                  if (!canSendTaskToday()) {
+                    Alert.alert('Daily Limit Reached', 'Probing trust uses today\'s advisor task.');
+                    return;
+                  }
+                  setShowProbeModal(true);
+                }}
+                disabled={!canSendTaskToday()}
+              >
+                <Ionicons name="eye" size={16} color="#F3F6FA" />
+                <Text style={styles.sendTaskText}>Probe loyalty</Text>
+              </TouchableOpacity>
+            )}
           </View>
         ))}
       </View>
@@ -744,6 +769,57 @@ export default function Advisors() {
           </Text>
         </View>
       )}
+
+      {/* Probe loyalty modal */}
+      <Modal
+        visible={showProbeModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowProbeModal(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <TouchableOpacity onPress={() => setShowProbeModal(false)}>
+              <Text style={styles.modalClose}>Cancel</Text>
+            </TouchableOpacity>
+            <Text style={styles.modalTitle}>Probe loyalty</Text>
+            <View style={{ width: 60 }} />
+          </View>
+          <Text style={[styles.helperText, { paddingHorizontal: 16 }]}>
+            Uses today's task. You get a snapshot of their trust. It goes stale after a week.
+          </Text>
+          {(nation?.advisors || []).filter((a: any) => a.slot !== 5).map((a: any) => (
+            <TouchableOpacity
+              key={a.slot}
+              style={[styles.sendTaskButton, { margin: 12, backgroundColor: '#8B5CF6' }]}
+              disabled={probing}
+              onPress={async () => {
+                setProbing(true);
+                try {
+                  const nationId = nation.id || nation._id;
+                  const response = await api.probeAdvisorTrust(nationId, a.slot);
+                  if (response.success) {
+                    Alert.alert(
+                      a.name,
+                      `Trust ${response.trust_known}/100 today.\n${response.note || ''}`
+                    );
+                    await fetchNation();
+                    setShowProbeModal(false);
+                  } else {
+                    Alert.alert('Failed', response.detail || 'Could not probe');
+                  }
+                } catch (e) {
+                  Alert.alert('Error', 'Probe failed');
+                } finally {
+                  setProbing(false);
+                }
+              }}
+            >
+              <Text style={styles.sendTaskText}>{a.title} — {a.name}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </Modal>
 
       {/* Task Modal */}
       <Modal
@@ -1130,10 +1206,23 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   advisorName: {
-    fontSize: 11,
+    fontSize: 12,
     color: 'rgba(243,246,250,0.70)',
     textAlign: 'center',
-    marginBottom: 12,
+    marginBottom: 8,
+  },
+  effectLine: {
+    fontSize: 11,
+    color: 'rgba(243,246,250,0.75)',
+    textAlign: 'center',
+    marginTop: 6,
+    marginBottom: 4,
+  },
+  trustLine: {
+    fontSize: 11,
+    color: '#C4B5FD',
+    textAlign: 'center',
+    marginBottom: 8,
   },
   statRow: {
     flexDirection: 'row',

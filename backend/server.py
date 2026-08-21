@@ -32,6 +32,7 @@ from economy_utils import calculate_realistic_gdp, format_gdp_display
 from budget_utils import normalize_budget
 from advisor_utils import generate_advisors, regenerate_advisor_names
 from terrain_utils import find_land_position, is_land_tile
+from advisor_effects import apply_daily_ticks, publicize_advisors, reveal_trust, ROLE
 from race_service import get_races_for_api, get_race_ai_description, is_race_enabled, get_race_display_info
 from grok_client import LlmChat, UserMessage
 
@@ -275,9 +276,20 @@ async def get_nation(nation_id: str):
         nation = await db.nations.find_one({"_id": ObjectId(nation_id)})
         if not nation:
             raise HTTPException(status_code=404, detail="Nation not found")
+
+        if apply_daily_ticks(nation):
+            await db.nations.update_one(
+                {"_id": nation["_id"]},
+                {"$set": {
+                    "stats": nation.get("stats"),
+                    "advisors": nation.get("advisors"),
+                    "last_advisor_tick": nation.get("last_advisor_tick"),
+                }},
+            )
         
         nation["id"] = str(nation["_id"])
         nation["_id"] = str(nation["_id"])  # Convert ObjectId to string for JSON serialization
+        nation["advisors"] = publicize_advisors(nation.get("advisors") or [])
         
         # Always recalculate government type based on current stats
         # This ensures government type stays in sync as stats change from decisions
@@ -339,9 +351,20 @@ async def get_user_nation(user_id: str):
         nation = await db.nations.find_one({"user_id": user_id})
         if not nation:
             return {"success": True, "nation": None}
+
+        if apply_daily_ticks(nation):
+            await db.nations.update_one(
+                {"_id": nation["_id"]},
+                {"$set": {
+                    "stats": nation.get("stats"),
+                    "advisors": nation.get("advisors"),
+                    "last_advisor_tick": nation.get("last_advisor_tick"),
+                }},
+            )
         
         nation["id"] = str(nation["_id"])
         nation["_id"] = str(nation["_id"])  # Convert ObjectId to string for JSON serialization
+        nation["advisors"] = publicize_advisors(nation.get("advisors") or [])
         
         # Calculate realistic GDP values
         population = nation["stats"]["population"]
@@ -1303,10 +1326,12 @@ async def send_advisor_task(nation_id: str, request: dict):
 "{task_description}"
 
 **ADVISOR DETAILS:**
-- Role: {advisor['title']}
+- Role: {advisor['title']} (slot {advisor.get('slot')}: {ROLE.get(int(advisor.get('slot') or 0), {}).get('id', 'advisor')})
+- Unique job: {ROLE.get(int(advisor.get('slot') or 0), {}).get('task_hint', '')}
 - Name: {advisor['name']}
 - Ability Level: {advisor['ability']}/100
 - Approval Rating: {advisor['approval']}%
+Stay in this advisor's lane. Do not write a generic "the cabinet did a thing" issue.
 
 **OUTCOME BASED ON ABILITY:**
 {"The advisor has executed this task competently and reports back with findings." if advisor['ability'] >= 70 else "The advisor has encountered complications while attempting this task." if advisor['ability'] >= 40 else "The advisor has struggled significantly with this task and things have gone wrong."}
@@ -1545,6 +1570,50 @@ async def get_industry_leaderboard(world_id: str = None):
     except Exception as e:
         logger.error(f"Error fetching industry leaderboard: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/nations/{nation_id}/advisor-probe")
+async def probe_advisor_trust(nation_id: str, request: dict):
+    """Spymaster spends today's task to snapshot another advisor's trust. Number goes stale."""
+    from bson import ObjectId
+
+    target_slot = request.get("target_slot")
+    if not target_slot:
+        raise HTTPException(status_code=400, detail="Missing target_slot")
+    nation = await db.nations.find_one({"_id": ObjectId(nation_id)})
+    if not nation:
+        raise HTTPException(status_code=404, detail="Nation not found")
+    advisors = nation.get("advisors") or []
+    spy = next((a for a in advisors if int(a.get("slot") or 0) == 5), None)
+    if not spy:
+        raise HTTPException(status_code=400, detail="No spymaster")
+    now = datetime.utcnow()
+    today = now.date()
+    for adv in advisors:
+        if adv.get("last_task_sent"):
+            last = adv["last_task_sent"]
+            last_date = last.date() if isinstance(last, datetime) else datetime.fromisoformat(str(last)).date()
+            if last_date == today:
+                raise HTTPException(status_code=400, detail="Daily task limit reached")
+    if int(target_slot) == 5:
+        raise HTTPException(status_code=400, detail="Cannot probe yourself")
+    value = reveal_trust(advisors, int(target_slot), now)
+    if value is None:
+        raise HTTPException(status_code=404, detail="Target advisor not found")
+    spy["last_task_sent"] = now
+    await db.nations.update_one(
+        {"_id": nation["_id"]},
+        {"$set": {"advisors": advisors}},
+    )
+    nation["advisors"] = publicize_advisors(advisors)
+    target = next((a for a in nation["advisors"] if int(a.get("slot") or 0) == int(target_slot)), None)
+    return {
+        "success": True,
+        "trust_known": value,
+        "target": target,
+        "advisors": nation["advisors"],
+        "note": "This is today's reading. It will go stale in a week unless you spy again.",
+    }
+
 
 @api_router.post("/nations/{nation_id}/advisor-reform")
 async def send_advisor_reform(nation_id: str, request: dict):
