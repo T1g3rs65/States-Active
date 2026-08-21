@@ -1,6 +1,25 @@
 import Constants from 'expo-constants';
 
-const API_URL = Constants.expoConfig?.extra?.EXPO_PUBLIC_BACKEND_URL || process.env.EXPO_PUBLIC_BACKEND_URL || '';
+function resolveApiUrl(): string {
+  const baked =
+    Constants.expoConfig?.extra?.EXPO_PUBLIC_BACKEND_URL ||
+    process.env.EXPO_PUBLIC_BACKEND_URL ||
+    '';
+  if (typeof window !== 'undefined' && window.location?.hostname) {
+    const host = window.location.hostname;
+    const isLan =
+      host === '10.0.4.27' ||
+      host === 'localhost' ||
+      host === '127.0.0.1';
+    // Public tunnel (HTTPS) cannot reach the LAN API IP. Same origin instead.
+    if (!isLan) {
+      return window.location.origin;
+    }
+  }
+  return baked;
+}
+
+const API_URL = resolveApiUrl();
 
 export const api = {
   // Quiz
@@ -45,8 +64,19 @@ export const api = {
   },
   
   getNationByUser: async (userId: string) => {
-    const response = await fetch(`${API_URL}/api/nations/user/${userId}`);
-    return response.json();
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
+    try {
+      const response = await fetch(`${API_URL}/api/nations/user/${userId}`, {
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+      return response.json();
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+      console.error('getNationByUser failed:', error);
+      return { success: false };
+    }
   },
   
   getNation: async (nationId: string) => {

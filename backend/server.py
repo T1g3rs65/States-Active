@@ -4064,3 +4064,27 @@ async def shutdown_db_client():
     client.close()
 
 
+# Serve the Expo web export from the same origin as /api so Cloudflare tunnels work
+# (HTTPS page + LAN API IP is mixed-content / unreachable off-LAN).
+_frontend_dist = ROOT_DIR.parent / "frontend" / "dist"
+if _frontend_dist.is_dir():
+    @app.get("/{full_path:path}")
+    async def serve_frontend(full_path: str):
+        if full_path.startswith("api/") or full_path.startswith("portraits"):
+            raise HTTPException(status_code=404, detail="Not found")
+        target = (_frontend_dist / full_path).resolve()
+        try:
+            target.relative_to(_frontend_dist.resolve())
+        except ValueError:
+            raise HTTPException(status_code=404, detail="Not found")
+        if target.is_file():
+            return FileResponse(target)
+        html = _frontend_dist / f"{full_path}.html"
+        if html.is_file():
+            return FileResponse(html)
+        index = _frontend_dist / "index.html"
+        if index.is_file():
+            return FileResponse(index)
+        raise HTTPException(status_code=404, detail="Frontend not built")
+
+
