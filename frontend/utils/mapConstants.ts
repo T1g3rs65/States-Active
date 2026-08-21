@@ -90,16 +90,28 @@ export function contiguousOccupiedBands(cols: number[]): number[] {
   return Array.from({ length: bestLen }, (_, i) => (bestStart + i) % 24);
 }
 
-export function officialTimezoneColor(col: number, occupied: number[], count: number): string {
-  if (!occupied.length) return timezoneColor(col);
+export function officialTimezoneBand(col: number, occupied: number[], count: number): number {
+  if (!occupied.length) return timezoneBand(col);
   const n = occupied.length;
   const c = Math.max(1, Math.min(count, n));
-  if (c >= n) return timezoneColor(col);
+  if (c >= n) return timezoneBand(col);
   let idx = occupied.indexOf(timezoneBand(col));
   if (idx < 0) idx = 0;
   const group = Math.min(c - 1, Math.floor((idx * c) / n));
-  const pick = occupied[Math.min(n - 1, Math.floor(((group + 0.5) * n) / c))];
-  return timezoneBandColor(pick);
+  return occupied[Math.min(n - 1, Math.floor(((group + 0.5) * n) / c))];
+}
+
+export function officialTimezoneColor(col: number, occupied: number[], count: number): string {
+  if (!occupied.length || count >= occupied.length) return timezoneColor(col);
+  return timezoneBandColor(officialTimezoneBand(col, occupied, count));
+}
+
+export function officialTimezoneLabel(col: number, occupied: number[], count: number): string {
+  const band = officialTimezoneBand(col, occupied, count);
+  const h = ((band % 24) + 24) % 24 - 12;
+  if (h === 0) return 'UTC±0';
+  if (h === -12) return 'UTC±12';
+  return h > 0 ? `UTC+${h}` : `UTC${h}`;
 }
 export function poleScale(row: number, mapRows: number = MAP_ROWS): number {
   const lat = Math.abs(row / mapRows - 0.5) * 2;

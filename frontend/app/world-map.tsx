@@ -39,6 +39,7 @@ import {
   timezoneColor,
   timezoneLabel,
   officialTimezoneColor,
+  officialTimezoneLabel,
   contiguousOccupiedBands,
   mercatorY,
 } from '../utils/mapConstants';
@@ -62,6 +63,8 @@ interface NationCluster {
   flag: string | null;
   centerCol: number;
   centerRow: number;
+  capitalCol: number;
+  capitalRow: number;
   color: string;
   discRadius?: number;
 }
@@ -95,6 +98,17 @@ const darkenColor = (hex: string, factor: number): string => {
   const toHex = (n: number) => Math.max(0, Math.min(255, n)).toString(16).padStart(2, '0');
   return `#${toHex(newR)}${toHex(newG)}${toHex(newB)}`;
 };
+
+function goldStarPoints(cx: number, cy: number, r: number): string {
+  const inner = r * 0.42;
+  const pts: string[] = [];
+  for (let i = 0; i < 10; i++) {
+    const a = -Math.PI / 2 + (i * Math.PI) / 5;
+    const rad = i % 2 === 0 ? r : inner;
+    pts.push(`${cx + Math.cos(a) * rad},${cy + Math.sin(a) * rad}`);
+  }
+  return pts.join(' ');
+}
 
 export default function WorldMap() {
   const router = useRouter();
@@ -669,6 +683,8 @@ export default function WorldMap() {
           flag: seed.flag,
           centerCol,
           centerRow,
+          capitalCol: seed.col,
+          capitalRow: seed.row,
           color: seed.primary,
           discRadius,
         });
@@ -1193,6 +1209,20 @@ export default function WorldMap() {
                 </G>
               );
             })}
+            {nationClusters.map((cluster) => {
+              const capX = cluster.capitalCol * CELL_SCALE * zoom;
+              const capY = mercatorY(cluster.capitalRow) * zoom;
+              const r = Math.min(Math.max(6, 4.8 * zoom), 15);
+              return (
+                <Polygon
+                  key={`star-${cluster.nationId}`}
+                  points={goldStarPoints(capX, capY, r)}
+                  fill="#F2C94C"
+                  stroke="#3d2a00"
+                  strokeWidth={0.9}
+                />
+              );
+            })}
               </G>
             ))}
           </Svg>
@@ -1207,6 +1237,10 @@ export default function WorldMap() {
             <View style={{ flex: 1 }}>
               <Text style={styles.infoTitle}>
                 {selectedTerritory.ownerName || selectedTerritory.biome.replace(/_/g, ' ').toUpperCase()}
+                {nationClusters.some((c) =>
+                  c.nationId === selectedTerritory.ownerId &&
+                  Math.hypot(wrapDx(selectedTerritory.col - c.capitalCol), selectedTerritory.row - c.capitalRow) < 2.4
+                ) ? '  ★ Capital' : ''}
               </Text>
               <Text style={styles.infoCoords}>
                 ({selectedTerritory.col}, {selectedTerritory.row})
@@ -1224,7 +1258,22 @@ export default function WorldMap() {
               <Text style={styles.infoText}>
                 {selectedTerritory.ownerId ? `Owned by ${selectedTerritory.ownerName}` : 'Unclaimed'}
               </Text>
-              <Text style={styles.infoText}>{timezoneLabel(selectedTerritory.col)}</Text>
+              <Text style={styles.infoText}>
+                {(() => {
+                  const owner = selectedTerritory.ownerId;
+                  if (owner) {
+                    const p = tzPolicyRef.current.get(owner);
+                    if (p && p.bands.length) {
+                      const lab = officialTimezoneLabel(selectedTerritory.col, p.bands, p.count);
+                      if (p.count < p.bands.length) {
+                        return `${lab} official (${p.count} of ${p.bands.length} geographic)`;
+                      }
+                      return `${lab} official`;
+                    }
+                  }
+                  return timezoneLabel(selectedTerritory.col);
+                })()}
+              </Text>
               {selectedTerritory.resourceId && (
                 <View style={styles.resourceInfo}>
                   <View style={[styles.resourceDot, { backgroundColor: RESOURCE_BY_ID.get(selectedTerritory.resourceId)?.color || '#F3F6FA' }]} />
