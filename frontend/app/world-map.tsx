@@ -20,9 +20,9 @@ import Svg, { Polygon, G, Text as SvgText, Rect, Circle , SvgXml } from 'react-n
 import { Ionicons } from '@expo/vector-icons';
 import { SimplexNoise } from '../utils/noise';
 import { api } from '../utils/api';
-import { lloydRelaxation, calculateBorderOwnership } from '../utils/borders';
+import { colonizeFromCapitals } from '../utils/borders';
 import { calculateCapacityFromPopulation } from '../utils/nationSize';
-import { generateVoronoiCells, VoronoiCell, DEEP_WATER_BIOMES, WATER_BIOMES } from '../utils/voronoiMap';
+import { generateVoronoiCells, VoronoiCell, WATER_BIOMES } from '../utils/voronoiMap';
 import { assignResourceToTile, RESOURCE_BY_ID, TIER_COLORS } from '../utils/resources';
 import { rasterizeWorldMap } from '../utils/mapPaint';
 import {
@@ -525,71 +525,53 @@ export default function WorldMap() {
         '#38BDF8', '#34D399', '#FCA5A5', '#93C5FD', '#C084FC'
       ];
 
-      // LLOYD RELAXATION + NOISE/CELLULAR BORDER OWNERSHIP (L21 faithful reuse)
-      // Use the prior Lloyd/noise/cellular border utilities from utils/borders.ts.
-      const borderNoise = new SimplexNoise(worldSeed + 789012);
-
-      // Relax seed positions for region shape (keeps flags anchored later)
-      const relaxedSeeds = lloydRelaxation(
-        nationSeeds.map(s => ({ col: s.col, row: s.row })),
-        5
-      );
-      relaxedSeeds.forEach((pos, idx) => {
-        nationSeeds[idx].col = pos.col;
-        nationSeeds[idx].row = pos.row;
-      });
-
-      // Lloyd can slide a capital into ocean — snap to nearest land cell.
-      const landCells = workingTerritories.filter(
-        t => !WATER_BIOMES.has(t.biome)
-      );
-      if (landCells.length) {
-        for (const seed of nationSeeds) {
-          let best = landCells[0];
-          let bestD = Infinity;
-          for (const t of landCells) {
-            const d = (t.col - seed.col) ** 2 + (t.row - seed.row) ** 2;
-            if (d < bestD) {
-              bestD = d;
-              best = t;
-            }
-          }
-          seed.col = best.col;
-          seed.row = best.row;
-        }
+      // Grow along easy land (plains, coasts, valleys) — not Manhattan diamonds.
+      const landCells = workingTerritories.filter(t => !WATER_BIOMES.has(t.biome));
+      if (!landCells.length) {
+        setTerritories(workingTerritories);
+        setLoading(false);
+        return;
       }
-
-      // Assign every land-ish cell to the best noise-warped seed within its radius.
-      // Skip deep ocean so nations don't own open water.
-      for (const territory of workingTerritories) {
-        if (DEEP_WATER_BIOMES.has(territory.biome)) continue;
-
-        // Filter to seeds that can reach this cell by capacity radius
-        const reachableSeeds: typeof nationSeeds = [];
-        for (const seed of nationSeeds) {
-          const dist = Math.abs(territory.col - seed.col) + Math.abs(territory.row - seed.row);
-          if (dist <= seed.maxRadius) {
-            reachableSeeds.push(seed);
+      const borderNoise = new SimplexNoise(worldSeed + 789012);
+      const startIndexFor = (col: number, row: number) => {
+        let best = landCells[0];
+        let bestD = Infinity;
+        for (const t of landCells) {
+          const d = (t.col - col) ** 2 + (t.row - row) ** 2;
+          if (d < bestD) {
+            bestD = d;
+            best = t;
           }
         }
-        if (reachableSeeds.length === 0) continue;
+        return best.index;
+      };
 
-        const ownerId = calculateBorderOwnership(
-          territory.col,
-          territory.row,
-          reachableSeeds.map(s => ({ nationId: s.nationId, col: s.col, row: s.row })),
-          (x, y) => borderNoise.noise2D(x, y),
-          territory.normalized,
-          territory.biome === 'river',
-          territory.nearWater
-        );
+      const claims = colonizeFromCapitals(
+        workingTerritories.map(t => ({
+          index: t.index,
+          biome: t.biome,
+          normalized: t.normalized,
+          nearWater: t.nearWater,
+          isRiver: t.isRiver,
+          neighbors: t.neighbors,
+        })),
+        nationSeeds.map(s => ({
+          nationId: s.nationId,
+          startIndex: startIndexFor(s.col, s.row),
+          capacity: s.capacity,
+        })),
+        (b) => WATER_BIOMES.has(b),
+        (i) => borderNoise.noise2D(i * 0.017, i * 0.009)
+      );
 
-        if (ownerId) {
-          const seedIndex = nationSeeds.findIndex(s => s.nationId === ownerId);
-          territory.ownerId = ownerId;
-          territory.ownerName = nationSeeds[seedIndex]?.name;
-          territory.color = nationColors[seedIndex % nationColors.length];
-        }
+      const seedById = new Map(nationSeeds.map((s, i) => [s.nationId, i]));
+      for (const territory of workingTerritories) {
+        const ownerId = claims.get(territory.index);
+        if (!ownerId) continue;
+        const seedIndex = seedById.get(ownerId) ?? 0;
+        territory.ownerId = ownerId;
+        territory.ownerName = nationSeeds[seedIndex]?.name;
+        territory.color = nationColors[seedIndex % nationColors.length];
       }
 
       console.log(

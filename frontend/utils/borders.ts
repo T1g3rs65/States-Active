@@ -95,3 +95,186 @@ export function calculateBorderOwnership(
 
   return bestOwner;
 }
+
+/** Cost to enter a biome. Plains/coasts/valleys are cheap; mountains/desert/jungle are not. */
+export function colonizationCost(biome: string, elevation: number, nearWater: boolean, isRiver: boolean): number {
+  let c = 1.35;
+  switch (biome) {
+    case 'grassland':
+    case 'temperate_grassland':
+    case 'flooded_grassland':
+    case 'beach':
+      c = 0.72;
+      break;
+    case 'savanna':
+    case 'woody_savanna':
+    case 'shrubland':
+    case 'alpine_meadow':
+      c = 0.95;
+      break;
+    case 'mixed_forest':
+    case 'deciduous_forest':
+    case 'salt_marsh':
+    case 'rocky_coast':
+      c = 1.15;
+      break;
+    case 'evergreen_forest':
+    case 'temperate_rainforest':
+      c = 1.55;
+      break;
+    case 'tropical_rainforest':
+    case 'boreal_forest':
+    case 'swamp':
+    case 'marsh':
+    case 'wetland':
+    case 'peat_bog':
+    case 'mangrove':
+      c = 2.25;
+      break;
+    case 'hot_desert':
+    case 'semi_arid_desert':
+    case 'cold_desert':
+    case 'barren':
+    case 'badlands':
+    case 'karst':
+      c = 2.5;
+      break;
+    case 'rocky_mountain':
+    case 'sparse_vegetation':
+      c = 3.1;
+      break;
+    case 'tundra':
+    case 'arctic_tundra':
+    case 'snow_ice':
+      c = 3.4;
+      break;
+    case 'glacier':
+    case 'ice_shelf':
+      c = 6;
+      break;
+    case 'river':
+      c = 0.8;
+      break;
+    case 'shallow_sea':
+      c = 9;
+      break;
+    default:
+      c = 1.4;
+  }
+  if (elevation > 0.78) c += 1.6;
+  else if (elevation > 0.68) c += 0.7;
+  if (nearWater && c < 2) c *= 0.82;
+  if (isRiver && biome !== 'river') c *= 0.88;
+  return c;
+}
+
+type ColonizeCell = {
+  index: number;
+  biome: string;
+  normalized: number;
+  nearWater: boolean;
+  isRiver: boolean;
+  neighbors: number[];
+};
+
+type ColonizeSeed = {
+  nationId: string;
+  startIndex: number;
+  capacity: number;
+};
+
+/**
+ * Grow nations along easy land (valleys, coasts, grassland) instead of
+ * Manhattan diamonds. Cheapest unclaimed cells go first; mountains/jungle last.
+ */
+export function colonizeFromCapitals(
+  cells: ColonizeCell[],
+  seeds: ColonizeSeed[],
+  isWater: (biome: string) => boolean,
+  noise?: (i: number) => number
+): Map<number, string> {
+  const owner = new Map<number, string>();
+  if (!cells.length || !seeds.length) return owner;
+
+  const byIndex = new Map<number, ColonizeCell>();
+  for (const c of cells) byIndex.set(c.index, c);
+
+  type Offer = { nationId: string; cellIndex: number; cost: number };
+  const offers: Offer[] = [];
+
+  for (const seed of seeds) {
+    const start = byIndex.get(seed.startIndex);
+    if (!start) continue;
+    const dist = new Map<number, number>();
+    dist.set(seed.startIndex, 0);
+    const heap: Array<[number, number]> = [[0, seed.startIndex]];
+
+    const heapPush = (c: number, i: number) => {
+      heap.push([c, i]);
+      let k = heap.length - 1;
+      while (k > 0) {
+        const p = (k - 1) >> 1;
+        if (heap[p][0] <= heap[k][0]) break;
+        const t = heap[p]; heap[p] = heap[k]; heap[k] = t;
+        k = p;
+      }
+    };
+    const heapPop = (): [number, number] => {
+      const top = heap[0];
+      const last = heap.pop()!;
+      if (heap.length) {
+        heap[0] = last;
+        let k = 0;
+        for (;;) {
+          let m = k;
+          const l = k * 2 + 1;
+          const r = l + 1;
+          if (l < heap.length && heap[l][0] < heap[m][0]) m = l;
+          if (r < heap.length && heap[r][0] < heap[m][0]) m = r;
+          if (m === k) break;
+          const t = heap[k]; heap[k] = heap[m]; heap[m] = t;
+          k = m;
+        }
+      }
+      return top;
+    };
+
+    while (heap.length) {
+      const [cost, idx] = heapPop();
+      if (cost !== dist.get(idx)) continue;
+      const cell = byIndex.get(idx);
+      if (!cell) continue;
+      for (const ni of cell.neighbors || []) {
+        const nxt = byIndex.get(ni);
+        if (!nxt) continue;
+        if (isWater(nxt.biome) && nxt.biome !== 'river') continue;
+        const jitter = noise ? 0.85 + 0.3 * ((noise(ni) + 1) / 2) : 1;
+        const step = colonizationCost(nxt.biome, nxt.normalized, nxt.nearWater, nxt.isRiver) * jitter;
+        const nc = cost + step;
+        if (nc < (dist.get(ni) ?? Infinity)) {
+          dist.set(ni, nc);
+          heapPush(nc, ni);
+        }
+      }
+    }
+
+    const ranked = [...dist.entries()].sort((a, b) => a[1] - b[1]);
+    const take = Math.max(1, Math.floor(seed.capacity * 1.35));
+    for (let i = 0; i < ranked.length && i < take; i++) {
+      offers.push({ nationId: seed.nationId, cellIndex: ranked[i][0], cost: ranked[i][1] });
+    }
+  }
+
+  offers.sort((a, b) => a.cost - b.cost || a.cellIndex - b.cellIndex);
+  const used = new Map<string, number>();
+  const cap = new Map(seeds.map(s => [s.nationId, Math.max(1, Math.floor(s.capacity))]));
+
+  for (const o of offers) {
+    if (owner.has(o.cellIndex)) continue;
+    const have = used.get(o.nationId) || 0;
+    if (have >= (cap.get(o.nationId) || 0)) continue;
+    owner.set(o.cellIndex, o.nationId);
+    used.set(o.nationId, have + 1);
+  }
+  return owner;
+}
