@@ -2,21 +2,13 @@
 
 from typing import Optional
 from models import Issue, IssueChoice
+from timezone_effects import timezone_deltas
 
 
 def build_timezone_issue(nation_id: str, name: str, geo_max: int, current: Optional[int]) -> Issue:
     geo_max = max(2, min(24, int(geo_max)))
     current = geo_max if current is None else max(1, min(geo_max, int(current)))
-    options = []
-    options.append(geo_max)
     half = max(1, (geo_max + 1) // 2)
-    if half not in options:
-        options.append(half)
-    if 2 < geo_max and 2 not in options:
-        options.append(2)
-    if 1 not in options:
-        options.append(1)
-    # keep current as first if it's a valid distinct option
     ordered = []
     for v in [current, geo_max, half, 2, 1]:
         if 1 <= v <= geo_max and v not in ordered:
@@ -32,20 +24,25 @@ def build_timezone_issue(nation_id: str, name: str, geo_max: int, current: Optio
         return f"Consolidate to {n} official timezones"
 
     def desc(n: int) -> str:
+        d = timezone_deltas(geo_max, n, daily=False)
+        hap = d.get("happiness", 0)
+        gdp = d.get("gdp", 0)
+        bits = []
+        if hap:
+            bits.append(f"mood {hap:+.0f}")
+        if gdp:
+            bits.append(f"GDP {gdp:+.0f}")
+        extra = (", ".join(bits) + ". ") if bits else ""
         if n == 1:
-            return "The whole country shares one clock. Simple, but the sun disagrees at the edges."
+            return extra + "One clock: cheap to run, harsh on the rim."
         if n == geo_max:
-            return "Every longitude you occupy keeps its own hour. Accurate, fiddly."
-        return f"{n} contiguous official zones. No islands of time; no extra hours beyond your land."
+            return extra + "Noon is noon everywhere. Offices don't share a hour."
+        return extra + "Contiguous official hours only. No islands, no extra zones."
 
     choices = []
     for n in ordered:
-        effects = {
-            "timezone_count": float(n),
-            "happiness": 4 if n == 1 else (2 if n < geo_max else 1),
-            "gdp": 3 if n < geo_max else 0,
-            "corruption": 2 if n == geo_max else -1,
-        }
+        effects = timezone_deltas(geo_max, n, daily=False)
+        effects["timezone_count"] = float(n)
         choices.append(IssueChoice(text=label(n), effects=effects, description=desc(n)))
 
     return Issue(
@@ -54,8 +51,8 @@ def build_timezone_issue(nation_id: str, name: str, geo_max: int, current: Optio
         title="The Clockwork of the Realm",
         description=(
             f"{name} naturally spans {geo_max} contiguous timezones — that is the maximum you can have. "
-            f"You may keep fewer, but they must stay one connected strip of hours. "
-            f"You cannot add zones you do not actually border, and you cannot leave a timezone island."
+            f"More clocks: happier coasts, fiddlier markets. Fewer clocks: one schedule, grouchy edges. "
+            f"You cannot add hours you do not border, and you cannot leave a timezone island."
         ),
         choices=choices,
     )

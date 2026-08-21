@@ -24,6 +24,7 @@ import { api } from '../utils/api';
 import { colorsFromFlag } from '../utils/flagColors';
 import { colonizeFromCapitals } from '../utils/borders';
 import { calculateCapacityFromPopulation } from '../utils/nationSize';
+import { pickSecondaryCities, CitySite } from '../utils/cities';
 import { generateVoronoiCells, VoronoiCell, WATER_BIOMES } from '../utils/voronoiMap';
 import { assignResourceToTile, RESOURCE_BY_ID, TIER_COLORS } from '../utils/resources';
 import { rasterizeWorldMap } from '../utils/mapPaint';
@@ -65,6 +66,7 @@ interface NationCluster {
   centerRow: number;
   capitalCol: number;
   capitalRow: number;
+  cities: CitySite[];
   color: string;
   discRadius?: number;
 }
@@ -533,6 +535,7 @@ export default function WorldMap() {
         primary: string;
         secondary: string;
         timezoneCount: number | null;
+        population: number;
       }[] = [];
       
       let totalCapacity = 0;
@@ -564,6 +567,7 @@ export default function WorldMap() {
             primary: palette.primary,
             secondary: palette.secondary,
             timezoneCount: nationData.timezone_count ?? null,
+            population: nationData.stats.population || 0,
           });
         } catch (error) {
           console.error(`Error loading nation:`, error);
@@ -685,6 +689,17 @@ export default function WorldMap() {
           centerRow,
           capitalCol: seed.col,
           capitalRow: seed.row,
+          cities: pickSecondaryCities(
+            owned.map(t => ({
+              col: t.col,
+              row: t.row,
+              biome: t.biome,
+              resourceId: t.resourceId,
+              nearWater: t.nearWater,
+            })),
+            { col: seed.col, row: seed.row },
+            seed.population
+          ),
           color: seed.primary,
           discRadius,
         });
@@ -1209,6 +1224,22 @@ export default function WorldMap() {
                 </G>
               );
             })}
+            {nationClusters.flatMap((cluster) =>
+              (cluster.cities || []).map((city, i) => {
+                const x = city.col * CELL_SCALE * zoom;
+                const y = mercatorY(city.row) * zoom;
+                const r = Math.min(Math.max(4, 3.2 * zoom), 10);
+                return (
+                  <Polygon
+                    key={`city-${cluster.nationId}-${i}`}
+                    points={goldStarPoints(x, y, r)}
+                    fill="#D8DEE8"
+                    stroke="#2a3340"
+                    strokeWidth={0.7}
+                  />
+                );
+              })
+            )}
             {nationClusters.map((cluster) => {
               const capX = cluster.capitalCol * CELL_SCALE * zoom;
               const capY = mercatorY(cluster.capitalRow) * zoom;
@@ -1240,7 +1271,10 @@ export default function WorldMap() {
                 {nationClusters.some((c) =>
                   c.nationId === selectedTerritory.ownerId &&
                   Math.hypot(wrapDx(selectedTerritory.col - c.capitalCol), selectedTerritory.row - c.capitalRow) < 2.4
-                ) ? '  ★ Capital' : ''}
+                ) ? '  ★ Capital' : nationClusters.some((c) =>
+                  c.nationId === selectedTerritory.ownerId &&
+                  (c.cities || []).some((city) => Math.hypot(wrapDx(selectedTerritory.col - city.col), selectedTerritory.row - city.row) < 2.2)
+                ) ? '  ✦ City' : ''}
               </Text>
               <Text style={styles.infoCoords}>
                 ({selectedTerritory.col}, {selectedTerritory.row})

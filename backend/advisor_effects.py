@@ -89,6 +89,8 @@ def apply_daily_ticks(nation: dict, now: Optional[datetime] = None) -> bool:
     stats = nation.get("stats") or {}
     advisors = nation.get("advisors") or []
     if not advisors:
+        from timezone_effects import apply_timezone_tick
+        apply_timezone_tick(nation)
         nation["last_advisor_tick"] = today
         return True
 
@@ -149,6 +151,8 @@ def apply_daily_ticks(nation: dict, now: Optional[datetime] = None) -> bool:
 
     nation["stats"] = stats
     nation["advisors"] = advisors
+    from timezone_effects import apply_timezone_tick
+    apply_timezone_tick(nation)
     nation["last_advisor_tick"] = today
     return True
 
