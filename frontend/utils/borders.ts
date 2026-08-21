@@ -293,5 +293,37 @@ export function colonizeFromCapitals(
     enqueue(cell, nationId, cost);
   }
 
+  dropDisconnected(owner, byIndex, seeds);
   return owner;
+}
+
+function dropDisconnected(
+  owner: Map<number, string>,
+  byIndex: Map<number, ColonizeCell>,
+  seeds: ColonizeSeed[]
+) {
+  const root = new Map<string, number>();
+  for (const s of seeds) {
+    if (!root.has(s.nationId) && owner.get(s.startIndex) === s.nationId) {
+      root.set(s.nationId, s.startIndex);
+    }
+  }
+  const keep = new Set<number>();
+  for (const [nationId, start] of root) {
+    const q = [start];
+    keep.add(start);
+    for (let i = 0; i < q.length; i++) {
+      const cell = byIndex.get(q[i]);
+      if (!cell) continue;
+      for (const ni of cell.neighbors || []) {
+        if (keep.has(ni)) continue;
+        if (owner.get(ni) !== nationId) continue;
+        keep.add(ni);
+        q.push(ni);
+      }
+    }
+  }
+  for (const idx of [...owner.keys()]) {
+    if (!keep.has(idx)) owner.delete(idx);
+  }
 }

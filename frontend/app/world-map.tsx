@@ -642,19 +642,11 @@ export default function WorldMap() {
       }
 
       const anchors = new Map<string, Array<{ col: number; row: number }>>();
-      const hubSeeds = [...capitalSeeds];
       for (const seed of nationSeeds) {
         const cities = cityByNation.get(seed.nationId) || [];
         anchors.set(seed.nationId, [{ col: seed.col, row: seed.row }, ...cities]);
-        for (const city of cities) {
-          hubSeeds.push({
-            nationId: seed.nationId,
-            startIndex: startIndexFor(city.col, city.row),
-            capacity: seed.capacity,
-          });
-        }
       }
-      claims = colonizeFromCapitals(cellInput, hubSeeds, isWater, noiseFn, { anchors });
+      claims = colonizeFromCapitals(cellInput, capitalSeeds, isWater, noiseFn, { anchors });
 
       const seedById = new Map(nationSeeds.map((s, i) => [s.nationId, i]));
       for (const territory of workingTerritories) {
@@ -723,7 +715,17 @@ export default function WorldMap() {
           centerRow,
           capitalCol: seed.col,
           capitalRow: seed.row,
-          cities: cityByNation.get(seed.nationId) || [],
+          cities: pickSecondaryCities(
+            owned.map(t => ({
+              col: t.col,
+              row: t.row,
+              biome: t.biome,
+              resourceId: t.resourceId,
+              nearWater: t.nearWater,
+            })),
+            { col: seed.col, row: seed.row },
+            seed.population
+          ),
           color: seed.primary,
           discRadius,
         });
