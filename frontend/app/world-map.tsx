@@ -1264,11 +1264,7 @@ export default function WorldMap() {
                   if (owner) {
                     const p = tzPolicyRef.current.get(owner);
                     if (p && p.bands.length) {
-                      const lab = officialTimezoneLabel(selectedTerritory.col, p.bands, p.count);
-                      if (p.count < p.bands.length) {
-                        return `${lab} official (${p.count} of ${p.bands.length} geographic)`;
-                      }
-                      return `${lab} official`;
+                      return officialTimezoneLabel(selectedTerritory.col, p.bands, p.count);
                     }
                   }
                   return timezoneLabel(selectedTerritory.col);
