@@ -47,7 +47,7 @@ import {
 } from '../utils/mapConstants';
 
 const WORLD_SEED = 123456;
-const MAP_CACHE_KEY = `world_map_terrain_v13_poles_${WORLD_SEED}`;
+const MAP_CACHE_KEY = `world_map_terrain_v14_gradpole_${WORLD_SEED}`;
 const MAX_ZOOM = 8;
 
 function fitZoomFor(_width: number, height: number): number {
@@ -420,7 +420,7 @@ export default function WorldMap() {
       }
       
       // v5 = 40k Voronoi. Older caches were hex or 1500-cell and must not be reused.
-      const worldCacheKey = `world_map_terrain_v13_${terrainKey(mapSeed, terrainRef.current)}`;
+      const worldCacheKey = `world_map_terrain_v14_${terrainKey(mapSeed, terrainRef.current)}`;
       
       setLoadingStatus('Checking cache...');
       
@@ -454,7 +454,7 @@ export default function WorldMap() {
     } catch (error) {
       console.error('Error loading map:', error);
       // Fallback to generating terrain
-      await generateAndCacheTerrain(worldSeed, `world_map_terrain_v13_${terrainKey(worldSeed, terrainRef.current)}`);
+      await generateAndCacheTerrain(worldSeed, `world_map_terrain_v14_${terrainKey(worldSeed, terrainRef.current)}`);
     }
   };
 

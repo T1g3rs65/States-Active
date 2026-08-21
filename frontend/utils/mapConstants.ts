@@ -18,15 +18,17 @@ export function wrapDx(dx: number, cols: number = MAP_COLS): number {
   return d;
 }
 
-/** Mercator Y in pixels. Poles stretch; equator stays the middle. */
+/** Y in pixels. Mild Mercator mixed with equal-area so poles grow gradually, not as strips. */
 export function mercatorY(row: number, mapRows: number = MAP_ROWS, height: number = MAP_HEIGHT): number {
-  const maxDeg = 72;
+  const linear = (row / mapRows) * height;
+  const maxDeg = 48;
   const latDeg = (0.5 - row / mapRows) * 2 * maxDeg;
   const lat = (latDeg * Math.PI) / 180;
   const m = Math.log(Math.tan(Math.PI / 4 + lat / 2));
   const latMax = (maxDeg * Math.PI) / 180;
   const mMax = Math.log(Math.tan(Math.PI / 4 + latMax / 2));
-  return (0.5 - m / (2 * mMax)) * height;
+  const merc = (0.5 - m / (2 * mMax)) * height;
+  return linear * 0.62 + merc * 0.38;
 }
 
 /** 24 hourly bands. Date line sits on the cylinder seam (col 0). */
@@ -113,7 +115,8 @@ export function officialTimezoneLabel(col: number, occupied: number[], count: nu
   if (h === -12) return 'UTC±12';
   return h > 0 ? `UTC+${h}` : `UTC${h}`;
 }
+/** Seed keep 1 at equator → 0.78 at poles. Linear: every degree a little larger. */
 export function poleScale(row: number, mapRows: number = MAP_ROWS): number {
   const lat = Math.abs(row / mapRows - 0.5) * 2;
-  return Math.max(0.42, Math.cos(lat * 1.15));
+  return 1 - 0.22 * lat;
 }
