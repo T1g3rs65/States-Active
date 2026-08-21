@@ -35,6 +35,9 @@ import {
   MAP_HEIGHT,
   VORONOI_CELLS,
   wrapDx,
+  timezoneColor,
+  timezoneLabel,
+  mercatorY,
 } from '../utils/mapConstants';
 
 const WORLD_SEED = 123456;
@@ -61,7 +64,7 @@ interface NationCluster {
 }
 
 // Map mode types
-type MapMode = 'political' | 'terrain' | 'resources' | 'faction';
+type MapMode = 'political' | 'terrain' | 'resources' | 'faction' | 'timezone';
 
 // Faction mode diplomatic relationship data
 interface DiplomaticData {
@@ -295,6 +298,9 @@ export default function WorldMap() {
         }
         // Everyone else - Red
         return '#FF5A65';
+
+      case 'timezone':
+        return timezoneColor(territory.col);
         
       case 'political':
       default:
@@ -333,6 +339,7 @@ export default function WorldMap() {
     { key: 'political', label: 'Political', icon: 'flag' },
     { key: 'terrain', label: 'Terrain', icon: 'earth' },
     { key: 'faction', label: 'Faction', icon: 'people' },
+    { key: 'timezone', label: 'Timezones', icon: 'time-outline' },
   ];
 
   // Try to load cached terrain, otherwise generate it
@@ -963,6 +970,25 @@ export default function WorldMap() {
           >
             {[0, 1, 2].map((copy) => (
               <G key={`wrap-${copy}`} x={copy * sliceW}>
+            {mapMode === 'timezone' && Array.from({ length: 24 }, (_, band) => {
+              const col = ((band + 0.5) / 24) * MAP_COLS;
+              const x = col * CELL_SCALE * zoom;
+              const y = Math.min(mapHeight * zoom - 16, Math.max(16, mercatorY(MAP_ROWS / 2) * zoom));
+              return (
+                <SvgText
+                  key={`tz-${band}`}
+                  x={x}
+                  y={y}
+                  fontSize={Math.min(Math.max(9, 11 * zoom), 13)}
+                  fill="#F3F6FA"
+                  textAnchor="middle"
+                  fontWeight="700"
+                  opacity={0.92}
+                >
+                  {timezoneLabel(col)}
+                </SvgText>
+              );
+            })}
             {/* Nation territory discs - make territories visible at global zoom */}
             {nationClusters.map((cluster) => {
               const centerTerritory = territories.find(
@@ -1099,6 +1125,7 @@ export default function WorldMap() {
               <Text style={styles.infoText}>
                 {selectedTerritory.ownerId ? `Owned by ${selectedTerritory.ownerName}` : 'Unclaimed'}
               </Text>
+              <Text style={styles.infoText}>{timezoneLabel(selectedTerritory.col)}</Text>
               {selectedTerritory.resourceId && (
                 <View style={styles.resourceInfo}>
                   <View style={[styles.resourceDot, { backgroundColor: RESOURCE_BY_ID.get(selectedTerritory.resourceId)?.color || '#F3F6FA' }]} />

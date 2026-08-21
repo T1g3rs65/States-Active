@@ -298,7 +298,7 @@ export function rasterizeWorldMap(opts: {
     const shade = hillshade(t, byIndex);
     const j = political ? cellJitter(t.index) * 0.25 : cellJitter(t.index) * 0.08;
     const mixed = blendedFill(t, fillFor, byIndex);
-    const keepHue = mapMode === 'political' && !!t.ownerId;
+    const keepHue = (mapMode === 'political' && !!t.ownerId) || mapMode === 'timezone';
     ctx.fillStyle = keepHue
       ? litColor(fillFor(t), 0.82 + 0.28 * shade, j * 0.25, true)
       : litRgb(mixed[0], mixed[1], mixed[2], shade, j, water);

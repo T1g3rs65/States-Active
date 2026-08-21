@@ -29,7 +29,37 @@ export function mercatorY(row: number, mapRows: number = MAP_ROWS, height: numbe
   return (0.5 - m / (2 * mMax)) * height;
 }
 
-/** 1 at equator, ~0.28 at poles — fewer Voronoi seeds → larger polar cells. */
+/** 24 hourly bands. Date line sits on the cylinder seam (col 0). */
+export function timezoneBand(col: number, cols: number = MAP_COLS): number {
+  const c = wrapCol(col, cols);
+  return Math.min(23, Math.floor((c / cols) * 24));
+}
+
+/** UTC offset hours: seam is UTC−12 / +12, center of the map is UTC±0. */
+export function timezoneOffsetHours(col: number, cols: number = MAP_COLS): number {
+  return timezoneBand(col, cols) - 12;
+}
+
+export function timezoneLabel(col: number, cols: number = MAP_COLS): string {
+  const h = timezoneOffsetHours(col, cols);
+  if (h === 0) return 'UTC±0';
+  if (h === -12) return 'UTC±12';
+  return h > 0 ? `UTC+${h}` : `UTC${h}`;
+}
+
+export function timezoneColor(col: number, cols: number = MAP_COLS): string {
+  const band = timezoneBand(col, cols);
+  const hue = band * 15;
+  const sat = band % 2 === 0 ? 0.52 : 0.40;
+  const l = band % 2 === 0 ? 0.48 : 0.36;
+  const f = (n: number) => {
+    const k = (n + hue / 30) % 12;
+    const x = l - sat * Math.min(l, 1 - l) * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+    return Math.round(255 * x);
+  };
+  const hex = (n: number) => n.toString(16).padStart(2, '0');
+  return `#${hex(f(0))}${hex(f(8))}${hex(f(4))}`;
+}
 export function poleScale(row: number, mapRows: number = MAP_ROWS): number {
   const lat = Math.abs(row / mapRows - 0.5) * 2;
   return Math.max(0.42, Math.cos(lat * 1.15));
