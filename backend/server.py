@@ -2268,6 +2268,14 @@ async def fix_overlapping_positions():
     from bson import ObjectId
     
     MIN_DISTANCE = 25
+    MAP_COLS = 505
+    MAP_ROWS = 284
+
+    def wrap_dx(a: int, b: int) -> float:
+        d = (a - b) % MAP_COLS
+        if d > MAP_COLS / 2:
+            d -= MAP_COLS
+        return d
     
     try:
         # Get all nations with positions
@@ -2284,12 +2292,14 @@ async def fix_overlapping_positions():
         fixes_made = []
         
         def is_valid_position(col: int, row: int, exclude_nation_id=None) -> bool:
-            if not (20 < col < 180 and 20 < row < 180):
+            if not (8 < row < MAP_ROWS - 8):
                 return False
+            col = col % MAP_COLS
             for pos in fixed_positions:
                 if exclude_nation_id and pos["nation_id"] == exclude_nation_id:
                     continue
-                distance = math.sqrt((col - pos["col"])**2 + (row - pos["row"])**2)
+                dx = wrap_dx(col, pos["col"])
+                distance = math.sqrt(dx**2 + (row - pos["row"])**2)
                 if distance < MIN_DISTANCE:
                     return False
             return True
@@ -2309,8 +2319,8 @@ async def fix_overlapping_positions():
                 for attempt in range(200):
                     angle = attempt * 2.4 + random.uniform(-0.5, 0.5)
                     radius = 20 + (attempt * 2) + random.uniform(-3, 3)
-                    new_col = int(100 + radius * math.cos(angle))
-                    new_row = int(100 + radius * math.sin(angle))
+                    new_col = int(MAP_COLS / 2 + radius * math.cos(angle)) % MAP_COLS
+                    new_row = int(MAP_ROWS / 2 + radius * math.sin(angle))
                     
                     if is_valid_position(new_col, new_row):
                         # Update in database

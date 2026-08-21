@@ -601,16 +601,16 @@ export default function WorldMap() {
         let centerRow = seed.row;
         let discRadius = 0;
         if (owned.length > 0) {
-          const sumCol = owned.reduce((acc, t) => acc + t.col, 0);
-          const sumRow = owned.reduce((acc, t) => acc + t.row, 0);
-          centerCol = Math.round(sumCol / owned.length);
-          centerRow = Math.round(sumRow / owned.length);
-          // Covering radius of owned tiles from centroid, in hex units
+          const tau = (2 * Math.PI) / MAP_COLS;
+          const sx = owned.reduce((acc, t) => acc + Math.cos(t.col * tau), 0);
+          const sy = owned.reduce((acc, t) => acc + Math.sin(t.col * tau), 0);
+          centerCol = Math.round(((Math.atan2(sy, sx) / tau) + MAP_COLS) % MAP_COLS);
+          centerRow = Math.round(owned.reduce((acc, t) => acc + t.row, 0) / owned.length);
           discRadius = Math.max(
             1,
             Math.ceil(
               Math.sqrt(
-                Math.max(...owned.map(t => Math.pow(t.col - centerCol, 2) + Math.pow(t.row - centerRow, 2)))
+                Math.max(...owned.map(t => wrapDx(t.col - centerCol) ** 2 + (t.row - centerRow) ** 2))
               )
             )
           );
