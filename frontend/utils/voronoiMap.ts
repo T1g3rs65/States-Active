@@ -93,11 +93,11 @@ function generateVariedPoints(
       const clump = (noise.fbm(cx * 0.045 + 40, cy * 0.045 - 17, 2, 0.55) + 1) * 0.5;
       const prospect = prospectAt(cx, cy, continent, clump);
       // Empty tiles: low keep (large cells). Resource belts: extra sites (small cells).
-      const keep = 0.10 + continent * 0.32 + prospect * 0.88 + clump * 0.12;
-      if (rng() < Math.min(0.97, keep)) {
+      const keep = 0.04 + continent * 0.16 + prospect * 1.05 + clump * 0.08;
+      if (rng() < Math.min(0.92, keep)) {
         pushJittered(cx, cy);
       }
-      if (rng() < prospect * 0.62) {
+      if (rng() < prospect * 0.45) {
         pushJittered(cx, cy);
       }
     }
@@ -109,19 +109,16 @@ function generateVariedPoints(
     const y = rng() * mapRows;
     const continent = (noise.fbm(x * 0.002, y * 0.002, 3, 0.5) + 1) * 0.5;
     const clump = (noise.fbm(x * 0.045 + 40, y * 0.045 - 17, 2, 0.55) + 1) * 0.5;
-    if (rng() < 0.18 + prospectAt(x, y, continent, clump) * 0.9) {
+    if (rng() < 0.08 + prospectAt(x, y, continent, clump) * 0.95) {
       points.push(clamp(x, y));
     }
   }
-  while (points.length < count) {
-    points.push(clamp(rng() * mapCols, rng() * mapRows));
-  }
+  // Do not scatter-fill empties — leftover budget stays unused so barren cells stay large.
   if (points.length > count) {
-    // Drop empty sites first so resource clusters stay dense.
-    const scored = points.map((p, i) => {
+    const scored = points.map((p) => {
       const continent = (noise.fbm(p[0] * 0.002, p[1] * 0.002, 3, 0.5) + 1) * 0.5;
       const clump = (noise.fbm(p[0] * 0.045 + 40, p[1] * 0.045 - 17, 2, 0.55) + 1) * 0.5;
-      return { p, i, s: prospectAt(p[0], p[1], continent, clump) + rng() * 0.05 };
+      return { p, s: prospectAt(p[0], p[1], continent, clump) + rng() * 0.05 };
     });
     scored.sort((a, b) => b.s - a.s);
     return scored.slice(0, count).map(x => x.p);

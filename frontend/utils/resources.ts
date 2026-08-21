@@ -483,31 +483,27 @@ export function assignResourceToTile(
   const tileRandom = rng.nextForTile(col, row);
   
   // Determine if ANY resource spawns (base 45% chance for land tiles)
-  const baseSpawnChance = 0.45;
+  const baseSpawnChance = 0.22;
   if (tileRandom > baseSpawnChance) {
-    return null; // No resource on this tile
+    return null;
   }
-  
-  // Use another random value to pick which resource
+
   const resourceRandom = rng.nextForTile(col + 1000, row + 1000);
-  
-  // Sort resources by tier (rare first for weighted selection)
+
   const sortedResources = [...validResources].sort((a, b) => {
     const tierOrder = { rare: 0, uncommon: 1, common: 2 };
     return tierOrder[a.tier] - tierOrder[b.tier];
   });
-  
-  // Calculate weighted probabilities
+
   let cumulative = 0;
   for (const resource of sortedResources) {
-    cumulative += resource.spawnChance;
+    cumulative += resource.spawnChance * 0.7;
     if (resourceRandom < cumulative) {
       return resource.id;
     }
   }
-  
-  // Default to most common resource if nothing selected
-  return sortedResources[sortedResources.length - 1]?.id || null;
+
+  return null;
 }
 
 /**
