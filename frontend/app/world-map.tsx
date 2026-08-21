@@ -9,6 +9,8 @@ import {
   Dimensions,
   Modal,
   Pressable,
+  Image,
+  GestureResponderEvent,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
@@ -25,14 +27,14 @@ import { assignResourceToTile, RESOURCE_BY_ID, TIER_COLORS } from '../utils/reso
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const WORLD_SEED = 123456; // Constant seed for deterministic terrain
-const MAP_CACHE_KEY = `world_map_terrain_v4_voronoi_${WORLD_SEED}`; // v4 = Voronoi irregular-cell map
+const MAP_CACHE_KEY = `world_map_terrain_v5_voronoi_${WORLD_SEED}`; // v5 = 40k Voronoi (old hex density)
 
 const MAP_COLS = 200; // Logical width (grid units)
 const MAP_ROWS = 200; // Logical height (grid units)
 const CELL_SCALE = 6; // Pixels per grid unit
 const MAP_WIDTH = MAP_COLS * CELL_SCALE;
 const MAP_HEIGHT = MAP_ROWS * CELL_SCALE;
-const VORONOI_CELLS = 1500; // Mobile-friendly cell count vs 40k hexes
+const VORONOI_CELLS = 40000; // Match prior 200×200 hex density, irregular cells
 
 interface Territory extends VoronoiCell {}
 
@@ -80,6 +82,7 @@ export default function WorldMap() {
   const router = useRouter();
   const { nation } = useNationStore();
   const [territories, setTerritories] = useState<Territory[]>([]);
+  const [mapImageUri, setMapImageUri] = useState<string | null>(null);
   const [nationClusters, setNationClusters] = useState<NationCluster[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingStatus, setLoadingStatus] = useState('Initializing...');
@@ -317,8 +320,8 @@ export default function WorldMap() {
         }
       }
       
-      // v4 = Voronoi cells with polygons. v3 was hex tiles and will crash the renderer.
-      const worldCacheKey = `world_map_terrain_v4_voronoi_${mapSeed}`;
+      // v5 = 40k Voronoi. Older caches were hex or 1500-cell and must not be reused.
+      const worldCacheKey = `world_map_terrain_v5_voronoi_${mapSeed}`;
       
       setLoadingStatus('Checking cache...');
       
@@ -352,7 +355,7 @@ export default function WorldMap() {
     } catch (error) {
       console.error('Error loading map:', error);
       // Fallback to generating terrain
-      await generateAndCacheTerrain(worldSeed, `world_map_terrain_v4_voronoi_${worldSeed}`);
+      await generateAndCacheTerrain(worldSeed, `world_map_terrain_v5_voronoi_${worldSeed}`);
     }
   };
 
@@ -360,14 +363,17 @@ export default function WorldMap() {
   const generateAndCacheTerrain = async (seed: number = WORLD_SEED, cacheKey: string = MAP_CACHE_KEY) => {
     try {
       // Yield so the loading label can paint before the sync Voronoi pass
-      setLoadingStatus('Shaping the world into territories...');
+      setLoadingStatus('Carving 40,000 Voronoi territories...');
       await new Promise<void>((resolve) => setTimeout(resolve, 50));
       const baseTerritories = generateBaseTerrain(seed);
       
       // Cache the base terrain (without nation ownership)
       setLoadingStatus('Caching terrain for faster future loads...');
       try {
-        // Must keep polygon vertices — without them the SVG renderer crashes
+        // 40k polygons blow localStorage (~5MB). Only cache small maps.
+        if (baseTerritories.length > 4000) {
+          console.log(`Skipping AsyncStorage cache (${baseTerritories.length} cells)`);
+        } else {
         const cacheData = baseTerritories.map(t => ({
           id: t.id,
           index: t.index,
@@ -388,6 +394,7 @@ export default function WorldMap() {
         }));
         await AsyncStorage.setItem(cacheKey, JSON.stringify(cacheData));
         console.log('Terrain cached successfully (with polygons + resources)');
+        }
       } catch (cacheError) {
         console.warn('Failed to cache terrain:', cacheError);
       }
@@ -402,7 +409,7 @@ export default function WorldMap() {
 
   // Generate the base terrain (biomes, colors) - deterministic based on seed
   const generateBaseTerrain = (seed: number = WORLD_SEED): Territory[] => {
-    setLoadingStatus('Shaping the world into territories...');
+    setLoadingStatus('Carving 40,000 Voronoi territories...');
     return generateVoronoiCells(seed, MAP_COLS, MAP_ROWS, VORONOI_CELLS, CELL_SCALE).map(cell => ({
       ...cell,
       ownerId: null,
@@ -639,6 +646,70 @@ export default function WorldMap() {
     return false;
   };
 
+  // Rasterize 40k cells to a bitmap — React cannot mount 40k SVG polygons.
+  useEffect(() => {
+    if (!territories.length) return;
+    if (typeof document === 'undefined') return;
+
+    const scale = 2;
+    const canvas = document.createElement('canvas');
+    canvas.width = MAP_WIDTH * scale;
+    canvas.height = MAP_HEIGHT * scale;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.scale(scale, scale);
+    ctx.fillStyle = '#001133';
+    ctx.fillRect(0, 0, MAP_WIDTH, MAP_HEIGHT);
+
+    for (const t of territories) {
+      if (!Array.isArray(t.polygon) || t.polygon.length < 3) continue;
+      const isOwned = !!t.ownerId;
+      const isBorder = isBorderTerritory(t);
+      ctx.beginPath();
+      ctx.moveTo(t.polygon[0][0], t.polygon[0][1]);
+      for (let i = 1; i < t.polygon.length; i++) {
+        ctx.lineTo(t.polygon[i][0], t.polygon[i][1]);
+      }
+      ctx.closePath();
+      ctx.globalAlpha =
+        t.biome === 'deep_ocean' ? 0.75 : t.biome === 'shallow_sea' ? 0.65 : isOwned ? 1 : 0.9;
+      ctx.fillStyle = getTerritoryColor(t);
+      ctx.fill();
+      const stroke = getTerritoryStroke(t, isBorder, isOwned);
+      ctx.globalAlpha = 1;
+      ctx.strokeStyle = stroke.color;
+      ctx.lineWidth = Math.min(stroke.width, 1.15) / scale;
+      ctx.stroke();
+
+      if (mapMode === 'resources' && t.resourceId) {
+        ctx.beginPath();
+        ctx.arc(t.x, t.y, 1.6, 0, Math.PI * 2);
+        ctx.fillStyle = RESOURCE_BY_ID.get(t.resourceId)?.color || '#F3F6FA';
+        ctx.fill();
+      }
+    }
+
+    setMapImageUri(canvas.toDataURL('image/png'));
+  }, [territories, mapMode, diplomaticData, terrainColors, nation]);
+
+  const handleMapPress = (event: GestureResponderEvent) => {
+    const { locationX, locationY } = event.nativeEvent;
+    const mx = locationX / zoom;
+    const my = locationY / zoom;
+    let best: Territory | null = null;
+    let bestD = Infinity;
+    for (const t of territories) {
+      const dx = t.x - mx;
+      const dy = t.y - my;
+      const d = dx * dx + dy * dy;
+      if (d < bestD) {
+        bestD = d;
+        best = t;
+      }
+    }
+    if (best) handleTerritoryPress(best);
+  };
+
   const handleZoomIn = () => setZoom(prev => Math.min(prev * 1.3, 2.5));
   const handleZoomOut = () => setZoom(prev => Math.max(prev / 1.3, 0.12));
 
@@ -822,9 +893,22 @@ export default function WorldMap() {
           contentContainerStyle={{ height: mapHeight * zoom }}
           showsVerticalScrollIndicator={true}
         >
-          <Svg width={mapWidth * zoom} height={mapHeight * zoom}>
-            {/* Pure hexagon map - perfect tiling */}
-
+        <View style={{ width: mapWidth * zoom, height: mapHeight * zoom }}>
+          <Pressable onPress={handleMapPress}>
+            {mapImageUri ? (
+              <Image
+                source={{ uri: mapImageUri }}
+                style={{ width: mapWidth * zoom, height: mapHeight * zoom }}
+                resizeMode="stretch"
+              />
+            ) : null}
+          </Pressable>
+          <Svg
+            width={mapWidth * zoom}
+            height={mapHeight * zoom}
+            style={{ position: 'absolute', left: 0, top: 0 }}
+            pointerEvents="none"
+          >
             {/* Nation territory discs - make territories visible at global zoom */}
             {nationClusters.map((cluster) => {
               const centerTerritory = territories.find(
@@ -842,55 +926,6 @@ export default function WorldMap() {
                   opacity={0.22}
                   pointerEvents="none"
                 />
-              );
-            })}
-            
-            {/* Render hexagon territories */}
-            {territories.map((territory) => {
-              if (!Array.isArray(territory.polygon) || territory.polygon.length < 3) {
-                return null;
-              }
-              const isBorder = isBorderTerritory(territory);
-              const isOwned = !!territory.ownerId;
-              const fillColor = getTerritoryColor(territory);
-              const stroke = getTerritoryStroke(territory, isBorder, isOwned);
-              
-              return (
-                <G key={territory.id}>
-                  <Polygon
-                    points={territory.polygon.map(([px, py]) => `${px * zoom},${py * zoom}`).join(' ')}
-                    fill={fillColor}
-                    stroke={stroke.color}
-                    strokeWidth={Math.max(1.0, stroke.width * zoom)}
-                    opacity={territory.biome === 'deep_ocean' ? 0.75 : territory.biome === 'shallow_sea' ? 0.65 : isOwned ? 1.0 : 0.9}
-                    onPress={() => handleTerritoryPress(territory)}
-                  />
-
-                  {/* Low-zoom invisible hit target: makes tiny cells tappable without blocking scroll at high zoom */}
-                  {zoom <= 0.3 && (
-                    <Circle
-                      cx={territory.x * zoom}
-                      cy={territory.y * zoom}
-                      r={Math.max(20, CELL_SCALE * zoom * 2)}
-                      fill="rgba(0,0,0,0.01)"
-                      stroke="none"
-                      onPress={() => handleTerritoryPress(territory)}
-                    />
-                  )}
-
-                  {/* Resource indicator for resources mode */}
-                  {mapMode === 'resources' && territory.resourceId && zoom > 0.3 && (
-                    <Circle
-                      cx={territory.x * zoom}
-                      cy={territory.y * zoom}
-                      r={Math.max(4, CELL_SCALE * zoom * 0.5)}
-                      fill={RESOURCE_BY_ID.get(territory.resourceId)?.color || '#F3F6FA'}
-                      stroke="#0B0F14"
-                      strokeWidth={1}
-                      opacity={0.9}
-                    />
-                  )}
-                </G>
               );
             })}
             
@@ -980,6 +1015,7 @@ export default function WorldMap() {
               );
             })}
           </Svg>
+        </View>
         </ScrollView>
       </ScrollView>
 

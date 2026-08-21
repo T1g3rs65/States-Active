@@ -309,7 +309,7 @@ export function generateVoronoiCells(
   seed: number = 123456,
   mapCols: number = 200,
   mapRows: number = 200,
-  cellCount: number = 1500,
+  cellCount: number = 40000,
   pixelScale: number = 6
 ): VoronoiCell[] {
   const rng = mulberry32(seed);
@@ -339,7 +339,8 @@ export function generateVoronoiCells(
   // PASS 2: seed points and Lloyd relax
   const bounds = { xmin: 0, ymin: 0, xmax: mapCols, ymax: mapRows };
   const initialPoints = generateJitteredPoints(mapCols, mapRows, cellCount, rng);
-  const relaxedPoints = lloydRelaxVoronoi(initialPoints, bounds, 5);
+  // 2 Lloyd passes: enough organic irregularity at 40k without multi-second stalls
+  const relaxedPoints = lloydRelaxVoronoi(initialPoints, bounds, 2);
 
   // PASS 3: build Delaunay/Voronoi from relaxed points
   const delaunay = Delaunay.from(relaxedPoints);
