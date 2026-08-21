@@ -10,7 +10,6 @@ import {
   Modal,
 } from 'react-native';
 import { useNationStore } from '../../store/nationStore';
-import { LinearGradient } from 'expo-linear-gradient';
 import { format } from 'date-fns';
 import { api } from '../../utils/api';
 import { useFocusEffect, useRouter } from 'expo-router';
@@ -19,68 +18,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { getNationSizeClass } from '../../utils/nationSize';
 import { getRaceTheme, getRaceName, getRaceIcon } from '../../utils/raceColors';
 import { colors, typography, spacing, radii } from '../../utils/theme';
+import { govTitle, govBlurb } from '../../utils/govCopy';
 import NewsFeed from '../../components/NewsFeed';
 import CollapsibleSection from '../../components/CollapsibleSection';
-
-// Government type descriptions
-const GOVERNMENT_DESCRIPTIONS: Record<string, string> = {
-  // Human Government Types
-  "Left-Wing Utopia": "A socialist paradise where equality reigns supreme. The state ensures all citizens have access to healthcare, education, and housing, though individual wealth accumulation is discouraged.",
-  "Scandinavian Liberal Paradise": "A balanced welfare state with high quality of life. Progressive taxation funds excellent public services while maintaining a thriving market economy.",
-  "Democratic Socialists": "Democracy with strong social safety nets. The people vote on policies that prioritize workers' rights and social welfare.",
-  "Liberal Democratic Paradise": "Freedom and opportunity in perfect harmony. Citizens enjoy extensive civil liberties alongside a robust democratic process.",
-  "Capitalist Paradise": "Free markets drive prosperity for all. Minimal regulation allows businesses to flourish and create wealth.",
-  "Corporate Police State": "Corporations rule with an iron fist. The line between government and business has been erased entirely.",
-  "Right-Wing Utopia": "Minimal government, maximum freedom. Personal responsibility and free enterprise are the highest values.",
-  "Authoritarian Democracy": "Order maintained through strong leadership. Elections occur, but the ruling party ensures stability above all else.",
-  "Benevolent Dictatorship": "A wise leader guides the nation. Civil liberties are limited, but the ruler genuinely cares for the people's wellbeing.",
-  "Iron Fist Consumerists": "Buy what you want, say what you're told. The economy thrives while political dissent is crushed.",
-  "Moralistic Democracy": "Traditional values enforced democratically. The majority has voted to uphold strict social standards.",
-  "Psychotic Dictatorship": "Fear and oppression define daily life. The ruler maintains power through terror and surveillance.",
-  "Anarchy": "Chaos reigns in the absence of order. No central authority exists, for better or worse.",
-  "Father Knows Best State": "The government knows what's best for you. Paternalistic policies guide citizens' choices for their own good.",
-  "Eco-Socialist Haven": "Environmental harmony through collective action. Green policies are prioritized alongside social welfare.",
-  "Welfare Paradise": "The state provides for all its citizens. Cradle-to-grave support ensures no one goes without.",
-  "Laissez-Faire Dynamo": "Pure capitalism unleashed. The invisible hand of the market determines all outcomes.",
-  "Tech Oligarchy": "The technological elite lead the way forward. Innovation drives society, guided by those who understand it best.",
-  "Trade Empire": "Commerce is king, trade flows freely. The nation prospers through international exchange.",
-  "Surveillance Panopticon": "All is watched, all is known. Privacy is a distant memory in this perfectly ordered society.",
-  "Theocratic Enforcers": "Divine law guides every action. Religious authority shapes all aspects of public and private life.",
-  "Martial Command": "Military discipline brings order. The generals keep the peace through strength and hierarchy.",
-  "Seastead Republic": "Freedom floats on international waters. This offshore haven operates beyond traditional national laws.",
-  "Psychedelic Free State": "Expand your mind, expand your rights. Personal freedom includes the liberty to alter one's consciousness.",
-  "Pragmatic Meritocracy": "The skilled rise to lead. Ability and achievement determine one's place in society.",
-  "Technocratic Syndicate": "Experts guide the nation rationally. Scientists and specialists make decisions based on data, not politics.",
-  "Inoffensive Centrist Democracy": "A balanced, moderate democracy. Neither radical nor revolutionary, this nation takes the middle path.",
-  "Civil Rights Lovefest": "Personal freedom above all else. The government exists solely to protect individual liberties.",
-  "Corporate Bordello": "Anything can be bought, for a price. Unregulated capitalism has created a playground for the wealthy.",
-  "Corrupt Dictatorship": "Graft and greed at the highest levels. The ruler exists to enrich themselves and their cronies.",
-  "Free-Market Paradise": "The invisible hand guides prosperity. Competition and choice drive innovation and growth.",
-  "Cyberpunk Megacity": "High tech, low life. Advanced technology exists alongside stark inequality and corporate dominance.",
-  "Pirate Haven": "Freedom and lawlessness on the high seas. This refuge welcomes those who live outside the law.",
-  "Socialist Republic": "The state controls the economy for the common good. Central planning aims to provide for all citizens equally.",
-  "People's Republic": "The party guides all aspects of society. Collective ownership and state direction shape every institution.",
-  
-  // Zythera Hive Government Types
-  "Collective Hive": "The Queen ensures all workers share equally in the hive's bounty. Resources flow freely between all castes.",
-  "Worker's Swarm": "Every Zythera labors together, equals under the benevolent Queen. The workers' council advises on daily matters.",
-  "Royal Hive": "The Queen's word is absolute law, hierarchy is sacred. Each caste knows its place in the great order.",
-  "Imperial Swarm": "The swarm expands ever outward under the conquering Queen. New territories feed the growing hive.",
-  "Divine Hive": "The Queen is worshipped as a living goddess. Religious devotion to the Mother shapes all Zytheran life.",
-  "Militant Hive": "Warriors of the hive stand ready at the Queen's command. Military strength ensures the colony's survival.",
-  "Ordered Colony": "Efficient bureaucracy serves the Queen's vision. Every task is catalogued, every worker assigned their duty.",
-  "Symbiotic Swarm": "Individual Zythera flourish in cooperative harmony. The hive supports personal growth within collective bounds.",
-  "Nurturing Hive": "The Queen tends to her children with loving care. The wellbeing of every Zythera is paramount.",
-  "Merchant Hive": "Trade and commerce bring wealth to the swarm. Zytheran goods are prized across the world.",
-  "Techno-Swarm": "Innovation drives the hive forward under a progressive Queen. Science and technology advance Zytheran civilization.",
-  "Harmonious Hive": "Balance and peace define this well-ordered colony. Neither too strict nor too free, the hive thrives.",
-  "Free Colony": "The Queen grants maximum autonomy to her subjects. Individual Zythera pursue their own paths within the hive.",
-  "Balanced Hive": "Pragmatic governance serves the hive's needs. The Queen adapts policies as circumstances require.",
-  "Diplomatic Swarm": "The Queen seeks friendship with other species. Peaceful coexistence benefits the hive and the world.",
-  "Parasitic Hive": "The swarm takes what it needs from others. Resources flow into the hive from conquered or exploited lands.",
-  "Hivemind Collective": "Individual thought merges into the Queen's will. The colony thinks and acts as one organism.",
-  "Splinter Colony": "Rival queens compete in chaotic power struggles. The hive is divided between competing loyalties.",
-};
 
 // Race descriptions
 const RACE_DESCRIPTIONS: Record<string, { description: string; lore: string }> = {
@@ -315,10 +255,10 @@ export default function Nation() {
   // Show government type description
   const showGovernmentInfo = () => {
     if (!nation?.government_type) return;
-    const description = GOVERNMENT_DESCRIPTIONS[nation.government_type] || "A unique form of governance.";
+    const description = govBlurb(nation.government_type) || "A unique form of governance.";
     setInfoModal({
       visible: true,
-      title: nation.government_type,
+      title: govTitle(nation.government_type),
       content: description
     });
   };
@@ -484,7 +424,7 @@ export default function Nation() {
           <RefreshControl refreshing={refreshing} onRefresh={refreshNation} tintColor={themeColor} />
         }
       >
-      <LinearGradient colors={[colors.surfaceSolid, colors.background]} style={styles.headerCard}>
+      <View style={styles.headerCard}>
         {renderFlag()}
         <Text style={styles.nationName}>{nation.name}</Text>
         <TouchableOpacity onPress={showRaceInfo} style={styles.raceRow} activeOpacity={0.7}>
@@ -493,13 +433,13 @@ export default function Nation() {
           <Ionicons name="information-circle-outline" size={14} color={themeColor} style={{ marginLeft: 4, opacity: 0.7 }} />
         </TouchableOpacity>
         <TouchableOpacity onPress={showGovernmentInfo} activeOpacity={0.7}>
-          <Text style={[styles.governmentType, { textDecorationLine: 'underline' }]}>{nation.government_type}</Text>
+          <Text style={[styles.governmentType, { textDecorationLine: 'underline' }]}>{govTitle(nation.government_type)}</Text>
         </TouchableOpacity>
         <Text style={[styles.sizeClass, { color: themeColor }]}>{getNationSizeClass(stats.population)}</Text>
         {nation.motto && (
           <Text style={styles.motto}>{'\u201c'}{nation.motto}{'\u201d'}</Text>
         )}
-      </LinearGradient>
+      </View>
 
       <View style={styles.actionButtons}>
         <TouchableOpacity
@@ -534,7 +474,7 @@ export default function Nation() {
             </Text>
             <Text style={styles.leaderName}>{nation.leader_name || 'Unknown Leader'}</Text>
             <TouchableOpacity onPress={showGovernmentInfo} activeOpacity={0.7}>
-              <Text style={styles.leaderGovType}>{nation.government_type}</Text>
+              <Text style={styles.leaderGovType}>{govTitle(nation.government_type)}</Text>
             </TouchableOpacity>
           </View>
         </View>

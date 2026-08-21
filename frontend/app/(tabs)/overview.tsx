@@ -12,13 +12,13 @@ import { useRouter , useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useNationStore } from '../../store/nationStore';
 import { api } from '../../utils/api';
-import { LinearGradient } from 'expo-linear-gradient';
 import { SvgXml } from 'react-native-svg';
 import DonutChart from '../../components/DonutChart';
 import { colors, typography, spacing, radii } from '../../utils/theme';
 import { getNationSizeClass } from '../../utils/nationSize';
 import { getPoliticalCompassTheme } from '../../utils/politicalCompass';
 import { getRaceTheme } from '../../utils/raceColors';
+import { govTitle } from '../../utils/govCopy';
 
 export default function Overview() {
   const router = useRouter();
@@ -225,7 +225,7 @@ export default function Overview() {
           <RefreshControl refreshing={refreshing} onRefresh={refreshNation} tintColor="#00E0C7" />
         }
       >
-      <LinearGradient colors={['#11171F', '#0B0F14']} style={styles.headerCard}>
+      <View style={styles.headerCard}>
         <View style={styles.headerTop}>
           {nation.flag_base64 && (() => {
             const isSvg = nation.flag_base64.includes('svg');
@@ -239,7 +239,7 @@ export default function Overview() {
           })()}
           <View style={styles.headerTextContainer}>
             <Text style={styles.nationName}>{nation.name}</Text>
-            <Text style={styles.governmentType}>{nation.government_type}</Text>
+            <Text style={styles.governmentType}>{govTitle(nation.government_type)}</Text>
             <Text style={[styles.sizeClass, { color: themeColor }]}>{getNationSizeClass(stats.population)}</Text>
           </View>
         </View>
@@ -262,7 +262,7 @@ export default function Overview() {
           <Text style={[styles.politicalName, { color: politicalTheme.color }]}>{politicalTheme.name}</Text>
           <Text style={styles.politicalDesc}>{politicalTheme.description}</Text>
         </View>
-      </LinearGradient>
+      </View>
 
       <View style={styles.graphTabs}>
         <TouchableOpacity 

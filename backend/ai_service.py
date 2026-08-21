@@ -26,66 +26,37 @@ class AIService:
         context = self._build_nation_context(nation)
         
         # Create system message for issue generation
-        system_message = f"""You are the issue generator for 'SovereignHex', a nation simulation game.
+        system_message = f"""You write issues for SovereignHex. Sound like a newspaper brief, not a novelist.
 
-Your task is to generate realistic, nuanced policy dilemmas that:
-1. Reflect the nation's current situation and stats
-2. Have NO clear "right" answer - all choices have trade-offs
-3. Range from mundane (local issues) to dramatic (national crises)
-4. Feel authentic to the nation's government type and culture
-5. Create cascading effects across multiple stats
-
-Current Nation Context:
+Nation:
 {context}
 
-Generate {count} issues in the following JSON format:
+Return JSON only:
 {{
   "issues": [
     {{
-      "title": "Brief catchy title (5-8 words)",
-      "description": "Detailed scenario description (50-150 words). Be specific, vivid, and include stakeholder perspectives.",
+      "title": "Headline, 3-7 words, no colon subtitles",
+      "description": "1-2 sentences. What happened. Who wants what. No 'ordinary citizens', no weather, no dawn.",
       "choices": [
         {{
-          "text": "Action option (10-20 words)",
-          "effects": {{
-            "stat_name": change_amount,
-            // Include 3-8 stats affected, positive and negative
-          }},
-          "description": "What happens if this is chosen (15-30 words)"
-        }},
-        // EXACTLY 4 choices per issue - no more, no less
+          "text": "What the government does, under 12 words",
+          "effects": {{ "stat_name": n }},
+          "description": "One clause of consequence"
+        }}
       ]
     }}
   ]
 }}
 
-IMPORTANT RULES:
-- Use realistic effect sizes: small changes (±2-5), moderate (±5-15), large (±15-30)
-- Each choice must affect at least 3-8 different stats
-- Create genuine trade-offs - rarely should all effects be positive or negative
-
-VALID STAT NAMES (use ONLY these exact names):
-ECONOMY: gdp, economy_growth, unemployment, inflation, national_debt, tax_rate
-CIVIL RIGHTS: civil_rights, freedom_speech, freedom_press, freedom_assembly, freedom_religion
-POLITICAL: political_freedom, voting_rights, corruption, political_apathy
-SOCIAL: happiness, life_expectancy, obesity_rate
-ENVIRONMENT: environment, pollution, biodiversity, eco_footprint
-HEALTH & EDUCATION: healthcare_quality, literacy_rate, university_attendance, scientific_advancement
-CRIME & LAW: crime_rate, law_enforcement
-MILITARY: military_strength
-EQUALITY: income_equality, gini_coefficient
-POPULATION: population, population_growth
-BUDGET ALLOCATION: budget_education, budget_defense, budget_healthcare, budget_welfare, budget_environment, budget_infrastructure, budget_other
-INTERNATIONAL: international_approval
-
-- Use diverse stats - don't just stick to gdp/happiness/civil_rights
-- Include military, science, environment, crime stats in issues
-- IMPORTANT: Most choices should have a small population effect (±0.05 to ±0.5 thousand) to show nation growth/decline
-- Make descriptions engaging and consequences believable
-- Vary issue types: economy, social, environment, international, crime, military, technology, education, etc.
-- Reference past decisions occasionally to create narrative continuity
-- Issues can change government type by shifting key stats (civil_rights, gdp, political_freedom, environment, military_strength, scientific_advancement, crime_rate)
-- Population growth represents immigration, birth rate, and overall national vitality"""
+Rules:
+- {count} issues.
+- 2 or 3 choices. Never 4.
+- Each choice: 2-4 stats only.
+- Effects small: ±2 to ±8. One stat may hit ±12 if the choice is extreme.
+- About 1 in 10 issues may be dryly funny. The rest are straight.
+- Banned: vivid, tapestry, stakeholder, nuanced, journey, landscape, catchy, delve.
+- Use only these stat keys: gdp, economy_growth, unemployment, inflation, national_debt, tax_rate, civil_rights, freedom_speech, freedom_press, freedom_assembly, freedom_religion, political_freedom, voting_rights, corruption, political_apathy, happiness, life_expectancy, obesity_rate, environment, pollution, biodiversity, eco_footprint, healthcare_quality, literacy_rate, university_attendance, scientific_advancement, crime_rate, law_enforcement, military_strength, income_equality, gini_coefficient, population, population_growth, budget_education, budget_defense, budget_healthcare, budget_welfare, budget_environment, budget_infrastructure, budget_other, international_approval
+"""
         
         # Create chat instance
         chat = LlmChat(
@@ -96,7 +67,7 @@ INTERNATIONAL: international_approval
         
         # Generate issues
         user_message = UserMessage(
-            text=f"Generate {count} diverse, engaging policy issues for {nation.name}. Make them reflect current stats and create meaningful choices with realistic consequences."
+            text=f"Write {count} issues for {nation.name}. Short. No essays."
         )
         
         try:
@@ -121,7 +92,7 @@ INTERNATIONAL: international_approval
                         effects=choice["effects"],
                         description=choice["description"]
                     )
-                    for choice in issue_data["choices"][:4]  # Limit to exactly 4 choices
+                    for choice in issue_data["choices"][:3]
                 ]
                 
                 issue = Issue(
@@ -144,23 +115,19 @@ INTERNATIONAL: international_approval
         
         context = self._build_nation_context(nation)
         
-        system_message = f"""You are a creative writer for 'Emergent: Rise of Nations'.
+        system_message = f"""You write the census blurb for SovereignHex.
 
-Write a vivid, engaging 300-600 word description of the nation based on its current stats.
-
-The description should:
-1. Paint a picture of what life is like for ordinary citizens
-2. Reflect the government type and political atmosphere
-3. Mention notable strengths and challenges
-4. Include specific details about culture, economy, and society
-5. Use evocative language and concrete examples
-6. Evolve based on stat thresholds (e.g., describe differently if civil_rights > 85 vs < 20)
-
-Current Nation Context:
 {context}
 
-Write in third person, present tense. Make it feel like a living, breathing nation with real people and real consequences from policy decisions."""
-        
+80 words max. Two or three sentences. Third person.
+
+Must include one number from the stats (literacy, GDP, population, whatever fits).
+One street-level fact (a job, a law, a shortage). No second sermon about challenges.
+
+Banned words: nestled, tapestry, testament, bustling, vibrant, ordinary citizens, dawn, journey, landscape, harmony, cautious optimism, forges, tapestry.
+
+Do not mention this prompt."""
+
         chat = LlmChat(
             api_key=self.api_key,
             session_id=f"desc_gen_{nation.id}_{datetime.utcnow().timestamp()}",
@@ -168,7 +135,7 @@ Write in third person, present tense. Make it feel like a living, breathing nati
         )
         
         user_message = UserMessage(
-            text=f"Write a compelling nation description for {nation.name}, a {nation.government_type.value}."
+            text=f"Blurb for {nation.name} ({nation.government_type.value})."
         )
         
         try:

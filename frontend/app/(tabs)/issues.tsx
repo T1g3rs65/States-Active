@@ -13,7 +13,6 @@ import {
 import { useNationStore } from '../../store/nationStore';
 import { api } from '../../utils/api';
 import { Issue } from '../../types';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter , useFocusEffect } from 'expo-router';
 import { getRaceTheme } from '../../utils/raceColors';
@@ -259,7 +258,7 @@ export default function Issues() {
         }
       >
         <Text style={styles.header}>Pending Issues</Text>
-        <Text style={styles.subheader}>Your nation awaits your decisions</Text>
+        <Text style={styles.subheader}>Pick one.</Text>
 
         {issues.map((issue) => (
           <TouchableOpacity
@@ -267,16 +266,16 @@ export default function Issues() {
             style={styles.issueCard}
             onPress={() => setSelectedIssue(issue)}
           >
-            <LinearGradient colors={['#11171F', '#0B0F14']} style={styles.issueCardGradient}>
+            <View style={styles.issueCardInner}>
               <Text style={styles.issueCardTitle}>{issue.title}</Text>
               <Text style={styles.issueCardPreview} numberOfLines={3}>
                 {issue.description}
               </Text>
               <View style={styles.issueCardFooter}>
                 <Text style={styles.choiceCount}>{issue.choices.length} options</Text>
-                <Text style={styles.viewButton}>View →</Text>
+                <Text style={styles.viewButton}>Open</Text>
               </View>
-            </LinearGradient>
+            </View>
           </TouchableOpacity>
         ))}
       </ScrollView>
@@ -478,7 +477,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  issueCardGradient: {
+  issueCardInner: {
     padding: 16,
     backgroundColor: colors.surfaceSolid,
   },

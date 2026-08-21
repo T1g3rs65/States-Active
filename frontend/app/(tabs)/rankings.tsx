@@ -17,6 +17,7 @@ import { SvgXml } from 'react-native-svg';
 import { useNationStore } from '../../store/nationStore';
 import { getRaceTheme } from '../../utils/raceColors';
 import { colors } from '../../utils/theme';
+import { govTitle } from '../../utils/govCopy';
 
 interface AllyInfo {
   ally_id: string;
@@ -369,7 +370,7 @@ export default function Rankings() {
                     )}
                   </View>
                   <Text style={[styles.governmentType, { color: nationColor }]}>
-                    {entry.government_type}
+                    {govTitle(entry.government_type)}
                   </Text>
                 </View>
                 <View style={styles.statContainer}>
