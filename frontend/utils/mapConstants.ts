@@ -107,8 +107,8 @@ export function officialTimezoneLabel(col: number, occupied: number[], count: nu
   if (h === -12) return 'UTC±12';
   return h > 0 ? `UTC+${h}` : `UTC${h}`;
 }
-/** Seed density 1 at equator → ~2.4 at poles. More cells = smaller polar Voronoi. */
+/** Seed density 1 at equator → 0.5 at poles. Larger polar cells, still isotropic (linear Y). */
 export function poleScale(row: number, mapRows: number = MAP_ROWS): number {
   const lat = Math.abs(row / mapRows - 0.5) * 2;
-  return 1 + 1.4 * lat;
+  return 1 - 0.5 * lat;
 }

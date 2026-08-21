@@ -45,8 +45,9 @@ const WATER_BIOMES = new Set<string>([
 const DEEP_WATER_BIOMES = new Set<string>(['abyss', 'midnight_zone', 'deep_ocean']);
 
 /**
- * Seed points. Poles get MORE seeds so cells stay small at the ice
- * (Voronoi clip + any leftover stretch otherwise makes polar fans).
+ * Seed points. Density falls toward the poles so cells are larger there,
+ * but Y is linear so they stay squat — not stretched fans.
+ * One thinned seed row is pinned on each cap so clip-cells cannot eat the ice.
  */
 function generateVariedPoints(
   mapCols: number,
@@ -78,39 +79,37 @@ function generateVariedPoints(
     for (let c = 0; c < cols; c++) {
       const cx = c * cellW + cellW / 2;
       const cy = r * cellH + cellH / 2;
-      const dens = poleScale(cy, mapRows);
-      if (rng() < Math.min(1, dens)) pushJittered(cx, cy);
-      if (dens > 1 && rng() < dens - 1) pushJittered(cx, cy);
+      if (rng() < poleScale(cy, mapRows)) {
+        pushJittered(cx, cy);
+      }
     }
   }
 
-  const polarCols = Math.ceil(cols * 1.35);
+  // Edge pins at polar spacing (not denser) so the clip boundary isn't one giant cell.
+  const polarCols = Math.max(12, Math.round(cols * poleScale(0, mapRows)));
   const polarW = mapCols / polarCols;
-  for (const frac of [0.15, 0.4, 0.7]) {
-    for (let c = 0; c < polarCols; c++) {
-      const cx = c * polarW + polarW / 2 + (rng() - 0.5) * polarW * 0.5;
-      points.push(clamp(cx, cellH * frac));
-      points.push(clamp(cx, mapRows - cellH * frac));
-    }
+  for (let c = 0; c < polarCols; c++) {
+    const cx = c * polarW + polarW / 2 + (rng() - 0.5) * polarW * 0.4;
+    points.push(clamp(cx, cellH * 0.32));
+    points.push(clamp(cx, mapRows - cellH * 0.32));
   }
 
   let guard = 0;
   while (points.length < count && guard++ < count * 8) {
     const x = rng() * mapCols;
     const y = rng() * mapRows;
-    if (rng() < poleScale(y, mapRows) / 2.4) {
+    if (rng() < poleScale(y, mapRows)) {
       points.push(clamp(x, y));
     }
   }
-  const cap = Math.round(count * 1.18);
-  if (points.length > cap) {
-    const edge = cellH * 2.2;
+  if (points.length > count) {
+    const edge = cellH * 0.7;
     const scored = points.map((p) => {
-      const polar = p[1] < edge || p[1] > mapRows - edge ? 3 : 0;
-      return { p, s: polar + rng() };
+      const pin = p[1] < edge || p[1] > mapRows - edge ? 1 : 0;
+      return { p, s: pin + rng() };
     });
     scored.sort((a, b) => b.s - a.s);
-    return scored.slice(0, cap).map((x) => x.p);
+    return scored.slice(0, count).map((x) => x.p);
   }
   return points;
 }
