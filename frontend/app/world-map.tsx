@@ -26,6 +26,7 @@ import { calculateCapacityFromPopulation } from '../utils/nationSize';
 import { generateVoronoiCells, VoronoiCell, WATER_BIOMES } from '../utils/voronoiMap';
 import { assignResourceToTile, RESOURCE_BY_ID, TIER_COLORS } from '../utils/resources';
 import { rasterizeWorldMap } from '../utils/mapPaint';
+import { terrainColor } from '../utils/biomePalette';
 import {
   MAP_COLS,
   MAP_ROWS,
@@ -245,8 +246,7 @@ export default function WorldMap() {
     
     switch (mapMode) {
       case 'terrain':
-        // Use original biome color (stored during generation)
-        return terrainColors.get(territory.id) || territory.color;
+        return terrainColor(territory.biome, terrainColors.get(territory.id) || territory.color);
         
       case 'resources':
         // Color tiles based on resource presence and tier

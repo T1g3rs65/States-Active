@@ -42,16 +42,10 @@ function mixRgb(
 
 function litColor(hex: string, shade: number, jitter: number, isWater: boolean): string {
   let [r, g, b] = parseHex(hex);
-  if (!isWater) {
-    const avg = (r + g + b) / 3;
-    const mute = 0.28;
-    r = r * (1 - mute) + (avg * 0.72 + 28) * mute;
-    g = g * (1 - mute) + (avg * 0.8 + 22) * mute;
-    b = b * (1 - mute) + (avg * 0.45 + 12) * mute;
-  }
-  r = r * shade + jitter * 12;
-  g = g * shade + jitter * 10;
-  b = b * shade + jitter * 8;
+  const s = Math.max(shade, isWater ? 0.62 : 0.78);
+  r = r * s + jitter * 8;
+  g = g * s + jitter * 8;
+  b = b * s + jitter * 6;
   return toCss(r, g, b);
 }
 
@@ -125,12 +119,12 @@ function blendedFill(
   byIndex: Map<number, Paintable>
 ): [number, number, number] {
   let rgb = parseHex(fillFor(t));
-  let w = 1;
+  const tWater = WATER_BIOMES.has(t.biome);
   for (const ni of t.neighbors || []) {
     const o = byIndex.get(ni);
     if (!o || o.biome === t.biome) continue;
-    rgb = mixRgb(rgb, parseHex(fillFor(o)), 0.28);
-    w += 0.16;
+    if (WATER_BIOMES.has(o.biome) !== tWater) continue;
+    rgb = mixRgb(rgb, parseHex(fillFor(o)), 0.22);
   }
   return rgb;
 }
