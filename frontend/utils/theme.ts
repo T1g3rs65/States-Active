@@ -1,63 +1,55 @@
-// States Design Tokens — Direction B (Sovereign dark glassmorphism)
-// Near-black bg, glass cards, dynamic national-palette accent fallback teal+gold.
+// States tokens — dark product chrome.
+// Teal + gold stay the identity. Surfaces are luminance steps, not heavy glass.
 
 import { Platform } from 'react-native';
 
 export const colors = {
-  // Canvas
-  background: '#0B0F14',
-  surface: 'rgba(17,23,31,0.72)',
-  surfaceSolid: '#11171F',
+  background: '#08090A',
+  surface: 'rgba(255,255,255,0.03)',
+  surfaceSolid: '#111317',
+  surfaceRaised: '#16181D',
   glass: {
-    base: 'rgba(255,255,255,0.06)',
-    hover: 'rgba(255,255,255,0.10)',
+    base: 'rgba(255,255,255,0.035)',
+    hover: 'rgba(255,255,255,0.06)',
     border: 'rgba(255,255,255,0.08)',
-    shine: 'rgba(255,255,255,0.12)',
+    shine: 'rgba(255,255,255,0.10)',
   },
-
-  // Text
   text: {
-    primary: '#F3F6FA',
-    secondary: 'rgba(243,246,250,0.70)',
-    muted: 'rgba(243,246,250,0.48)',
+    primary: '#F4F5F6',
+    secondary: '#B4B8C0',
+    muted: '#7C818A',
   },
-
-  // Accents (default Sovereign palette)
   accent: {
-    primary: '#00E0C7',   // electric teal
-    gold: '#F2C94C',      // gold
-    glow: 'rgba(0,224,199,0.35)',
+    primary: '#2EE6C5',
+    gold: '#E8C36A',
+    glow: 'rgba(46,230,197,0.22)',
   },
-
-  // Species primaries (adapted to dark mode)
   human: {
     primary: '#C69C6D',
     accent: '#8B5E3C',
-    glow: 'rgba(198,156,109,0.45)',
+    glow: 'rgba(198,156,109,0.35)',
     light: '#C69C6D',
   },
   zythera: {
-    primary: '#00E0C7',
-    accent: '#00B8B8',
-    glow: 'rgba(0,224,199,0.50)',
+    primary: '#2EE6C5',
+    accent: '#1AAFA0',
+    glow: 'rgba(46,230,197,0.40)',
     light: '#7FFFD4',
   },
-
-  // Semantic
-  satire: '#F2C94C',
-  success: '#27D17A',
-  danger: '#FF5A65',
-  warning: '#F2C94C',
+  satire: '#E8C36A',
+  success: '#3DCC84',
+  danger: '#F2616A',
+  warning: '#E8C36A',
   border: 'rgba(255,255,255,0.08)',
 };
 
 export const typography = {
-  display: { fontSize: 36, fontWeight: '700' as const, lineHeight: 42, letterSpacing: -0.5 },
-  title: { fontSize: 22, fontWeight: '700' as const, lineHeight: 28 },
-  headline: { fontSize: 18, fontWeight: '600' as const, lineHeight: 24 },
+  display: { fontSize: 28, fontWeight: '600' as const, lineHeight: 34, letterSpacing: -0.6 },
+  title: { fontSize: 20, fontWeight: '600' as const, lineHeight: 26, letterSpacing: -0.3 },
+  headline: { fontSize: 16, fontWeight: '600' as const, lineHeight: 22, letterSpacing: -0.15 },
   body: { fontSize: 15, fontWeight: '400' as const, lineHeight: 22 },
-  label: { fontSize: 11, fontWeight: '600' as const, letterSpacing: 0.6, textTransform: 'uppercase' as const },
-  value: { fontSize: 28, fontWeight: '700' as const, fontVariant: ['tabular-nums'] as any },
+  label: { fontSize: 11, fontWeight: '600' as const, letterSpacing: 0.8, textTransform: 'uppercase' as const },
+  value: { fontSize: 24, fontWeight: '600' as const, fontVariant: ['tabular-nums'] as any, letterSpacing: -0.4 },
   small: { fontSize: 12, fontWeight: '400' as const, lineHeight: 16 },
 };
 
@@ -71,9 +63,9 @@ export const spacing = {
 };
 
 export const radii = {
-  sm: 8,
-  md: 16,
-  lg: 20,
+  sm: 6,
+  md: 10,
+  lg: 14,
   pill: 999,
 };
 
@@ -93,17 +85,17 @@ export function glassStyle(overrides?: Record<string, any>) {
   };
 }
 
-/**
- * Cross-platform shadow for glass chrome (tab bar, cards, orbs).
- * On web uses boxShadow; on native uses elevation.
- */
 export function dropShadow(level: 'sm' | 'md' | 'lg' | 'glow' = 'md', tint: string = '#000000') {
   const opacity = level === 'sm' ? 0.16 : level === 'md' ? 0.28 : level === 'glow' ? 0.35 : 0.45;
   const radius = level === 'sm' ? 6 : level === 'md' ? 16 : level === 'glow' ? 24 : 32;
   const offset = level === 'sm' ? 2 : level === 'md' ? 6 : level === 'glow' ? 8 : 12;
+  let hex = (tint || '#000000').replace('#', '');
+  if (hex.startsWith('rgb')) hex = '000000';
+  if (hex.length === 3) hex = hex.split('').map((c) => c + c).join('');
+  if (hex.length !== 6) hex = '000000';
   if (Platform.OS === 'web') {
     return {
-      boxShadow: `0 ${offset}px ${radius}px ${tint}${Math.round(opacity * 255).toString(16).padStart(2, '0')}`,
+      boxShadow: `0 ${offset}px ${radius}px #${hex}${Math.round(opacity * 255).toString(16).padStart(2, '0')}`,
     };
   }
   return {

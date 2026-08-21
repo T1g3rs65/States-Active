@@ -1015,7 +1015,7 @@ export default function WorldMap() {
         </View>
         {!placing && (
         <TouchableOpacity onPress={zoomToMyNation} style={styles.myNationButton}>
-          <Ionicons name="locate" size={20} color="#F3F6FA" />
+        <Ionicons name="locate" size={18} color="#2EE6C5" />
         </TouchableOpacity>
         )}
       </View>
@@ -1467,8 +1467,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#11171F',
-    borderBottomWidth: 1,
+    backgroundColor: '#08090A',
+    borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: 'rgba(255,255,255,0.08)',
   },
   backButton: {
@@ -1476,20 +1476,23 @@ const styles = StyleSheet.create({
   },
   myNationButton: {
     padding: 8,
-    backgroundColor: '#00E0C7',
+    backgroundColor: 'rgba(46,230,197,0.14)',
     borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(46,230,197,0.35)',
   },
   headerCenter: {
     alignItems: 'center',
   },
   title: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
-    color: '#F3F6FA',
+    color: '#F4F5F6',
+    letterSpacing: -0.2,
   },
   subtitle: {
     fontSize: 11,
-    color: 'rgba(243,246,250,0.70)',
+    color: '#7C818A',
     marginTop: 2,
   },
   legend: {

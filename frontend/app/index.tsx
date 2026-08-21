@@ -210,7 +210,7 @@ function FeatureItem({ icon, text }: { icon: keyof typeof Ionicons.glyphMap; tex
   );
 }
 
-const landingGradient: readonly [string, string, string] = [colors.background, colors.surfaceSolid, 'rgba(255,255,255,0.04)'];
+const landingGradient: readonly [string, string] = [colors.background, colors.background];
 
 const styles = StyleSheet.create({
   container: {
@@ -270,14 +270,14 @@ const styles = StyleSheet.create({
     zIndex: 0,
   },
   title: {
-    ...typography.title,
+    ...typography.display,
     color: colors.text.primary,
     marginBottom: spacing.sm,
     textAlign: 'center',
   },
   subtitle: {
     ...typography.body,
-    color: colors.text.secondary,
+    color: colors.text.muted,
     marginBottom: spacing.xl,
     textAlign: 'center',
   },

@@ -16,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { SvgXml } from 'react-native-svg';
 import { useNationStore } from '../../store/nationStore';
 import { getRaceTheme } from '../../utils/raceColors';
+import { colors } from '../../utils/theme';
 
 interface AllyInfo {
   ally_id: string;
@@ -400,23 +401,24 @@ export default function Rankings() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0B0F14',
+    backgroundColor: colors.background,
   },
   topHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingTop: 48,
+    paddingTop: 44,
     paddingBottom: 12,
-    backgroundColor: '#11171F',
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: colors.background,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.border,
   },
   topHeaderTitle: {
     fontSize: 20,
-    fontWeight: '700',
-    color: '#F3F6FA',
+    fontWeight: '600',
+    color: colors.text.primary,
+    letterSpacing: -0.3,
   },
   headerButtons: {
     flexDirection: 'row',

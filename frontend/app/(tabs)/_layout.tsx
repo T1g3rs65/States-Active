@@ -1,9 +1,9 @@
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useNationStore } from '../../store/nationStore';
-import { View, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { getRaceTheme } from '../../utils/raceColors';
-import { colors, spacing, typography } from '../../utils/theme';
+import { colors, spacing } from '../../utils/theme';
 
 export default function TabLayout() {
   const { nation } = useNationStore();
@@ -18,6 +18,7 @@ export default function TabLayout() {
         tabBarStyle: styles.tabBar,
         headerShown: false,
         tabBarLabelStyle: styles.tabLabel,
+        tabBarItemStyle: styles.tabItem,
       }}
     >
       <Tabs.Screen
@@ -25,7 +26,7 @@ export default function TabLayout() {
         options={{
           title: 'Nation',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="flag" size={size} color={color} />
+            <Ionicons name="flag-outline" size={size} color={color} />
           ),
         }}
       />
@@ -34,7 +35,7 @@ export default function TabLayout() {
         options={{
           title: 'Issues',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="newspaper" size={size} color={color} />
+            <Ionicons name="newspaper-outline" size={size} color={color} />
           ),
         }}
       />
@@ -43,7 +44,7 @@ export default function TabLayout() {
         options={{
           title: 'Rankings',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="trophy" size={size} color={color} />
+            <Ionicons name="trophy-outline" size={size} color={color} />
           ),
         }}
       />
@@ -52,22 +53,13 @@ export default function TabLayout() {
         options={{
           title: 'More',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="apps" size={size} color={color} />
+            <Ionicons name="grid-outline" size={size} color={color} />
           ),
         }}
       />
-      <Tabs.Screen
-        name="overview"
-        options={{ href: null }}
-      />
-      <Tabs.Screen
-        name="advisors"
-        options={{ href: null }}
-      />
-      <Tabs.Screen
-        name="industry"
-        options={{ href: null }}
-      />
+      <Tabs.Screen name="overview" options={{ href: null }} />
+      <Tabs.Screen name="advisors" options={{ href: null }} />
+      <Tabs.Screen name="industry" options={{ href: null }} />
     </Tabs>
   );
 }
@@ -75,14 +67,18 @@ export default function TabLayout() {
 const styles = StyleSheet.create({
   tabBar: {
     backgroundColor: colors.background,
-    borderTopColor: colors.glass.border,
-    borderTopWidth: 1,
-    height: 64,
+    borderTopColor: colors.border,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    height: 62,
     paddingBottom: spacing.sm,
-    paddingTop: spacing.xs,
+    paddingTop: 6,
+  },
+  tabItem: {
+    paddingTop: 2,
   },
   tabLabel: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '600',
+    letterSpacing: 0.2,
   },
 });
