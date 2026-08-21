@@ -390,12 +390,12 @@ export default function Nation() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: leaningWash(nation, 0.08) }]}>
+    <View style={[styles.container, { backgroundColor: leaningWash(nation, 0.06) }]}>
       {/* Top Header Bar */}
       <View
         style={[
           styles.topHeader,
-          { backgroundColor: leaningWash(nation, 0.18), borderBottomColor: themeColor, borderBottomWidth: 2 },
+          { backgroundColor: leaningWash(nation, 0.09), borderBottomColor: themeColor, borderBottomWidth: 2 },
         ]}
       >
         <Text style={styles.topHeaderTitle}>{nation.name}</Text>
@@ -433,7 +433,7 @@ export default function Nation() {
       <View
         style={[
           styles.headerCard,
-          { backgroundColor: leaningWash(nation, 0.2), borderColor: themeColor, borderWidth: 1 },
+          { backgroundColor: leaningWash(nation, 0.10), borderColor: themeColor, borderWidth: 1 },
         ]}
       >
         {renderFlag()}
@@ -454,7 +454,7 @@ export default function Nation() {
 
       <View style={styles.actionButtons}>
         <TouchableOpacity
-          style={[styles.actionButton, { borderColor: themeColor, backgroundColor: leaningWash(nation, 0.22) }]}
+          style={[styles.actionButton, { borderColor: themeColor, backgroundColor: leaningWash(nation, 0.12) }]}
           onPress={() => router.push('/world-map')}
         >
           <Ionicons name="globe" size={16} color={colors.text.primary} style={{ marginRight: 8 }} />
@@ -462,7 +462,7 @@ export default function Nation() {
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.actionButton, { borderColor: themeColor, backgroundColor: leaningWash(nation, 0.22) }]}
+          style={[styles.actionButton, { borderColor: themeColor, backgroundColor: leaningWash(nation, 0.12) }]}
           onPress={() => router.push('/policies')}
         >
           <Ionicons name="document-text" size={16} color={colors.text.primary} style={{ marginRight: 8 }} />

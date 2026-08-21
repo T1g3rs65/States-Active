@@ -19,7 +19,7 @@ export default function ScreenHeader({ title, subtitle, onBack, right }: Props) 
     <View
       style={[
         styles.wrap,
-        { backgroundColor: leaningWash(nation, 0.16), borderBottomColor: tint, borderBottomWidth: 2 },
+        { backgroundColor: leaningWash(nation, 0.08), borderBottomColor: tint, borderBottomWidth: 2 },
       ]}
     >
       <View style={styles.row}>

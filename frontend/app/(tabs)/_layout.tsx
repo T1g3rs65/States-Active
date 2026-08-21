@@ -2,7 +2,7 @@ import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useNationStore } from '../../store/nationStore';
 import { StyleSheet } from 'react-native';
-import { leaningColor, hexAlpha } from '../../utils/politicalCompass';
+import { leaningColor, leaningWash } from '../../utils/politicalCompass';
 import { colors, spacing } from '../../utils/theme';
 
 export default function TabLayout() {
@@ -16,7 +16,7 @@ export default function TabLayout() {
         tabBarInactiveTintColor: colors.text.muted,
         tabBarStyle: [
           styles.tabBar,
-          { borderTopColor: themeColor, borderTopWidth: 2, backgroundColor: hexAlpha(themeColor, 0.12) },
+          { borderTopColor: themeColor, borderTopWidth: 2, backgroundColor: leaningWash(nation, 0.08) },
         ],
         headerShown: false,
         tabBarLabelStyle: styles.tabLabel,

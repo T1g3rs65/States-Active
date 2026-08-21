@@ -73,6 +73,27 @@ export function hexAlpha(hex: string, a: number): string {
   return `rgba(${r},${g},${b},${a})`;
 }
 
-export function leaningWash(nation: Parameters<typeof leaningColor>[0], a = 0.1): string {
-  return hexAlpha(leaningColor(nation), a);
+function parseRgb(hex: string): [number, number, number] {
+  const h = (hex || '#000000').replace('#', '');
+  const n = h.length === 3 ? h.split('').map((c) => c + c).join('') : h;
+  return [
+    parseInt(n.slice(0, 2), 16) || 0,
+    parseInt(n.slice(2, 4), 16) || 0,
+    parseInt(n.slice(4, 6), 16) || 0,
+  ];
+}
+
+/** Opaque blend of accent into the dark canvas — never a transparent wash over white. */
+export function mixIntoDark(hex: string, amount: number, base = '#08090A'): string {
+  const t = Math.max(0, Math.min(1, amount));
+  const [tr, tg, tb] = parseRgb(hex);
+  const [br, bg, bb] = parseRgb(base);
+  const r = Math.round(br + (tr - br) * t);
+  const g = Math.round(bg + (tg - bg) * t);
+  const b = Math.round(bb + (tb - bb) * t);
+  return `rgb(${r},${g},${b})`;
+}
+
+export function leaningWash(nation: Parameters<typeof leaningColor>[0], a = 0.08): string {
+  return mixIntoDark(leaningColor(nation), a);
 }

@@ -177,7 +177,7 @@ export default function Issues() {
     <View
       style={[
         styles.topHeader,
-        { backgroundColor: leaningWash(nation, 0.18), borderBottomColor: themeColor, borderBottomWidth: 2 },
+        { backgroundColor: leaningWash(nation, 0.09), borderBottomColor: themeColor, borderBottomWidth: 2 },
       ]}
     >
       <Text style={styles.topHeaderTitle}>Issues</Text>
@@ -251,7 +251,7 @@ export default function Issues() {
 
   // Always render wrapper with modal
   return (
-    <View style={[styles.container, { backgroundColor: leaningWash(nation, 0.08) }]}>
+    <View style={[styles.container, { backgroundColor: leaningWash(nation, 0.06) }]}>
       {renderHeader()}
       {renderContent()}
       
@@ -271,7 +271,7 @@ export default function Issues() {
             key={issue.id || issue._id}
             style={[
               styles.issueCard,
-              { borderColor: themeColor, borderLeftWidth: 4, backgroundColor: leaningWash(nation, 0.12) },
+              { borderColor: themeColor, borderLeftWidth: 4, backgroundColor: leaningWash(nation, 0.08) },
             ]}
             onPress={() => setSelectedIssue(issue)}
           >

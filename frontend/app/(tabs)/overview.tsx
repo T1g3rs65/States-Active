@@ -193,12 +193,12 @@ export default function Overview() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: leaningWash(nation, 0.08) }]}>
+    <View style={[styles.container, { backgroundColor: leaningWash(nation, 0.06) }]}>
       {/* Header */}
       <View
         style={[
           styles.topHeader,
-          { backgroundColor: leaningWash(nation, 0.18), borderBottomColor: themeColor, borderBottomWidth: 2 },
+          { backgroundColor: leaningWash(nation, 0.09), borderBottomColor: themeColor, borderBottomWidth: 2 },
         ]}
       >
         <Text style={styles.topHeaderTitle}>Statistics</Text>
@@ -233,7 +233,7 @@ export default function Overview() {
       <View
         style={[
           styles.headerCard,
-          { backgroundColor: leaningWash(nation, 0.2), borderColor: themeColor, borderWidth: 1 },
+          { backgroundColor: leaningWash(nation, 0.10), borderColor: themeColor, borderWidth: 1 },
         ]}
       >
         <View style={styles.headerTop}>
