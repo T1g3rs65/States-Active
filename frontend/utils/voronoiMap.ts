@@ -43,34 +43,64 @@ const WATER_BIOMES = new Set<string>([
 const DEEP_WATER_BIOMES = new Set<string>(['abyss', 'midnight_zone', 'deep_ocean']);
 
 /**
- * Generate jittered seed points so cells are roughly evenly spaced
- * without the regularity of a grid.
+ * Seed points with spatially varying density so Voronoi cells are NOT a
+ * uniform honeycomb. Land gets smaller cells, ocean larger ones, plus
+ * noisy clumps. Full-cell jitter so it doesn't read as a warped grid.
  */
-function generateJitteredPoints(
+function generateVariedPoints(
   mapCols: number,
   mapRows: number,
   count: number,
-  rng: () => number
+  rng: () => number,
+  noise: SimplexNoise
 ): Array<[number, number]> {
   const points: Array<[number, number]> = [];
   const area = mapCols * mapRows;
-  const cellArea = area / count;
-  const cellSize = Math.sqrt(cellArea);
+  const cellSize = Math.sqrt(area / count) * 0.82;
   const cols = Math.ceil(mapCols / cellSize);
   const rows = Math.ceil(mapRows / cellSize);
-  const actualCellW = mapCols / cols;
-  const actualCellH = mapRows / rows;
+  const cellW = mapCols / cols;
+  const cellH = mapRows / rows;
+
+  const clamp = (x: number, y: number): [number, number] => [
+    Math.max(0.01, Math.min(mapCols - 0.01, x)),
+    Math.max(0.01, Math.min(mapRows - 0.01, y)),
+  ];
+
+  const pushJittered = (cx: number, cy: number) => {
+    const jx = (rng() - 0.5) * cellW * 0.98;
+    const jy = (rng() - 0.5) * cellH * 0.98;
+    points.push(clamp(cx + jx, cy + jy));
+  };
 
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
-      const jitterX = (rng() - 0.5) * actualCellW * 0.8;
-      const jitterY = (rng() - 0.5) * actualCellH * 0.8;
-      let x = c * actualCellW + actualCellW / 2 + jitterX;
-      let y = r * actualCellH + actualCellH / 2 + jitterY;
-      x = Math.max(0.01, Math.min(mapCols - 0.01, x));
-      y = Math.max(0.01, Math.min(mapRows - 0.01, y));
-      points.push([x, y]);
+      const cx = c * cellW + cellW / 2;
+      const cy = r * cellH + cellH / 2;
+      const continent = (noise.fbm(cx * 0.002, cy * 0.002, 3, 0.5) + 1) * 0.5;
+      const clump = (noise.fbm(cx * 0.045 + 40, cy * 0.045 - 17, 2, 0.55) + 1) * 0.5;
+      const density = 0.18 + continent * 0.9 + clump * 0.4;
+
+      if (rng() < Math.min(0.95, density * 0.62)) {
+        pushJittered(cx, cy);
+      }
+      if (rng() < density * 0.28) {
+        pushJittered(cx, cy);
+      }
     }
+  }
+
+  while (points.length < count) {
+    points.push(clamp(rng() * mapCols, rng() * mapRows));
+  }
+  if (points.length > count) {
+    for (let i = points.length - 1; i > 0; i--) {
+      const j = Math.floor(rng() * (i + 1));
+      const tmp = points[i];
+      points[i] = points[j];
+      points[j] = tmp;
+    }
+    points.length = count;
   }
   return points;
 }
@@ -109,7 +139,8 @@ function polygonCentroid(poly: number[][]): [number, number] {
 function lloydRelaxVoronoi(
   initialPoints: Array<[number, number]>,
   bounds: { xmin: number; ymin: number; xmax: number; ymax: number },
-  iterations: number
+  iterations: number,
+  blend: number = 1
 ): Array<[number, number]> {
   let points = initialPoints.map(p => [...p] as [number, number]);
 
@@ -126,9 +157,13 @@ function lloydRelaxVoronoi(
     for (const poly of voronoi.cellPolygons()) {
       const index = poly.index;
       const [cx, cy] = polygonCentroid(poly);
+      const ox = points[index]?.[0] ?? cx;
+      const oy = points[index]?.[1] ?? cy;
+      const nx = ox + (cx - ox) * blend;
+      const ny = oy + (cy - oy) * blend;
       nextPoints[index] = [
-        Math.max(bounds.xmin + 0.01, Math.min(bounds.xmax - 0.01, cx)),
-        Math.max(bounds.ymin + 0.01, Math.min(bounds.ymax - 0.01, cy)),
+        Math.max(bounds.xmin + 0.01, Math.min(bounds.xmax - 0.01, nx)),
+        Math.max(bounds.ymin + 0.01, Math.min(bounds.ymax - 0.01, ny)),
       ];
       i++;
     }
@@ -338,9 +373,10 @@ export function generateVoronoiCells(
 
   // PASS 2: seed points and Lloyd relax
   const bounds = { xmin: 0, ymin: 0, xmax: mapCols, ymax: mapRows };
-  const initialPoints = generateJitteredPoints(mapCols, mapRows, cellCount, rng);
-  // 2 Lloyd passes: enough organic irregularity at 40k without multi-second stalls
-  const relaxedPoints = lloydRelaxVoronoi(initialPoints, bounds, 2);
+  const initialPoints = generateVariedPoints(mapCols, mapRows, cellCount, rng, noise);
+  // One light Lloyd pass (30% toward centroid) kills needle cells without
+  // evening sizes back into a honeycomb.
+  const relaxedPoints = lloydRelaxVoronoi(initialPoints, bounds, 1, 0.3);
 
   // PASS 3: build Delaunay/Voronoi from relaxed points
   const delaunay = Delaunay.from(relaxedPoints);
