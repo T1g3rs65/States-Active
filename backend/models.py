@@ -236,6 +236,7 @@ class Nation(BaseModel):
     # Territory on world map
     territory_center_col: int = 0  # X position on map
     territory_center_row: int = 0  # Y position on map
+    cities: List[Dict[str, int]] = Field(default_factory=list)  # [{col, row}] extra hubs
     
     # Territory counts by biome type (for industry system)
     territory_counts: Dict[str, int] = Field(default_factory=dict)

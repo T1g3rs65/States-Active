@@ -127,6 +127,26 @@ export const api = {
     });
     return response.json();
   },
+
+  addCity: async (nationId: string, col: number, row: number) => {
+    const response = await fetch(`${API_URL}/api/nations/${nationId}/cities`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ col, row }),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.detail || 'Could not found city');
+    return data;
+  },
+
+  setCities: async (nationId: string, cities: { col: number; row: number }[]) => {
+    const response = await fetch(`${API_URL}/api/nations/${nationId}/cities`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cities }),
+    });
+    return response.json();
+  },
   
   // Rankings
   getRankings: async (statName: string, limit = 100, worldId?: string) => {

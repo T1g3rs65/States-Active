@@ -217,6 +217,21 @@ def capacity_from_population(population: float) -> int:
     return 5000
 
 
+def extra_city_count(population: float) -> int:
+    cap = capacity_from_population(population)
+    if cap < 40:
+        return 0
+    if cap < 150:
+        return 1
+    if cap < 500:
+        return 2
+    if cap < 1200:
+        return 3
+    if cap < 2500:
+        return 4
+    return 5
+
+
 def validate_capital_site(col: int, row: int, seed: int, others: list) -> str:
     """others: list of (col, row, population). Empty string if ok."""
     col = int(col) % _MAP_COLS

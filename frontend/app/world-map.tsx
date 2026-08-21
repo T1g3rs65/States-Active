@@ -24,7 +24,7 @@ import { api } from '../utils/api';
 import { colorsFromFlag } from '../utils/flagColors';
 import { colonizeFromCapitals } from '../utils/borders';
 import { calculateCapacityFromPopulation } from '../utils/nationSize';
-import { pickSecondaryCities, CitySite } from '../utils/cities';
+import { pickSecondaryCities, extraCityCount, cityRejectReason, CitySite } from '../utils/cities';
 import { generateVoronoiCells, VoronoiCell, WATER_BIOMES } from '../utils/voronoiMap';
 import { assignResourceToTile, RESOURCE_BY_ID, TIER_COLORS } from '../utils/resources';
 import { rasterizeWorldMap } from '../utils/mapPaint';
@@ -129,6 +129,7 @@ export default function WorldMap() {
   const userHasZoomed = useRef(false);
   const [mapMode, setMapMode] = useState<MapMode>('political');
   const [showModeDropdown, setShowModeDropdown] = useState(false);
+  const [foundingCity, setFoundingCity] = useState(false);
   const tzPolicyRef = useRef<Map<string, { bands: number[]; count: number }>>(new Map());
 
   // Direct URL /world-map.html is not the game — send them home.
@@ -536,6 +537,8 @@ export default function WorldMap() {
         secondary: string;
         timezoneCount: number | null;
         population: number;
+        cities: CitySite[];
+        npc: boolean;
       }[] = [];
       
       let totalCapacity = 0;
@@ -568,6 +571,8 @@ export default function WorldMap() {
             secondary: palette.secondary,
             timezoneCount: nationData.timezone_count ?? null,
             population: nationData.stats.population || 0,
+            cities: Array.isArray(nationData.cities) ? nationData.cities : [],
+            npc: String(nationData.user_id || '').startsWith('test_npc_'),
           });
         } catch (error) {
           console.error(`Error loading nation:`, error);
@@ -623,22 +628,32 @@ export default function WorldMap() {
       let claims = colonizeFromCapitals(cellInput, capitalSeeds, isWater, noiseFn);
 
       const cityByNation = new Map<string, { col: number; row: number }[]>();
+      const playerId = nation?.id || nation?._id;
       for (const seed of nationSeeds) {
+        if (seed.cities.length) {
+          cityByNation.set(seed.nationId, seed.cities);
+          continue;
+        }
+        if (playerId && seed.nationId === playerId) {
+          cityByNation.set(seed.nationId, []);
+          continue;
+        }
         const owned = workingTerritories.filter(t => claims.get(t.index) === seed.nationId);
-        cityByNation.set(
-          seed.nationId,
-          pickSecondaryCities(
-            owned.map(t => ({
-              col: t.col,
-              row: t.row,
-              biome: t.biome,
-              resourceId: t.resourceId,
-              nearWater: t.nearWater,
-            })),
-            { col: seed.col, row: seed.row },
-            seed.population
-          )
+        const picked = pickSecondaryCities(
+          owned.map(t => ({
+            col: t.col,
+            row: t.row,
+            biome: t.biome,
+            resourceId: t.resourceId,
+            nearWater: t.nearWater,
+          })),
+          { col: seed.col, row: seed.row },
+          seed.population
         );
+        cityByNation.set(seed.nationId, picked);
+        if (picked.length && seed.npc) {
+          api.setCities(seed.nationId, picked).catch(() => {});
+        }
       }
 
       const anchors = new Map<string, Array<{ col: number; row: number }>>();
@@ -675,7 +690,6 @@ export default function WorldMap() {
         nextTz.set(seed.nationId, { bands, count });
       }
       tzPolicyRef.current = nextTz;
-      const playerId = nation?.id || nation?._id;
       if (playerId && nextTz.has(playerId)) {
         const p = nextTz.get(playerId)!;
         api.reportTimezoneGeo(playerId, p.bands.length, p.bands).catch(() => {});
@@ -715,16 +729,8 @@ export default function WorldMap() {
           centerRow,
           capitalCol: seed.col,
           capitalRow: seed.row,
-          cities: pickSecondaryCities(
-            owned.map(t => ({
-              col: t.col,
-              row: t.row,
-              biome: t.biome,
-              resourceId: t.resourceId,
-              nearWater: t.nearWater,
-            })),
-            { col: seed.col, row: seed.row },
-            seed.population
+          cities: (cityByNation.get(seed.nationId) || []).filter((c) =>
+            owned.some((t) => Math.hypot(wrapDx(t.col - c.col), t.row - c.row) < 2.5)
           ),
           color: seed.primary,
           discRadius,
@@ -852,7 +858,53 @@ export default function WorldMap() {
       void confirmCapital(territory);
       return;
     }
+    if (foundingCity) {
+      void confirmCity(territory);
+      return;
+    }
     setSelectedTerritory(territory);
+  };
+
+  const confirmCity = async (territory: Territory) => {
+    const playerId = nation?.id || nation?._id;
+    if (!playerId || placingBusy.current) return;
+    const mine = nationClusters.find((c) => c.nationId === playerId);
+    const slots = extraCityCount(nation?.stats?.population || 0);
+    const have = mine?.cities?.length || 0;
+    const err = cityRejectReason(
+      territory,
+      { col: mine?.capitalCol ?? nation?.territory_center_col ?? 0, row: mine?.capitalRow ?? nation?.territory_center_row ?? 0 },
+      mine?.cities || [],
+      playerId,
+      WATER_BIOMES,
+      slots - have
+    );
+    if (err) {
+      Alert.alert('Cannot found here', err);
+      return;
+    }
+    placingBusy.current = true;
+    Alert.alert(
+      'Found a city here?',
+      `${territory.biome.replace(/_/g, ' ')} — it will pull nearby land toward you.`,
+      [
+        { text: 'Cancel', style: 'cancel', onPress: () => { placingBusy.current = false; } },
+        {
+          text: 'Found city',
+          onPress: async () => {
+            try {
+              await api.addCity(playerId, Math.round(territory.col), Math.round(territory.row));
+              setFoundingCity(false);
+              placingBusy.current = false;
+              await loadMap();
+            } catch (e: any) {
+              placingBusy.current = false;
+              Alert.alert('Could not found here', e?.message || 'Try another tile.');
+            }
+          },
+        },
+      ]
+    );
   };
 
   const confirmCapital = async (territory: Territory) => {
@@ -931,6 +983,12 @@ export default function WorldMap() {
     }
   };
 
+  const myId = nation?.id || nation?._id;
+  const myCluster = nationClusters.find((c) => c.nationId === myId);
+  const citySlots = extraCityCount(nation?.stats?.population || 0);
+  const cityHave = myCluster?.cities?.length || 0;
+  const cityLeft = Math.max(0, citySlots - cityHave);
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -952,8 +1010,8 @@ export default function WorldMap() {
           <Ionicons name="arrow-back" size={24} color="#00E0C7" />
         </TouchableOpacity>
         <View style={styles.headerCenter}>
-          <Text style={styles.title}>{placing ? 'Place Capital' : 'World Map'}</Text>
-          <Text style={styles.subtitle}>{placing ? 'Tap unclaimed land' : 'Voronoi Territories'}</Text>
+          <Text style={styles.title}>{placing ? 'Place Capital' : foundingCity ? 'Found a City' : 'World Map'}</Text>
+          <Text style={styles.subtitle}>{placing ? 'Tap unclaimed land' : foundingCity ? 'Tap your connected land' : 'Voronoi Territories'}</Text>
         </View>
         {!placing && (
         <TouchableOpacity onPress={zoomToMyNation} style={styles.myNationButton}>
@@ -1006,6 +1064,29 @@ export default function WorldMap() {
         )}
         
       </View>
+
+      {!placing && nation && citySlots > 0 && (
+        <View style={styles.cityBar}>
+          <Text style={styles.cityBarText}>
+            {foundingCity
+              ? 'Tap your land — not water, not too close to another star'
+              : cityLeft
+                ? `Cities ${cityHave}/${citySlots} — grow to unlock more`
+                : `Cities ${cityHave}/${citySlots} — at cap until you grow`}
+          </Text>
+          {cityLeft > 0 && (
+            <TouchableOpacity
+              style={[styles.cityBarBtn, foundingCity && styles.cityBarBtnOn]}
+              onPress={() => setFoundingCity((v) => !v)}
+            >
+              <Ionicons name="star" size={14} color={foundingCity ? '#0B0F14' : '#F2C94C'} />
+              <Text style={[styles.cityBarBtnText, foundingCity && { color: '#0B0F14' }]}>
+                {foundingCity ? 'Cancel' : `Found city (${cityLeft} left)`}
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
 
       {/* Map Mode Dropdown Modal */}
       <Modal
@@ -1535,6 +1616,39 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255,255,255,0.08)',
     gap: 12,
+  },
+  cityBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: '#0E141C',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(242,201,76,0.18)',
+    gap: 10,
+  },
+  cityBarText: {
+    color: 'rgba(243,246,250,0.72)',
+    fontSize: 12,
+    flex: 1,
+  },
+  cityBarBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(242,201,76,0.12)',
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 8,
+  },
+  cityBarBtnOn: {
+    backgroundColor: '#F2C94C',
+  },
+  cityBarBtnText: {
+    color: '#F2C94C',
+    fontSize: 12,
+    fontWeight: '700',
   },
   mapModeSelector: {
     flexDirection: 'row',

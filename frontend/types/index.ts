@@ -79,6 +79,7 @@ export interface Nation {
   timezone_count?: number | null;
   timezone_geo_max?: number;
   timezone_bands?: number[];
+  cities?: { col: number; row: number }[];
 }
 
 export interface Advisor {

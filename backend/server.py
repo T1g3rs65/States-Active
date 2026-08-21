@@ -8,6 +8,7 @@ from bson import ObjectId
 import os
 import logging
 import json
+import math
 import asyncio
 from pathlib import Path
 from datetime import datetime, timedelta
@@ -31,7 +32,7 @@ from ai_service import AIService
 from economy_utils import calculate_realistic_gdp, format_gdp_display
 from budget_utils import normalize_budget
 from advisor_utils import generate_advisors, regenerate_advisor_names
-from terrain_utils import find_land_position, is_land_tile, validate_capital_site
+from terrain_utils import find_land_position, is_land_tile, validate_capital_site, extra_city_count, _wrap_dx, _MAP_COLS
 from advisor_effects import apply_daily_ticks, publicize_advisors, reveal_trust, ROLE
 from race_service import get_races_for_api, get_race_ai_description, is_race_enabled, get_race_display_info
 from grok_client import LlmChat, UserMessage
@@ -554,6 +555,60 @@ async def set_timezone_geo(nation_id: str, body: dict):
         {"$set": {"timezone_geo_max": geo_max, "timezone_bands": bands}}
     )
     return {"success": True, "geo_max": geo_max, "bands": bands}
+
+@api_router.post("/nations/{nation_id}/cities")
+async def add_city(nation_id: str, body: dict):
+    from bson import ObjectId
+    nation = await db.nations.find_one({"_id": ObjectId(nation_id)})
+    if not nation:
+        raise HTTPException(status_code=404, detail="Nation not found")
+    col = int(body.get("col") or -1)
+    row = int(body.get("row") or -1)
+    if col < 0 or row < 0:
+        raise HTTPException(status_code=400, detail="Need a map tile.")
+    world_seed = 123456
+    try:
+        wid = nation.get("world_id")
+        if wid:
+            world = await db.worlds.find_one({"_id": ObjectId(wid)})
+            if world and world.get("map_seed") is not None:
+                world_seed = int(world["map_seed"])
+    except Exception:
+        pass
+    if not is_land_tile(col, row, world_seed):
+        raise HTTPException(status_code=400, detail="Cities must sit on land.")
+    cap_col = int(nation.get("territory_center_col") or 0)
+    cap_row = int(nation.get("territory_center_row") or 0)
+    if math.hypot(_wrap_dx(col, cap_col), row - cap_row) < 8:
+        raise HTTPException(status_code=400, detail="Too close to the capital.")
+    cities = list(nation.get("cities") or [])
+    pop = (nation.get("stats") or {}).get("population") or 0
+    max_n = extra_city_count(pop)
+    replace = bool(body.get("replace"))
+    if replace:
+        cities = []
+    if len(cities) >= max_n:
+        raise HTTPException(status_code=400, detail="No city slots left. Grow first.")
+    for c in cities:
+        if math.hypot(_wrap_dx(col, int(c.get("col", 0))), row - int(c.get("row", 0))) < 12:
+            raise HTTPException(status_code=400, detail="Too close to another city.")
+    cities.append({"col": int(col) % _MAP_COLS, "row": int(row)})
+    await db.nations.update_one({"_id": ObjectId(nation_id)}, {"$set": {"cities": cities}})
+    return {"success": True, "cities": cities, "slots": max_n}
+
+@api_router.put("/nations/{nation_id}/cities")
+async def set_cities(nation_id: str, body: dict):
+    """NPC / seed helper. Clamps to slot cap."""
+    from bson import ObjectId
+    nation = await db.nations.find_one({"_id": ObjectId(nation_id)})
+    if not nation:
+        raise HTTPException(status_code=404, detail="Nation not found")
+    pop = (nation.get("stats") or {}).get("population") or 0
+    max_n = extra_city_count(pop)
+    raw = body.get("cities") or []
+    cities = [{"col": int(c["col"]) % _MAP_COLS, "row": int(c["row"])} for c in raw][:max_n]
+    await db.nations.update_one({"_id": ObjectId(nation_id)}, {"$set": {"cities": cities}})
+    return {"success": True, "cities": cities, "slots": max_n}
 
 # ============== Issues Endpoints ==============
 

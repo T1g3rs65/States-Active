@@ -3,6 +3,9 @@ import { wrapDx } from './mapConstants';
 
 export type CitySite = { col: number; row: number };
 
+export const MIN_CITY_FROM_CAPITAL = 8;
+export const MIN_CITY_SPACING = 12;
+
 export function extraCityCount(population: number): number {
   const cap = calculateCapacityFromPopulation(population);
   if (cap < 40) return 0;
@@ -17,9 +20,31 @@ type Cell = {
   col: number;
   row: number;
   biome: string;
+  ownerId?: string | null;
   resourceId?: string | null;
   nearWater?: boolean;
 };
+
+export function cityRejectReason(
+  cell: Cell,
+  capital: CitySite,
+  existing: CitySite[],
+  playerId: string,
+  water: Set<string>,
+  slotsLeft: number
+): string | null {
+  if (slotsLeft <= 0) return 'No city slots left — grow your nation first.';
+  if (water.has(cell.biome)) return 'Cities need land, not water.';
+  if (!cell.ownerId || cell.ownerId !== playerId) return 'Only on your own connected land.';
+  const dCap = Math.hypot(wrapDx(cell.col - capital.col), cell.row - capital.row);
+  if (dCap < MIN_CITY_FROM_CAPITAL) return 'Too close to the capital.';
+  for (const c of existing) {
+    if (Math.hypot(wrapDx(cell.col - c.col), cell.row - c.row) < MIN_CITY_SPACING) {
+      return 'Too close to another city.';
+    }
+  }
+  return null;
+}
 
 export function pickSecondaryCities(
   owned: Cell[],
@@ -32,7 +57,7 @@ export function pickSecondaryCities(
   const scored = owned
     .map((c) => {
       const dCap = Math.hypot(wrapDx(c.col - capital.col), c.row - capital.row);
-      if (dCap < 8) return null;
+      if (dCap < MIN_CITY_FROM_CAPITAL) return null;
       let s = dCap * 0.15;
       if (c.nearWater) s += 8;
       if (c.resourceId) s += 6;
@@ -44,10 +69,9 @@ export function pickSecondaryCities(
     .sort((a, b) => b.s - a.s);
 
   const picked: CitySite[] = [];
-  const minD = 12;
   for (const c of scored) {
     if (picked.length >= want) break;
-    if (picked.some((p) => Math.hypot(wrapDx(c.col - p.col), c.row - p.row) < minD)) continue;
+    if (picked.some((p) => Math.hypot(wrapDx(c.col - p.col), c.row - p.row) < MIN_CITY_SPACING)) continue;
     picked.push({ col: c.col, row: c.row });
   }
   return picked;
