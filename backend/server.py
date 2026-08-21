@@ -823,7 +823,9 @@ async def submit_decision(request: SubmitDecisionRequest):
         
         # Check if this decision creates a policy
         policy_created = None
-        category = detect_policy(issue.title, choice.text, choice.effects)
+        law_description = None
+        is_timezone = (getattr(issue, "kind", None) == "timezone") or "clockwork of the realm" in (issue.title or "").lower()
+        category = None if is_timezone else detect_policy(issue.title, choice.text, choice.effects)
         
         if category:
             logger.info(f"Policy detected for category: {category}")
@@ -902,8 +904,8 @@ async def submit_decision(request: SubmitDecisionRequest):
         await db.decisions.insert_one(decision.dict())
         
         # Add to global decision feed (only significant changes)
-        significant_changes = {k: v for k, v in choice.effects.items() if abs(v) >= 5}
-        if significant_changes or policy_created:
+        significant_changes = {} if is_timezone else {k: v for k, v in choice.effects.items() if abs(v) >= 5 and k != "timezone_count"}
+        if (significant_changes or policy_created) and not is_timezone:
             # Random chance for ANY decision to become international news (12% chance)
             # This makes the game more unpredictable - any decision could become a world event!
             import random
