@@ -643,8 +643,17 @@ async def get_daily_issues(nation_id: str, force_generate: bool = False):
             issue["_id"] = str(issue["_id"])
 
         geo_max = int(nation_data.get("timezone_geo_max") or 1)
+        already_chose = nation_data.get("timezone_count") is not None
+        if already_chose:
+            leftover = [i for i in current_issues if i.get("kind") == "timezone"]
+            for i in leftover:
+                await db.issues.update_one(
+                    {"_id": ObjectId(i["id"])},
+                    {"$set": {"resolved": True, "resolved_at": datetime.utcnow()}},
+                )
+            current_issues = [i for i in current_issues if i.get("kind") != "timezone"]
         has_tz = any(i.get("kind") == "timezone" for i in current_issues)
-        if geo_max >= 2 and not has_tz:
+        if geo_max >= 2 and not has_tz and not already_chose:
             from timezone_issue import build_timezone_issue
             tz_issue = build_timezone_issue(
                 nation_id,
