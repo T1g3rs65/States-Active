@@ -36,7 +36,7 @@ import {
 } from '../utils/mapConstants';
 
 const WORLD_SEED = 123456; // Constant seed for deterministic terrain
-const MAP_CACHE_KEY = `world_map_terrain_v6_portrait_${WORLD_SEED}`;
+const MAP_CACHE_KEY = `world_map_terrain_v7_resweight_${WORLD_SEED}`;
 const MAX_ZOOM = 8;
 
 function fitZoomFor(width: number, height: number): number {
@@ -346,7 +346,7 @@ export default function WorldMap() {
       }
       
       // v5 = 40k Voronoi. Older caches were hex or 1500-cell and must not be reused.
-      const worldCacheKey = `world_map_terrain_v6_portrait_${mapSeed}`;
+      const worldCacheKey = `world_map_terrain_v7_resweight_${mapSeed}`;
       
       setLoadingStatus('Checking cache...');
       
@@ -380,7 +380,7 @@ export default function WorldMap() {
     } catch (error) {
       console.error('Error loading map:', error);
       // Fallback to generating terrain
-      await generateAndCacheTerrain(worldSeed, `world_map_terrain_v6_portrait_${worldSeed}`);
+      await generateAndCacheTerrain(worldSeed, `world_map_terrain_v7_resweight_${worldSeed}`);
     }
   };
 
