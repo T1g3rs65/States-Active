@@ -18,17 +18,9 @@ export function wrapDx(dx: number, cols: number = MAP_COLS): number {
   return d;
 }
 
-/** Y in pixels. Mild Mercator mixed with equal-area so poles grow gradually, not as strips. */
+/** Y in pixels. Equal-area cylinder — no polar stretch. Cell size is seed density only. */
 export function mercatorY(row: number, mapRows: number = MAP_ROWS, height: number = MAP_HEIGHT): number {
-  const linear = (row / mapRows) * height;
-  const maxDeg = 48;
-  const latDeg = (0.5 - row / mapRows) * 2 * maxDeg;
-  const lat = (latDeg * Math.PI) / 180;
-  const m = Math.log(Math.tan(Math.PI / 4 + lat / 2));
-  const latMax = (maxDeg * Math.PI) / 180;
-  const mMax = Math.log(Math.tan(Math.PI / 4 + latMax / 2));
-  const merc = (0.5 - m / (2 * mMax)) * height;
-  return linear * 0.62 + merc * 0.38;
+  return (row / mapRows) * height;
 }
 
 /** 24 hourly bands. Date line sits on the cylinder seam (col 0). */
@@ -115,8 +107,8 @@ export function officialTimezoneLabel(col: number, occupied: number[], count: nu
   if (h === -12) return 'UTC±12';
   return h > 0 ? `UTC+${h}` : `UTC${h}`;
 }
-/** Seed keep 1 at equator → 0.78 at poles. Linear: every degree a little larger. */
+/** Seed density 1 at equator → ~2.4 at poles. More cells = smaller polar Voronoi. */
 export function poleScale(row: number, mapRows: number = MAP_ROWS): number {
   const lat = Math.abs(row / mapRows - 0.5) * 2;
-  return 1 - 0.22 * lat;
+  return 1 + 1.4 * lat;
 }

@@ -45,8 +45,8 @@ const WATER_BIOMES = new Set<string>([
 const DEEP_WATER_BIOMES = new Set<string>(['abyss', 'midnight_zone', 'deep_ocean']);
 
 /**
- * Seed points. Cell size only grows toward the poles (poleScale).
- * Empty/resource tiles do not change density — deposits stay a spawn roll.
+ * Seed points. Poles get MORE seeds so cells stay small at the ice
+ * (Voronoi clip + any leftover stretch otherwise makes polar fans).
  */
 function generateVariedPoints(
   mapCols: number,
@@ -78,9 +78,19 @@ function generateVariedPoints(
     for (let c = 0; c < cols; c++) {
       const cx = c * cellW + cellW / 2;
       const cy = r * cellH + cellH / 2;
-      if (rng() < poleScale(cy, mapRows)) {
-        pushJittered(cx, cy);
-      }
+      const dens = poleScale(cy, mapRows);
+      if (rng() < Math.min(1, dens)) pushJittered(cx, cy);
+      if (dens > 1 && rng() < dens - 1) pushJittered(cx, cy);
+    }
+  }
+
+  const polarCols = Math.ceil(cols * 1.35);
+  const polarW = mapCols / polarCols;
+  for (const frac of [0.15, 0.4, 0.7]) {
+    for (let c = 0; c < polarCols; c++) {
+      const cx = c * polarW + polarW / 2 + (rng() - 0.5) * polarW * 0.5;
+      points.push(clamp(cx, cellH * frac));
+      points.push(clamp(cx, mapRows - cellH * frac));
     }
   }
 
@@ -88,14 +98,19 @@ function generateVariedPoints(
   while (points.length < count && guard++ < count * 8) {
     const x = rng() * mapCols;
     const y = rng() * mapRows;
-    if (rng() < poleScale(y, mapRows)) {
+    if (rng() < poleScale(y, mapRows) / 2.4) {
       points.push(clamp(x, y));
     }
   }
-  if (points.length > count) {
-    const scored = points.map((p) => ({ p, s: poleScale(p[1], mapRows) + rng() * 0.02 }));
+  const cap = Math.round(count * 1.18);
+  if (points.length > cap) {
+    const edge = cellH * 2.2;
+    const scored = points.map((p) => {
+      const polar = p[1] < edge || p[1] > mapRows - edge ? 3 : 0;
+      return { p, s: polar + rng() };
+    });
     scored.sort((a, b) => b.s - a.s);
-    return scored.slice(0, count).map((x) => x.p);
+    return scored.slice(0, cap).map((x) => x.p);
   }
   return points;
 }
@@ -188,8 +203,10 @@ function lloydRelaxVoronoi(
       const [cx, cy] = polygonCentroid(poly);
       const ox = points[index]?.[0] ?? cx;
       const oy = points[index]?.[1] ?? cy;
+      const lat = Math.abs((oy - bounds.ymin) / (bounds.ymax - bounds.ymin) - 0.5) * 2;
+      const yBlend = blend * (1 - lat);
       const nx = ox + (cx - ox) * blend;
-      const ny = oy + (cy - oy) * blend;
+      const ny = oy + (cy - oy) * yBlend;
       nextPoints[index] = [
         Math.max(bounds.xmin + 0.01, Math.min(bounds.xmax - 0.01, nx)),
         Math.max(bounds.ymin + 0.01, Math.min(bounds.ymax - 0.01, ny)),
