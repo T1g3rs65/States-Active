@@ -25,16 +25,17 @@ import { calculateCapacityFromPopulation } from '../utils/nationSize';
 import { generateVoronoiCells, VoronoiCell, DEEP_WATER_BIOMES } from '../utils/voronoiMap';
 import { assignResourceToTile, RESOURCE_BY_ID, TIER_COLORS } from '../utils/resources';
 import { rasterizeWorldMap } from '../utils/mapPaint';
+import {
+  MAP_COLS,
+  MAP_ROWS,
+  CELL_SCALE,
+  MAP_WIDTH,
+  MAP_HEIGHT,
+  VORONOI_CELLS,
+} from '../utils/mapConstants';
 
 const WORLD_SEED = 123456; // Constant seed for deterministic terrain
-const MAP_CACHE_KEY = `world_map_terrain_v5_voronoi_${WORLD_SEED}`; // v5 = 40k Voronoi (old hex density)
-
-const MAP_COLS = 200; // Logical width (grid units)
-const MAP_ROWS = 200; // Logical height (grid units)
-const CELL_SCALE = 6; // Pixels per grid unit
-const MAP_WIDTH = MAP_COLS * CELL_SCALE;
-const MAP_HEIGHT = MAP_ROWS * CELL_SCALE;
-const VORONOI_CELLS = 40000; // Match prior 200×200 hex density, irregular cells
+const MAP_CACHE_KEY = `world_map_terrain_v6_portrait_${WORLD_SEED}`;
 const MAX_ZOOM = 8;
 
 function fitZoomFor(width: number, height: number): number {
@@ -331,7 +332,7 @@ export default function WorldMap() {
       }
       
       // v5 = 40k Voronoi. Older caches were hex or 1500-cell and must not be reused.
-      const worldCacheKey = `world_map_terrain_v5_voronoi_${mapSeed}`;
+      const worldCacheKey = `world_map_terrain_v6_portrait_${mapSeed}`;
       
       setLoadingStatus('Checking cache...');
       
@@ -365,7 +366,7 @@ export default function WorldMap() {
     } catch (error) {
       console.error('Error loading map:', error);
       // Fallback to generating terrain
-      await generateAndCacheTerrain(worldSeed, `world_map_terrain_v5_voronoi_${worldSeed}`);
+      await generateAndCacheTerrain(worldSeed, `world_map_terrain_v6_portrait_${worldSeed}`);
     }
   };
 

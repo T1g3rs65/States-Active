@@ -244,9 +244,11 @@ function assignBiome(
   normalized: number,
   moisture: number,
   noise: SimplexNoise,
-  isRiver: boolean
+  isRiver: boolean,
+  mapRows: number = 284
 ): { biome: Biome; color: string } {
-  const latitude = Math.abs((row - 100) / 100); // assumes 200-row map
+  const mid = mapRows / 2;
+  const latitude = Math.abs((row - mid) / mid);
   const desertLat = Math.exp(-Math.pow(latitude - 0.33, 2) / 0.015);
   const finalMoisture = moisture - desertLat * 0.4;
 
@@ -342,9 +344,9 @@ function assignBiome(
  */
 export function generateVoronoiCells(
   seed: number = 123456,
-  mapCols: number = 200,
-  mapRows: number = 200,
-  cellCount: number = 40000,
+  mapCols: number = 160,
+  mapRows: number = 284,
+  cellCount: number = 45440,
   pixelScale: number = 6
 ): VoronoiCell[] {
   const rng = mulberry32(seed);
@@ -433,7 +435,7 @@ export function generateVoronoiCells(
 
     const isRiver = riverIndices.has(index);
 
-    const { biome, color } = assignBiome(centroidCol, centroidRow, normalized, moisture, noise, isRiver);
+    const { biome, color } = assignBiome(centroidCol, centroidRow, normalized, moisture, noise, isRiver, mapRows);
 
     if (WATER_BIOMES.has(biome)) waterCellCount++;
 

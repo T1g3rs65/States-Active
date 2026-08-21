@@ -1,7 +1,7 @@
 import { SimplexNoise } from './noise';
 
 const WORLD_SEED = 123456; // Match world map seed
-const MAP_ROWS = 200; // Match world map
+const MAP_ROWS = 284; // Match world map (portrait)
 
 export interface BiomeCount {
   deep_ocean: number;

@@ -168,20 +168,23 @@ def find_land_position(existing_positions: set, seed: int = 123456, min_distance
     
     nation_count = len(existing_positions)
     max_attempts = 500
+    center_col, center_row = 80, 142
+    col_lo, col_hi = 18, 142
+    row_lo, row_hi = 24, 260
     
     for attempt in range(max_attempts):
         if nation_count == 0 and attempt == 0:
             # First nation - try center
-            test_col, test_row = 100, 100
+            test_col, test_row = center_col, center_row
         else:
             # Spiral outward with randomization
             angle = (nation_count + attempt) * 2.4 + random.uniform(-0.5, 0.5)
             radius = 15 + (attempt * 2.5) + random.uniform(-3, 3)
-            test_col = int(100 + radius * math.cos(angle))
-            test_row = int(100 + radius * math.sin(angle))
+            test_col = int(center_col + radius * math.cos(angle))
+            test_row = int(center_row + radius * math.sin(angle))
         
         # Check bounds
-        if not (20 < test_col < 180 and 20 < test_row < 180):
+        if not (col_lo < test_col < col_hi and row_lo < test_row < row_hi):
             continue
         
         # Check if it's land
@@ -200,8 +203,8 @@ def find_land_position(existing_positions: set, seed: int = 123456, min_distance
             return (test_col, test_row)
     
     # Fallback: grid search for any land tile
-    for grid_row in range(30, 170, 20):
-        for grid_col in range(30, 170, 20):
+    for grid_row in range(40, 250, 20):
+        for grid_col in range(25, 140, 20):
             if is_land_tile(grid_col, grid_row, seed):
                 valid = True
                 for (ex_col, ex_row) in existing_positions:
@@ -212,4 +215,4 @@ def find_land_position(existing_positions: set, seed: int = 123456, min_distance
                     return (grid_col, grid_row)
     
     # Ultimate fallback
-    return (100, 100)
+    return (80, 142)
