@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Image } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import Svg, { Polygon, Rect, Defs, ClipPath } from 'react-native-svg';
 
@@ -218,154 +218,15 @@ export default function FlagCreator({ onFlagCreated, race = 'human' }: FlagCreat
   };
 
   const renderPreview = () => {
-    if (isHexagon) {
-      return renderHexagonPreview();
-    }
-    
-    const style = { width: 120, height: 80, borderRadius: 8, overflow: 'hidden' as const };
-    
-    if (pattern === 'horizontal') {
-      return (
-        <View style={[style, { flexDirection: 'column' }]}>
-          <View style={{ flex: 1, backgroundColor: color1 }} />
-          <View style={{ flex: 1, backgroundColor: color2 }} />
-          <View style={{ flex: 1, backgroundColor: color3 }} />
-        </View>
-      );
-    } else if (pattern === 'vertical') {
-      return (
-        <View style={[style, { flexDirection: 'row' }]}>
-          <View style={{ flex: 1, backgroundColor: color1 }} />
-          <View style={{ flex: 1, backgroundColor: color2 }} />
-          <View style={{ flex: 1, backgroundColor: color3 }} />
-        </View>
-      );
-    } else if (pattern === 'cross') {
-      return (
-        <View style={[style, { backgroundColor: color1 }]}>
-          <View style={{ position: 'absolute', left: '43%', width: '14%', height: '100%', backgroundColor: color2 }} />
-          <View style={{ position: 'absolute', top: '40%', width: '100%', height: '20%', backgroundColor: color2 }} />
-        </View>
-      );
-    } else if (pattern === 'saltire') {
-      // St. Andrews Cross preview
-      return (
-        <View style={[style, { backgroundColor: color1 }]}>
-          <View style={{ position: 'absolute', left: 0, top: 0, width: '100%', height: '100%' }}>
-            <View style={{ position: 'absolute', left: '0%', top: '0%', width: '20%', height: '100%', backgroundColor: color2, transform: [{ rotate: '27deg' }], transformOrigin: 'top left' }} />
-            <View style={{ position: 'absolute', right: '0%', top: '0%', width: '20%', height: '100%', backgroundColor: color2, transform: [{ rotate: '-27deg' }], transformOrigin: 'top right' }} />
-          </View>
-        </View>
-      );
-    } else if (pattern === 'nordic') {
-      return (
-        <View style={[style, { backgroundColor: color1 }]}>
-          <View style={{ position: 'absolute', left: '27%', width: '13%', height: '100%', backgroundColor: color2 }} />
-          <View style={{ position: 'absolute', top: '40%', width: '100%', height: '20%', backgroundColor: color2 }} />
-        </View>
-      );
-    } else if (pattern === 'chevron') {
-      // Chevron preview
-      return (
-        <View style={[style, { backgroundColor: color1, overflow: 'hidden' }]}>
-          <View style={{ position: 'absolute', left: 0, top: 0, width: '50%', height: '100%', backgroundColor: color2, transform: [{ skewX: '-15deg' }] }} />
-          <View style={{ position: 'absolute', right: 0, top: 0, width: '50%', height: '100%', backgroundColor: color3, transform: [{ skewX: '15deg' }] }} />
-        </View>
-      );
-    } else if (pattern === 'diagonal') {
-      // Diagonal preview
-      return (
-        <View style={[style, { backgroundColor: color1, overflow: 'hidden' }]}>
-          <View style={{ position: 'absolute', left: '-50%', top: '-50%', width: '200%', height: '200%', backgroundColor: color2, transform: [{ rotate: '26.57deg' }] }} />
-        </View>
-      );
-    } else {
-      return <View style={[style, { backgroundColor: color1 }]} />;
-    }
-  };
-
-  const renderHexagonPreview = () => {
-    const size = 100;
-    const h = size * 0.866; // height for flat-topped hexagon
-    const hexPoints = `${size*0.25},0 ${size*0.75},0 ${size},${h*0.5} ${size*0.75},${h} ${size*0.25},${h} 0,${h*0.5}`;
-    
-    let patternElements = null;
-    
-    if (pattern === 'horizontal') {
-      patternElements = (
-        <>
-          <Rect width={size} height={h/3} fill={color1} />
-          <Rect y={h/3} width={size} height={h/3} fill={color2} />
-          <Rect y={h*2/3} width={size} height={h/3} fill={color3} />
-        </>
-      );
-    } else if (pattern === 'vertical') {
-      patternElements = (
-        <>
-          <Rect width={size/3} height={h} fill={color1} />
-          <Rect x={size/3} width={size/3} height={h} fill={color2} />
-          <Rect x={size*2/3} width={size/3} height={h} fill={color3} />
-        </>
-      );
-    } else if (pattern === 'cross') {
-      patternElements = (
-        <>
-          <Rect width={size} height={h} fill={color1} />
-          <Rect x={size*0.43} width={size*0.14} height={h} fill={color2} />
-          <Rect y={h*0.4} width={size} height={h*0.2} fill={color2} />
-        </>
-      );
-    } else if (pattern === 'saltire') {
-      patternElements = (
-        <>
-          <Rect width={size} height={h} fill={color1} />
-          <Polygon points={`0,0 ${size*0.2},0 ${size},${h} ${size*0.8},${h}`} fill={color2} />
-          <Polygon points={`${size*0.8},0 ${size},0 ${size*0.2},${h} 0,${h}`} fill={color2} />
-        </>
-      );
-    } else if (pattern === 'nordic') {
-      patternElements = (
-        <>
-          <Rect width={size} height={h} fill={color1} />
-          <Rect x={size*0.27} width={size*0.13} height={h} fill={color2} />
-          <Rect y={h*0.4} width={size} height={h*0.2} fill={color2} />
-        </>
-      );
-    } else if (pattern === 'chevron') {
-      patternElements = (
-        <>
-          <Rect width={size} height={h} fill={color1} />
-          <Polygon points={`0,0 ${size*0.5},${h*0.5} 0,${h}`} fill={color2} />
-          <Polygon points={`${size},0 ${size*0.5},${h*0.5} ${size},${h}`} fill={color3} />
-        </>
-      );
-    } else if (pattern === 'diagonal') {
-      patternElements = (
-        <>
-          <Polygon points={`0,0 ${size},0 ${size},${h}`} fill={color1} />
-          <Polygon points={`0,0 0,${h} ${size},${h}`} fill={color2} />
-        </>
-      );
-    } else {
-      patternElements = <Rect width={size} height={h} fill={color1} />;
-    }
-    
+    const uri = isHexagon
+      ? createHexagonFlagSVG(pattern, color1, color2, color3)
+      : createFlagSVG(pattern, color1, color2, color3);
     return (
-      <View style={{ alignItems: 'center' }}>
-        <Svg width={size} height={h} viewBox={`0 0 ${size} ${h}`}>
-          <Defs>
-            <ClipPath id="hexClipPreview">
-              <Polygon points={hexPoints} />
-            </ClipPath>
-          </Defs>
-          <Rect width={size} height={h} fill="#0B0F14" />
-          <Svg clipPath="url(#hexClipPreview)">
-            {patternElements}
-          </Svg>
-          <Polygon points={hexPoints} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth={2} />
-        </Svg>
-        <Text style={styles.hexLabel}>Hexagonal Flag (Zythera)</Text>
-      </View>
+      <Image
+        source={{ uri }}
+        style={isHexagon ? { width: 140, height: 121 } : { width: 180, height: 120, borderRadius: 6 }}
+        resizeMode="contain"
+      />
     );
   };
 

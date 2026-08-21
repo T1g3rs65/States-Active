@@ -232,18 +232,42 @@ def extra_city_count(population: float) -> int:
     return 5
 
 
-def validate_capital_site(col: int, row: int, seed: int, others: list) -> str:
-    """others: list of (col, row, population). Empty string if ok."""
+def snap_to_land(col: int, row: int, seed: int, max_r: int = 12):
+    col = int(col) % _MAP_COLS
+    row = int(row)
+    if is_land_tile(col, row, seed) and 2 <= row <= _MAP_ROWS - 3:
+        return col, row
+    best = None
+    best_d = 1e9
+    for dr in range(-max_r, max_r + 1):
+        for dc in range(-max_r, max_r + 1):
+            c = (col + dc) % _MAP_COLS
+            r = row + dr
+            if r < 2 or r > _MAP_ROWS - 3:
+                continue
+            if not is_land_tile(c, r, seed):
+                continue
+            d = math.hypot(dc, dr)
+            if d < best_d:
+                best_d = d
+                best = (c, r)
+    return best
+
+
+def validate_capital_site(col: int, row: int, seed: int, others: list):
+    """others: list of (col, row, population). Returns (error, col, row)."""
     col = int(col) % _MAP_COLS
     row = int(row)
     if row < 2 or row > _MAP_ROWS - 3:
-        return "Too close to the poles."
-    if not is_land_tile(col, row, seed):
-        return "That tile is water."
+        return ("Too close to the poles.", col, row)
+    snapped = snap_to_land(col, row, seed)
+    if not snapped:
+        return ("That tile is water.", col, row)
+    col, row = snapped
     for ex_col, ex_row, pop in others:
         cap = capacity_from_population(pop)
         radius = max(6, math.sqrt(cap) * 1.15)
         dist = math.hypot(_wrap_dx(col, int(ex_col)), row - int(ex_row))
         if dist < radius:
-            return "That land is already claimed."
-    return ""
+            return ("That land is already claimed.", col, row)
+    return ("", col, row)

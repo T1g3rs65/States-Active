@@ -56,7 +56,12 @@ export const api = {
       clearTimeout(timeoutId);
       
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        let detail = `HTTP error! status: ${response.status}`;
+        try {
+          const err = await response.json();
+          if (err?.detail) detail = typeof err.detail === 'string' ? err.detail : JSON.stringify(err.detail);
+        } catch (_) {}
+        throw new Error(detail);
       }
       
       return response.json();

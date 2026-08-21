@@ -199,11 +199,11 @@ async def create_nation(request: CreateNationRequest):
             others.append((col, row, pop))
 
         if request.capital_col is not None and request.capital_row is not None:
-            err = validate_capital_site(request.capital_col, request.capital_row, world_seed, others)
+            err, territory_col, territory_row = validate_capital_site(
+                request.capital_col, request.capital_row, world_seed, others
+            )
             if err:
                 raise HTTPException(status_code=400, detail=err)
-            territory_col = int(request.capital_col) % 505
-            territory_row = int(request.capital_row)
         else:
             territory_col, territory_row = find_land_position(
                 existing_positions=existing_positions,
@@ -273,7 +273,9 @@ async def create_nation(request: CreateNationRequest):
             )
         
         return {"success": True, "nation": nation_dict}
-    
+
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error creating nation: {e}")
         raise HTTPException(status_code=500, detail=str(e))
