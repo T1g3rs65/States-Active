@@ -3945,7 +3945,8 @@ async def create_world(request: dict):
             "seed": request.get("seed", 123456),
             "max_players": request.get("max_players", 50),
             "enabled_races": request.get("enabled_races", ["human", "zythera"]),
-            "allows_migration": request.get("allows_migration", True),  # Allow migration by default
+            "allows_migration": request.get("allows_migration", True),
+            "noise_settings": request.get("noise_settings") or {},
             "owner_nation_id": request.get("creator_nation_id"),
             "owner_nation_name": request.get("creator_nation_name"),
             "player_count": 0,

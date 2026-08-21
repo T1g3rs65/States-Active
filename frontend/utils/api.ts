@@ -334,6 +334,7 @@ export const api = {
     creator_nation_id?: string;
     creator_nation_name?: string;
     allows_migration?: boolean;
+    noise_settings?: Record<string, number>;
   }) => {
     const response = await fetch(`${API_URL}/api/worlds`, {
       method: 'POST',

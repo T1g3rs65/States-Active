@@ -978,6 +978,7 @@ class World(BaseModel):
     
     # World settings
     seed: int = 123456  # Map generation seed
+    noise_settings: Dict[str, float] = Field(default_factory=dict)
     max_players: int = 50
     enabled_races: List[str] = Field(default_factory=lambda: ["human", "zythera"])  # Which races can be selected
     

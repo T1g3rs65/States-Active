@@ -2,6 +2,7 @@ import { Delaunay } from 'd3-delaunay';
 import { SimplexNoise } from './noise';
 import { assignResourceToTile } from './resources';
 import { mercatorY, poleScale } from './mapConstants';
+import { DEFAULT_TERRAIN, TerrainSettings, elevationRaw } from './worldNoise';
 
 export interface VoronoiCell {
   id: string;
@@ -301,7 +302,8 @@ function assignBiome(
   moisture: number,
   noise: SimplexNoise,
   isRiver: boolean,
-  mapRows: number = 284
+  mapRows: number = 284,
+  landThreshold: number = 0.45
 ): { biome: Biome; color: string } {
   const mid = mapRows / 2;
   const latitude = Math.abs((row - mid) / mid);
@@ -316,11 +318,11 @@ function assignBiome(
   let biome: Biome = 'temperate_grassland';
   let color = '#C8C87A';
 
-  // Oceans
-  if (normalized < 0.25) { biome = 'abyss'; color = '#001133'; }
-  else if (normalized < 0.30) { biome = 'midnight_zone'; color = '#002244'; }
-  else if (normalized < 0.35) { biome = 'deep_ocean'; color = '#1C0DFF'; }
-  else if (normalized < 0.45) { biome = 'shallow_sea'; color = '#0064C8'; }
+  // Oceans — bands scale with the land/water cutoff
+  if (normalized < landThreshold - 0.20) { biome = 'abyss'; color = '#001133'; }
+  else if (normalized < landThreshold - 0.15) { biome = 'midnight_zone'; color = '#002244'; }
+  else if (normalized < landThreshold - 0.10) { biome = 'deep_ocean'; color = '#1C0DFF'; }
+  else if (normalized < landThreshold) { biome = 'shallow_sea'; color = '#0064C8'; }
   // Polar ice
   else if (latitude > 0.9) {
     if (elevation > 0.6) { biome = 'glacier'; color = '#B0E0FF'; }
@@ -403,7 +405,8 @@ export function generateVoronoiCells(
   mapCols: number = 505,
   mapRows: number = 284,
   cellCount: number = 68800,
-  pixelScale: number = 6
+  pixelScale: number = 6,
+  settings: TerrainSettings = DEFAULT_TERRAIN
 ): VoronoiCell[] {
   const rng = mulberry32(seed);
   const noise = new SimplexNoise(seed);
@@ -418,11 +421,7 @@ export function generateVoronoiCells(
     for (let c = 0; c < elevCols; c++) {
       const col = (c / (elevCols - 1)) * mapCols;
       const row = (r / (elevRows - 1)) * mapRows;
-      const continentMask = cylinderFbm(noise, col, row, mapCols, 0.002, 3, 0.5);
-      const base = cylinderFbm(noise, col, row, mapCols, 0.01, 4, 0.35) * 0.6;
-      const ridges = Math.pow(cylinderRidged(noise, col, row, mapCols, 0.02, 0.02, 5), 1.8) * 0.35;
-      const directional = Math.abs(cylinderNoise2D(noise, col, row, mapCols, 0.005, 0.12)) * -0.2;
-      const elevation = continentMask * 0.7 + (base + ridges + directional) * 0.3;
+      const elevation = elevationRaw(noise, col, row, mapCols, settings);
       rawElevations.push(elevation);
       minElev = Math.min(minElev, elevation);
       maxElev = Math.max(maxElev, elevation);
@@ -502,7 +501,7 @@ export function generateVoronoiCells(
 
     const isRiver = riverIndices.has(index);
 
-    const { biome, color } = assignBiome(centroidCol, centroidRow, normalized, moisture, noise, isRiver, mapRows);
+    const { biome, color } = assignBiome(centroidCol, centroidRow, normalized, moisture, noise, isRiver, mapRows, settings.landThreshold);
 
     if (WATER_BIOMES.has(biome)) waterCellCount++;
 

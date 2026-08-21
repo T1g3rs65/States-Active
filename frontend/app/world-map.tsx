@@ -26,6 +26,7 @@ import { colonizeFromCapitals } from '../utils/borders';
 import { calculateCapacityFromPopulation } from '../utils/nationSize';
 import { pickSecondaryCities, extraCityCount, cityRejectReason, CitySite } from '../utils/cities';
 import { generateVoronoiCells, VoronoiCell, WATER_BIOMES } from '../utils/voronoiMap';
+import { DEFAULT_TERRAIN, TerrainSettings, terrainKey } from '../utils/worldNoise';
 import { assignResourceToTile, RESOURCE_BY_ID, TIER_COLORS } from '../utils/resources';
 import { rasterizeWorldMap } from '../utils/mapPaint';
 import { terrainColor } from '../utils/biomePalette';
@@ -174,6 +175,7 @@ export default function WorldMap() {
   const [placeWorldId, setPlaceWorldId] = useState<string | null>(null);
   const worldId = nation?.world_id || placeWorldId;
   const placingBusy = useRef(false);
+  const terrainRef = useRef<TerrainSettings>({ ...DEFAULT_TERRAIN });
   const [worldSeed, setWorldSeed] = useState<number>(WORLD_SEED);
   
   // Diplomatic data for faction mode
@@ -407,6 +409,9 @@ export default function WorldMap() {
           if (worldResponse.success && worldResponse.world) {
             mapSeed = worldResponse.world.seed || WORLD_SEED;
             setWorldSeed(mapSeed);
+            if (worldResponse.world.noise_settings) {
+              terrainRef.current = { ...DEFAULT_TERRAIN, ...worldResponse.world.noise_settings };
+            }
             console.log(`Using world seed: ${mapSeed} from world: ${worldResponse.world.name}`);
           }
         } catch (e) {
@@ -415,7 +420,7 @@ export default function WorldMap() {
       }
       
       // v5 = 40k Voronoi. Older caches were hex or 1500-cell and must not be reused.
-      const worldCacheKey = `world_map_terrain_v11_cyl_merc_${mapSeed}`;
+      const worldCacheKey = `world_map_terrain_v12_${terrainKey(mapSeed, terrainRef.current)}`;
       
       setLoadingStatus('Checking cache...');
       
@@ -449,7 +454,7 @@ export default function WorldMap() {
     } catch (error) {
       console.error('Error loading map:', error);
       // Fallback to generating terrain
-      await generateAndCacheTerrain(worldSeed, `world_map_terrain_v11_cyl_merc_${worldSeed}`);
+      await generateAndCacheTerrain(worldSeed, `world_map_terrain_v12_${terrainKey(worldSeed, terrainRef.current)}`);
     }
   };
 
@@ -504,7 +509,7 @@ export default function WorldMap() {
   // Generate the base terrain (biomes, colors) - deterministic based on seed
   const generateBaseTerrain = (seed: number = WORLD_SEED): Territory[] => {
     setLoadingStatus('Carving 40,000 Voronoi territories...');
-    return generateVoronoiCells(seed, MAP_COLS, MAP_ROWS, VORONOI_CELLS, CELL_SCALE).map(cell => ({
+    return generateVoronoiCells(seed, MAP_COLS, MAP_ROWS, VORONOI_CELLS, CELL_SCALE, terrainRef.current).map(cell => ({
       ...cell,
       ownerId: null,
       ownerName: undefined,

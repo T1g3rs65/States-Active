@@ -10,6 +10,7 @@ import {
   Alert,
   Modal,
   Switch,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -17,6 +18,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { api } from '../utils/api';
+import { DEFAULT_TERRAIN, TerrainSettings } from '../utils/worldNoise';
+import { rasterizeWorldPreview } from '../utils/worldPreview';
 
 interface World {
   id: string;
@@ -37,6 +40,39 @@ const RACE_INFO: Record<string, { name: string; emoji: string }> = {
   zythera: { name: 'Zythera', emoji: '🐛' },
 };
 
+function Knob({
+  label,
+  hint,
+  display,
+  onMinus,
+  onPlus,
+}: {
+  label: string;
+  hint: string;
+  value: number;
+  display: string;
+  onMinus: () => void;
+  onPlus: () => void;
+}) {
+  return (
+    <View style={{ marginBottom: 14 }}>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Text style={{ color: '#F4F5F6', fontSize: 14, fontWeight: '600' }}>{label}</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <TouchableOpacity onPress={onMinus} style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.06)', alignItems: 'center', justifyContent: 'center' }}>
+            <Text style={{ color: '#2EE6C5', fontSize: 18, fontWeight: '700' }}>−</Text>
+          </TouchableOpacity>
+          <Text style={{ color: '#B4B8C0', fontSize: 13, minWidth: 48, textAlign: 'center' }}>{display}</Text>
+          <TouchableOpacity onPress={onPlus} style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.06)', alignItems: 'center', justifyContent: 'center' }}>
+            <Text style={{ color: '#2EE6C5', fontSize: 18, fontWeight: '700' }}>+</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+      <Text style={{ color: '#7C818A', fontSize: 11, marginTop: 4 }}>{hint}</Text>
+    </View>
+  );
+}
+
 export default function ServerSelectScreen() {
   const router = useRouter();
   const [worlds, setWorlds] = useState<World[]>([]);
@@ -55,10 +91,21 @@ export default function ServerSelectScreen() {
     human: true,
     zythera: true,
   });
+  const [terrain, setTerrain] = useState<TerrainSettings>({ ...DEFAULT_TERRAIN });
+  const [previewUri, setPreviewUri] = useState<string | null>(null);
 
   useEffect(() => {
     loadWorlds();
   }, []);
+
+  useEffect(() => {
+    if (!showCreateModal) return;
+    const seed = parseInt(newWorldSeed) || 1;
+    const t = setTimeout(() => {
+      setPreviewUri(rasterizeWorldPreview(seed, terrain));
+    }, 80);
+    return () => clearTimeout(t);
+  }, [showCreateModal, newWorldSeed, terrain]);
 
   const loadWorlds = async () => {
     try {
@@ -104,6 +151,7 @@ export default function ServerSelectScreen() {
         max_players: parseInt(newWorldMaxPlayers) || 50,
         enabled_races: enabledRacesList,
         allows_migration: allowsMigration,
+        noise_settings: { ...terrain },
       });
 
       if (response.success) {
@@ -133,6 +181,7 @@ export default function ServerSelectScreen() {
     setNewWorldMaxPlayers('50');
     setAllowsMigration(true);
     setEnabledRaces({ human: true, zythera: true });
+    setTerrain({ ...DEFAULT_TERRAIN });
   };
 
   const handleContinue = async () => {
@@ -343,6 +392,57 @@ export default function ServerSelectScreen() {
                   </View>
                   <Text style={styles.formHint}>Same seed = same map terrain</Text>
                 </View>
+
+                <View style={styles.formGroup}>
+                  <Text style={styles.formLabel}>Terrain preview</Text>
+                  {previewUri ? (
+                    <Image source={{ uri: previewUri }} style={styles.preview} />
+                  ) : (
+                    <View style={[styles.preview, styles.previewEmpty]} />
+                  )}
+                  <Text style={styles.formHint}>Fast heightmap — the live map is Voronoi of this field</Text>
+                </View>
+
+                <Knob
+                  label="Continent size"
+                  hint="Lower = larger landmasses"
+                  value={terrain.continentFreq}
+                  display={(1 / terrain.continentFreq / 100).toFixed(1)}
+                  onMinus={() => setTerrain(t => ({ ...t, continentFreq: Math.max(0.0008, +(t.continentFreq - 0.0003).toFixed(4)) }))}
+                  onPlus={() => setTerrain(t => ({ ...t, continentFreq: Math.min(0.006, +(t.continentFreq + 0.0003).toFixed(4)) }))}
+                />
+                <Knob
+                  label="Land vs ocean"
+                  hint="Higher = more land"
+                  value={1 - terrain.landThreshold}
+                  display={`${Math.round((1 - terrain.landThreshold) * 100)}%`}
+                  onMinus={() => setTerrain(t => ({ ...t, landThreshold: Math.min(0.58, +(t.landThreshold + 0.02).toFixed(2)) }))}
+                  onPlus={() => setTerrain(t => ({ ...t, landThreshold: Math.max(0.32, +(t.landThreshold - 0.02).toFixed(2)) }))}
+                />
+                <Knob
+                  label="Mountains"
+                  hint="Ridged noise"
+                  value={terrain.ridgeAmount}
+                  display={terrain.ridgeAmount.toFixed(2)}
+                  onMinus={() => setTerrain(t => ({ ...t, ridgeAmount: Math.max(0.08, +(t.ridgeAmount - 0.05).toFixed(2)) }))}
+                  onPlus={() => setTerrain(t => ({ ...t, ridgeAmount: Math.min(0.7, +(t.ridgeAmount + 0.05).toFixed(2)) }))}
+                />
+                <Knob
+                  label="Coast detail"
+                  hint="Local hills and bays"
+                  value={terrain.detailFreq}
+                  display={terrain.detailFreq.toFixed(3)}
+                  onMinus={() => setTerrain(t => ({ ...t, detailFreq: Math.max(0.004, +(t.detailFreq - 0.002).toFixed(3)) }))}
+                  onPlus={() => setTerrain(t => ({ ...t, detailFreq: Math.min(0.03, +(t.detailFreq + 0.002).toFixed(3)) }))}
+                />
+                <Knob
+                  label="Continent weight"
+                  hint="Big shapes vs local noise"
+                  value={terrain.continentWeight}
+                  display={terrain.continentWeight.toFixed(2)}
+                  onMinus={() => setTerrain(t => ({ ...t, continentWeight: Math.max(0.35, +(t.continentWeight - 0.05).toFixed(2)) }))}
+                  onPlus={() => setTerrain(t => ({ ...t, continentWeight: Math.min(0.9, +(t.continentWeight + 0.05).toFixed(2)) }))}
+                />
 
                 {/* Max Players */}
                 <View style={styles.formGroup}>
@@ -629,6 +729,18 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: 'rgba(243,246,250,0.48)',
     marginTop: 4,
+  },
+  preview: {
+    width: '100%',
+    height: 160,
+    borderRadius: 8,
+    backgroundColor: '#08090A',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    marginTop: 8,
+  },
+  previewEmpty: {
+    backgroundColor: '#111317',
   },
   seedRow: {
     flexDirection: 'row',
