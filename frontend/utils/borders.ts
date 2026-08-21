@@ -185,15 +185,21 @@ type ColonizeSeed = {
   capacity: number;
 };
 
+type ColonizeOpts = {
+  anchors?: Map<string, Array<{ col: number; row: number }>>;
+};
+
 /**
  * Grow nations along easy land (valleys, coasts, grassland) instead of
  * Manhattan diamonds. Cheapest unclaimed cells go first; mountains/jungle last.
+ * Extra start seeds (cities) share capacity with the capital.
  */
 export function colonizeFromCapitals(
   cells: ColonizeCell[],
   seeds: ColonizeSeed[],
   isWater: (biome: string) => boolean,
-  noise?: (i: number) => number
+  noise?: (i: number) => number,
+  opts?: ColonizeOpts
 ): Map<number, string> {
   const owner = new Map<number, string>();
   if (!cells.length || !seeds.length) return owner;
@@ -244,6 +250,19 @@ export function colonizeFromCapitals(
       if (isWater(nxt.biome) && nxt.biome !== 'river') continue;
       const jitter = noise ? 0.85 + 0.3 * ((noise(ni) + 1) / 2) : 1;
       let step = colonizationCost(nxt.biome, nxt.normalized, nxt.nearWater, nxt.isRiver) * jitter;
+      const hubs = opts?.anchors?.get(nationId);
+      if (hubs && hubs.length) {
+        let minD = 99;
+        for (const h of hubs) {
+          const dx = Math.abs(nxt.col - h.col);
+          const wrap = dx > mapCols * 0.5 ? mapCols - dx : dx;
+          const d = Math.hypot(wrap, nxt.row - h.row);
+          if (d < minD) minD = d;
+        }
+        if (minD < 14) {
+          step *= 0.38 + 0.62 * (minD / 14);
+        }
+      }
       const dc = Math.abs(from.col - nxt.col);
       if (dc > mapCols * 0.5) {
         const lat = Math.abs(from.row / 284 - 0.5) * 2;
@@ -258,7 +277,7 @@ export function colonizeFromCapitals(
     if (!start || owner.has(seed.startIndex)) continue;
     if (isWater(start.biome) && start.biome !== 'river') continue;
     owner.set(seed.startIndex, seed.nationId);
-    used.set(seed.nationId, 1);
+    used.set(seed.nationId, (used.get(seed.nationId) || 0) + 1);
     enqueue(start, seed.nationId, 0);
   }
 

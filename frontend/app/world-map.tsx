@@ -602,8 +602,7 @@ export default function WorldMap() {
         return best.index;
       };
 
-      const claims = colonizeFromCapitals(
-        workingTerritories.map(t => ({
+      const cellInput = workingTerritories.map(t => ({
           index: t.index,
           col: t.col,
           row: t.row,
@@ -612,15 +611,50 @@ export default function WorldMap() {
           nearWater: t.nearWater,
           isRiver: t.isRiver,
           neighbors: t.neighbors,
-        })),
-        nationSeeds.map(s => ({
+        }));
+      const capitalSeeds = nationSeeds.map(s => ({
           nationId: s.nationId,
           startIndex: startIndexFor(s.col, s.row),
           capacity: s.capacity,
-        })),
-        (b) => WATER_BIOMES.has(b),
-        (i) => borderNoise.noise2D(i * 0.017, i * 0.009)
-      );
+        }));
+      const noiseFn = (i: number) => borderNoise.noise2D(i * 0.017, i * 0.009);
+      const isWater = (b: string) => WATER_BIOMES.has(b);
+
+      let claims = colonizeFromCapitals(cellInput, capitalSeeds, isWater, noiseFn);
+
+      const cityByNation = new Map<string, { col: number; row: number }[]>();
+      for (const seed of nationSeeds) {
+        const owned = workingTerritories.filter(t => claims.get(t.index) === seed.nationId);
+        cityByNation.set(
+          seed.nationId,
+          pickSecondaryCities(
+            owned.map(t => ({
+              col: t.col,
+              row: t.row,
+              biome: t.biome,
+              resourceId: t.resourceId,
+              nearWater: t.nearWater,
+            })),
+            { col: seed.col, row: seed.row },
+            seed.population
+          )
+        );
+      }
+
+      const anchors = new Map<string, Array<{ col: number; row: number }>>();
+      const hubSeeds = [...capitalSeeds];
+      for (const seed of nationSeeds) {
+        const cities = cityByNation.get(seed.nationId) || [];
+        anchors.set(seed.nationId, [{ col: seed.col, row: seed.row }, ...cities]);
+        for (const city of cities) {
+          hubSeeds.push({
+            nationId: seed.nationId,
+            startIndex: startIndexFor(city.col, city.row),
+            capacity: seed.capacity,
+          });
+        }
+      }
+      claims = colonizeFromCapitals(cellInput, hubSeeds, isWater, noiseFn, { anchors });
 
       const seedById = new Map(nationSeeds.map((s, i) => [s.nationId, i]));
       for (const territory of workingTerritories) {
@@ -689,17 +723,7 @@ export default function WorldMap() {
           centerRow,
           capitalCol: seed.col,
           capitalRow: seed.row,
-          cities: pickSecondaryCities(
-            owned.map(t => ({
-              col: t.col,
-              row: t.row,
-              biome: t.biome,
-              resourceId: t.resourceId,
-              nearWater: t.nearWater,
-            })),
-            { col: seed.col, row: seed.row },
-            seed.population
-          ),
+          cities: cityByNation.get(seed.nationId) || [],
           color: seed.primary,
           discRadius,
         });
