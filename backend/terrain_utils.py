@@ -73,7 +73,63 @@ class SimplexNoise:
 
 _MAP_COLS = 505
 _MAP_ROWS = 284
-_minmax_cache: dict = {}
+# Same 40×40 minmax + bilinear as frontend voronoiMap.ts generateVoronoiCells
+_field_cache: dict = {}
+
+
+def _elev_field(seed: int):
+    if seed in _field_cache:
+        return _field_cache[seed]
+    noise = SimplexNoise(seed)
+    elev_cols = 40
+    elev_rows = 40
+    grid = []
+    min_e = float("inf")
+    max_e = float("-inf")
+    for r in range(elev_rows):
+        for c in range(elev_cols):
+            col = (c / (elev_cols - 1)) * _MAP_COLS
+            row = (r / (elev_rows - 1)) * _MAP_ROWS
+            e = _elevation(noise, col, row)
+            grid.append(e)
+            min_e = min(min_e, e)
+            max_e = max(max_e, e)
+    _field_cache[seed] = (min_e, max_e, grid, elev_cols, elev_rows)
+    return _field_cache[seed]
+
+
+def normalized_at(col: float, row: float, seed: int = 123456) -> float:
+    """Bilinear sample of the same coarse elevation field the Voronoi map uses."""
+    min_e, max_e, grid, elev_cols, elev_rows = _elev_field(seed)
+    span = max_e - min_e
+    if not span:
+        return 0.5
+    gx = (float(col) / _MAP_COLS) * (elev_cols - 1)
+    gy = (float(row) / _MAP_ROWS) * (elev_rows - 1)
+    gx = max(0.0, min(elev_cols - 1.0, gx))
+    gy = max(0.0, min(elev_rows - 1.0, gy))
+    gx0 = int(math.floor(gx))
+    gy0 = int(math.floor(gy))
+    gx1 = min(gx0 + 1, elev_cols - 1)
+    gy1 = min(gy0 + 1, elev_rows - 1)
+    fx = gx - gx0
+    fy = gy - gy0
+    e00 = grid[gy0 * elev_cols + gx0]
+    e10 = grid[gy0 * elev_cols + gx1]
+    e01 = grid[gy1 * elev_cols + gx0]
+    e11 = grid[gy1 * elev_cols + gx1]
+    sample = (
+        e00 * (1 - fx) * (1 - fy)
+        + e10 * fx * (1 - fy)
+        + e01 * (1 - fx) * fy
+        + e11 * fx * fy
+    )
+    return (sample - min_e) / span
+
+
+def is_land_tile(col: int, row: int, seed: int = 123456) -> bool:
+    """Land iff normalized >= 0.45 — same cutoff as frontend WATER_BIOMES (shallow_sea)."""
+    return normalized_at(col, row, seed) >= 0.45
 
 
 def _cylinder_fbm(noise: SimplexNoise, col: float, row: float, freq: float, octaves: int, pers: float) -> float:
@@ -108,32 +164,6 @@ def _elevation(noise: SimplexNoise, col: float, row: float) -> float:
     ridges = pow(_cylinder_ridged(noise, col, row, 0.02, 0.02, 5), 1.8) * 0.35
     directional = abs(_cylinder_noise2d(noise, col, row, 0.005, 0.12)) * -0.2
     return continent_mask * 0.7 + (base + ridges + directional) * 0.3
-
-
-def _minmax(seed: int) -> Tuple[float, float]:
-    if seed in _minmax_cache:
-        return _minmax_cache[seed]
-    noise = SimplexNoise(seed)
-    min_e = float("inf")
-    max_e = float("-inf")
-    for r in range(40):
-        for c in range(40):
-            col = (c / 39.0) * _MAP_COLS
-            row = (r / 39.0) * _MAP_ROWS
-            e = _elevation(noise, col, row)
-            min_e = min(min_e, e)
-            max_e = max(max_e, e)
-    _minmax_cache[seed] = (min_e, max_e)
-    return min_e, max_e
-
-
-def is_land_tile(col: int, row: int, seed: int = 123456) -> bool:
-    """Same elevation field as frontend Voronoi. Water if normalized < 0.45."""
-    min_e, max_e = _minmax(seed)
-    e = _elevation(SimplexNoise(seed), col, row)
-    span = max_e - min_e
-    normalized = (e - min_e) / span if span else 0.5
-    return normalized >= 0.52
 
 
 def find_land_position(existing_positions: set, seed: int = 123456, min_distance: int = 25) -> Tuple[int, int]:
@@ -265,9 +295,7 @@ def validate_capital_site(col: int, row: int, seed: int, others: list):
         return ("That tile is water.", col, row)
     col, row = snapped
     for ex_col, ex_row, pop in others:
-        cap = capacity_from_population(pop)
-        radius = max(6, math.sqrt(cap) * 1.15)
         dist = math.hypot(_wrap_dx(col, int(ex_col)), row - int(ex_row))
-        if dist < radius:
+        if dist < 8:
             return ("That land is already claimed.", col, row)
     return ("", col, row)

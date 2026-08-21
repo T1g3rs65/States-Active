@@ -178,7 +178,7 @@ async def create_nation(request: CreateNationRequest):
             try:
                 world = await db.worlds.find_one({"_id": ObjectId(request.world_id)})
                 if world:
-                    world_seed = world.get("seed", 123456)
+                    world_seed = int(world.get("seed") or world.get("map_seed") or 123456)
             except Exception as e:
                 logger.error(f"Error fetching world seed: {e}")
         
