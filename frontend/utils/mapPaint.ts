@@ -14,6 +14,7 @@ type Paintable = {
   ownerId: string | null;
   resourceId: string | null;
   isRiver?: boolean;
+  borderColor?: string;
 };
 
 function parseHex(hex: string): [number, number, number] {
@@ -118,7 +119,10 @@ export function rasterizeWorldMap(opts: {
     const j = cellJitter(t.index) * 0.55;
     pathCell(ctx, t.polygon);
     ctx.globalAlpha = 1;
-    ctx.fillStyle = litColor(fillFor(t), shade, j, water);
+    const keepHue = mapMode === 'political' && !!t.ownerId;
+    ctx.fillStyle = keepHue
+      ? litColor(fillFor(t), 0.82 + 0.28 * shade, j * 0.25, true)
+      : litColor(fillFor(t), shade, j, water);
     ctx.fill();
   }
 
@@ -134,14 +138,14 @@ export function rasterizeWorldMap(opts: {
     ctx.fill();
   }
 
-  // Nation borders on political/faction
+  // Nation borders on political/faction — secondary flag color
   if (mapMode === 'political' || mapMode === 'faction') {
-    ctx.globalAlpha = 0.9;
-    ctx.strokeStyle = mapMode === 'faction' ? '#F3F6FA' : '#f0d78c';
-    ctx.lineWidth = 0.9;
+    ctx.globalAlpha = 0.95;
+    ctx.lineWidth = 0.95;
     for (const t of territories) {
       if (!isNationBorder(t) || !t.polygon) continue;
       pathCell(ctx, t.polygon);
+      ctx.strokeStyle = mapMode === 'faction' ? '#F3F6FA' : (t.borderColor || '#f0d78c');
       ctx.stroke();
     }
   }

@@ -20,6 +20,7 @@ import Svg, { Polygon, G, Text as SvgText, Rect, Circle , SvgXml } from 'react-n
 import { Ionicons } from '@expo/vector-icons';
 import { SimplexNoise } from '../utils/noise';
 import { api } from '../utils/api';
+import { colorsFromFlag } from '../utils/flagColors';
 import { colonizeFromCapitals } from '../utils/borders';
 import { calculateCapacityFromPopulation } from '../utils/nationSize';
 import { generateVoronoiCells, VoronoiCell, WATER_BIOMES } from '../utils/voronoiMap';
@@ -43,7 +44,9 @@ function fitZoomFor(width: number, height: number): number {
   return Math.min(width / MAP_WIDTH, height / MAP_HEIGHT);
 }
 
-interface Territory extends VoronoiCell {}
+interface Territory extends VoronoiCell {
+  borderColor?: string;
+}
 
 interface NationCluster {
   nationId: string;
@@ -466,14 +469,16 @@ export default function WorldMap() {
       const allNations = response.rankings || [];
       
       // Collect nation positions with capacities
-      const nationSeeds: { 
-        nationId: string; 
-        col: number; 
-        row: number; 
-        name: string; 
+      const nationSeeds: {
+        nationId: string;
+        col: number;
+        row: number;
+        name: string;
         flag: string | null;
         capacity: number;
         maxRadius: number;
+        primary: string;
+        secondary: string;
       }[] = [];
       
       let totalCapacity = 0;
@@ -493,6 +498,7 @@ export default function WorldMap() {
           const capacity = calculateCapacityFromPopulation(nationData.stats.population);
           totalCapacity += capacity;
           
+          const palette = await colorsFromFlag(nationData.flag_base64, nationData.name || nationEntry.nation_id);
           nationSeeds.push({
             nationId: nationEntry.nation_id,
             col: startCol,
@@ -501,6 +507,8 @@ export default function WorldMap() {
             flag: nationData.flag_base64 || null,
             capacity,
             maxRadius: 0,
+            primary: palette.primary,
+            secondary: palette.secondary,
           });
         } catch (error) {
           console.error(`Error loading nation:`, error);
@@ -509,21 +517,9 @@ export default function WorldMap() {
       
       setLoadingStatus('Calculating borders...');
       
-      // Calculate max radius per nation from capacity
       nationSeeds.forEach((seed) => {
         seed.maxRadius = Math.max(5, Math.sqrt(seed.capacity) * 1.4);
-        console.log(`${seed.name}: capacity=${seed.capacity}, maxRadius=${seed.maxRadius.toFixed(1)}`);
       });
-      
-      // Nation colors
-      const nationColors = [
-        '#00E0C7', '#FF5A65', '#27D17A', '#F2C94C', '#00B8B8',
-        '#8B5CF6', '#EC4899', '#06B6D4', '#84CC16', '#F97316',
-        '#A855F7', '#14B8A6', '#F43F5E', '#6366F1', '#22C55E',
-        '#EAB308', '#D946EF', '#0EA5E9', '#78716C', '#FB7185',
-        '#A3E635', '#818CF8', '#2DD4BF', '#FACC15', '#E879F9',
-        '#38BDF8', '#34D399', '#FCA5A5', '#93C5FD', '#C084FC'
-      ];
 
       // Grow along easy land (plains, coasts, valleys) — not Manhattan diamonds.
       const landCells = workingTerritories.filter(t => !WATER_BIOMES.has(t.biome));
@@ -569,9 +565,11 @@ export default function WorldMap() {
         const ownerId = claims.get(territory.index);
         if (!ownerId) continue;
         const seedIndex = seedById.get(ownerId) ?? 0;
+        const seed = nationSeeds[seedIndex];
         territory.ownerId = ownerId;
-        territory.ownerName = nationSeeds[seedIndex]?.name;
-        territory.color = nationColors[seedIndex % nationColors.length];
+        territory.ownerName = seed?.name;
+        territory.color = seed?.primary || '#888888';
+        territory.borderColor = seed?.secondary || '#222222';
       }
 
       console.log(
@@ -612,7 +610,7 @@ export default function WorldMap() {
           flag: seed.flag,
           centerCol,
           centerRow,
-          color: nationColors[i % nationColors.length],
+          color: seed.primary,
           discRadius,
         });
       }
