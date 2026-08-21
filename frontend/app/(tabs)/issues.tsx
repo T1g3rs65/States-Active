@@ -16,6 +16,7 @@ import { Issue } from '../../types';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter , useFocusEffect } from 'expo-router';
 import { getRaceTheme } from '../../utils/raceColors';
+import { leaningColor } from '../../utils/politicalCompass';
 import { colors, typography, spacing, radii } from '../../utils/theme';
 
 export default function Issues() {
@@ -36,7 +37,7 @@ export default function Issues() {
 
   // Get race-based theme color
   const raceTheme = getRaceTheme(nation?.race);
-  const themeColor = raceTheme.color;
+  const themeColor = leaningColor(nation);
 
   // Load notification count on focus
   useFocusEffect(

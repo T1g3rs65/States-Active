@@ -18,6 +18,7 @@ import { notificationService } from '../utils/notifications';
 import * as Notifications from 'expo-notifications';
 import { Ionicons } from '@expo/vector-icons';
 import { getRaceTheme } from '../utils/raceColors';
+import { leaningColor } from '../utils/politicalCompass';
 import { ReputationCard } from '../components/ReputationCard';
 
 export default function Profile() {
@@ -32,7 +33,7 @@ export default function Profile() {
   
   // Get race-based theme color
   const raceTheme = getRaceTheme(nation?.race);
-  const themeColor = raceTheme.color;
+  const themeColor = leaningColor(nation);
 
   useEffect(() => {
     loadUserId();

@@ -55,3 +55,11 @@ export function getPoliticalCompassTheme(civilRights: number, gdp: number, polit
     return { name: 'Centrist', color: '#6B7280', description: 'Moderate Pragmatist' }; // Gray
   }
 }
+
+export function leaningColor(nation?: {
+  stats?: { civil_rights?: number; gdp?: number; political_freedom?: number };
+} | null): string {
+  const s = nation?.stats;
+  if (!s) return '#6B7280';
+  return getPoliticalCompassTheme(s.civil_rights ?? 50, s.gdp ?? 50, s.political_freedom ?? 50).color;
+}

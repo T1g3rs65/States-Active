@@ -16,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { SvgXml } from 'react-native-svg';
 import { useNationStore } from '../../store/nationStore';
 import { getRaceTheme } from '../../utils/raceColors';
+import { leaningColor } from '../../utils/politicalCompass';
 import { colors } from '../../utils/theme';
 import { govTitle } from '../../utils/govCopy';
 
@@ -66,7 +67,7 @@ export default function Rankings() {
   // Get dynamic theme color
   // Get race-based theme color for own nation
   const raceTheme = getRaceTheme(nation?.race);
-  const themeColor = raceTheme.color;
+  const themeColor = leaningColor(nation);
 
   const nationId = nation?.id || nation?._id;
 

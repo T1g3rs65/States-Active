@@ -19,6 +19,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNationStore } from '../../store/nationStore';
 import { api } from '../../utils/api';
 import { getRaceTheme } from '../../utils/raceColors';
+import { leaningColor } from '../../utils/politicalCompass';
 import { useRouter , useFocusEffect } from 'expo-router';
 
 const { width } = Dimensions.get('window');
@@ -119,7 +120,7 @@ export default function Advisors() {
 
   // Get race-based theme color
   const raceTheme = getRaceTheme(nation?.race);
-  const themeColor = raceTheme.color;
+  const themeColor = leaningColor(nation);
 
   useEffect(() => {
     fetchNation();

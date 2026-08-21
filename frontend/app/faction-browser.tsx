@@ -19,6 +19,7 @@ import { useRouter } from 'expo-router';
 import { api } from '../utils/api';
 import { useNationStore } from '../store/nationStore';
 import { getRaceTheme } from '../utils/raceColors';
+import { leaningColor } from '../utils/politicalCompass';
 
 interface AllianceMember {
   nation_id: string;
@@ -67,7 +68,7 @@ export default function AllianceBrowserScreen() {
   const { nation } = useNationStore();
   
   const raceTheme = getRaceTheme(nation?.race);
-  const themeColor = raceTheme.color;
+  const themeColor = leaningColor(nation);
   
   const [alliances, setAlliances] = useState<MultiAlliance[]>([]);
   const [myAlliance, setMyAlliance] = useState<MultiAlliance | null>(null);

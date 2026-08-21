@@ -18,6 +18,7 @@ import { useRouter } from 'expo-router';
 import { api } from '../utils/api';
 import { useNationStore } from '../store/nationStore';
 import { getRaceTheme } from '../utils/raceColors';
+import { leaningColor } from '../utils/politicalCompass';
 
 interface Pact {
   alliance_id: string;
@@ -52,7 +53,7 @@ export default function NonAggressionPacts() {
   
   // Get race-based theme color
   const raceTheme = getRaceTheme(nation?.race);
-  const themeColor = raceTheme.color;
+  const themeColor = leaningColor(nation);
   
   const [pacts, setPacts] = useState<Pact[]>([]);
   const [incomingRequests, setIncomingRequests] = useState<PactRequest[]>([]);

@@ -17,6 +17,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { api } from '../utils/api';
 import { useNationStore } from '../store/nationStore';
 import { getRaceTheme } from '../utils/raceColors';
+import { leaningColor } from '../utils/politicalCompass';
 
 const ALLIANCE_COLORS = [
   '#00E0C7', '#FF5A65', '#27D17A', '#F2C94C', '#00E0C7', 
@@ -55,7 +56,7 @@ export default function FactionSettingsScreen() {
   const { nation } = useNationStore();
   
   const raceTheme = getRaceTheme(nation?.race);
-  const themeColor = raceTheme.color;
+  const themeColor = leaningColor(nation);
   
   const nationId = nation?.id || nation?._id;
   

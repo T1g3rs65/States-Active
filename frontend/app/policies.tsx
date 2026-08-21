@@ -15,6 +15,7 @@ import { api } from '../utils/api';
 import { Policy } from '../types';
 import { Ionicons } from '@expo/vector-icons';
 import { getRaceTheme } from '../utils/raceColors';
+import { leaningColor } from '../utils/politicalCompass';
 
 export default function Policies() {
   const router = useRouter();
@@ -26,7 +27,7 @@ export default function Policies() {
 
   // Get race-based theme color
   const raceTheme = getRaceTheme(nation?.race);
-  const themeColor = raceTheme.color;
+  const themeColor = leaningColor(nation);
 
   useEffect(() => {
     if (nation?.id || nation?._id) {

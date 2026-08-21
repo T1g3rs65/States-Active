@@ -16,6 +16,7 @@ import { colors, typography, spacing, radii } from '../../utils/theme';
 import { useNationStore } from '../../store/nationStore';
 import { api } from '../../utils/api';
 import { getRaceTheme } from '../../utils/raceColors';
+import { leaningColor } from '../../utils/politicalCompass';
 import {
   RESOURCES,
   RESOURCE_BY_ID,
@@ -38,7 +39,7 @@ export default function Industry() {
 
   // Get race-based theme color
   const raceTheme = getRaceTheme(nation?.race);
-  const themeColor = raceTheme.color;
+  const themeColor = leaningColor(nation);
 
   useEffect(() => {
     if (nation) {

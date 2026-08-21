@@ -2,13 +2,12 @@ import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useNationStore } from '../../store/nationStore';
 import { StyleSheet } from 'react-native';
-import { getRaceTheme } from '../../utils/raceColors';
+import { leaningColor } from '../../utils/politicalCompass';
 import { colors, spacing } from '../../utils/theme';
 
 export default function TabLayout() {
   const { nation } = useNationStore();
-  const raceTheme = getRaceTheme(nation?.race);
-  const themeColor = raceTheme.color;
+  const themeColor = leaningColor(nation);
 
   return (
     <Tabs

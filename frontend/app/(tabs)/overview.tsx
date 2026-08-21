@@ -16,7 +16,7 @@ import { SvgXml } from 'react-native-svg';
 import DonutChart from '../../components/DonutChart';
 import { colors, typography, spacing, radii } from '../../utils/theme';
 import { getNationSizeClass } from '../../utils/nationSize';
-import { getPoliticalCompassTheme } from '../../utils/politicalCompass';
+import { getPoliticalCompassTheme, leaningColor } from '../../utils/politicalCompass';
 import { getRaceTheme } from '../../utils/raceColors';
 import { govTitle } from '../../utils/govCopy';
 
@@ -29,7 +29,7 @@ export default function Overview() {
   
   // Get race-based theme color for UI
   const raceTheme = getRaceTheme(nation?.race);
-  const themeColor = raceTheme.color;
+  const themeColor = leaningColor(nation);
   
   // Load notification count on focus
   useFocusEffect(

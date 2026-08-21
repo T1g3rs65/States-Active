@@ -1,22 +1,9 @@
 /** Display names and one-line blurbs. Enum/DB strings stay as keys. */
 
-export const GOV_TITLE: Record<string, string> = {
-  'Left-Wing Utopia': 'Socialist state',
-  'Scandinavian Liberal Paradise': 'Nordic welfare state',
-  'Liberal Democratic Paradise': 'Liberal democracy',
-  'Capitalist Paradise': 'Market republic',
-  'Right-Wing Utopia': 'Night-watchman state',
-  'Eco-Socialist Haven': 'Eco-socialist state',
-  'Welfare Paradise': 'Welfare state',
-  'Laissez-Faire Dynamo': 'Laissez-faire',
-  'Civil Rights Lovefest': 'Civil libertarian state',
-  'Free-Market Paradise': 'Free-market republic',
-  'Harmonious Hive': 'Balanced hive',
-  'Nurturing Hive': 'Care hive',
-  'Symbiotic Swarm': 'Cooperative swarm',
-  'Diplomatic Swarm': 'Diplomatic hive',
-  'Techno-Swarm': 'Tech hive',
-};
+export function govTitle(raw?: string | null): string {
+  if (!raw) return '';
+  return raw;
+}
 
 export const GOV_BLURB: Record<string, string> = {
   'Left-Wing Utopia': 'Public ownership, tight equality, thin private wealth.',
@@ -71,11 +58,6 @@ export const GOV_BLURB: Record<string, string> = {
   'Diplomatic Swarm': 'Treaties over raids.',
   'Parasitic Hive': 'Tribute in, work out.',
 };
-
-export function govTitle(raw?: string | null): string {
-  if (!raw) return '';
-  return GOV_TITLE[raw] || raw;
-}
 
 export function govBlurb(raw?: string | null): string {
   if (!raw) return '';

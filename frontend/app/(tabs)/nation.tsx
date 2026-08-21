@@ -17,6 +17,7 @@ import { SvgXml } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
 import { getNationSizeClass } from '../../utils/nationSize';
 import { getRaceTheme, getRaceName, getRaceIcon } from '../../utils/raceColors';
+import { leaningColor } from '../../utils/politicalCompass';
 import { colors, typography, spacing, radii } from '../../utils/theme';
 import { govTitle, govBlurb } from '../../utils/govCopy';
 import NewsFeed from '../../components/NewsFeed';
@@ -248,7 +249,7 @@ export default function Nation() {
   
   // Get dynamic theme color based on RACE
   const raceTheme = getRaceTheme(nation?.race);
-  const themeColor = raceTheme.color;
+  const themeColor = leaningColor(nation);
   const raceName = getRaceName(nation?.race);
   const raceIcon = getRaceIcon(nation?.race);
 
