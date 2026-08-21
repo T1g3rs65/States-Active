@@ -71,16 +71,42 @@ class SimplexNoise:
         return total / max_value if max_value else 0.0
 
 
-_MAP_COLS = 160
+_MAP_COLS = 505
 _MAP_ROWS = 284
 _minmax_cache: dict = {}
 
 
+def _cylinder_fbm(noise: SimplexNoise, col: float, row: float, freq: float, octaves: int, pers: float) -> float:
+    t = (2.0 * math.pi * col) / _MAP_COLS
+    r = _MAP_COLS / (2.0 * math.pi)
+    a = noise.fbm(math.cos(t) * r * freq, row * freq, octaves, pers)
+    b = noise.fbm(math.sin(t) * r * freq, row * freq + 50, octaves, pers)
+    return (a + b) * 0.5
+
+
+def _cylinder_noise2d(noise: SimplexNoise, col: float, row: float, fx: float, fy: float) -> float:
+    t = (2.0 * math.pi * col) / _MAP_COLS
+    r = _MAP_COLS / (2.0 * math.pi)
+    return (
+        noise.noise2D(math.cos(t) * r * fx, row * fy) * 0.5
+        + noise.noise2D(math.sin(t) * r * fx, row * fy + 80) * 0.5
+    )
+
+
+def _cylinder_ridged(noise: SimplexNoise, col: float, row: float, fx: float, fy: float, octaves: int) -> float:
+    t = (2.0 * math.pi * col) / _MAP_COLS
+    r = _MAP_COLS / (2.0 * math.pi)
+    return (
+        noise.ridged(math.cos(t) * r * fx, row * fy, octaves) * 0.5
+        + noise.ridged(math.sin(t) * r * fx, row * fy + 90, octaves) * 0.5
+    )
+
+
 def _elevation(noise: SimplexNoise, col: float, row: float) -> float:
-    continent_mask = noise.fbm(col * 0.002, row * 0.002, 3, 0.5)
-    base = noise.fbm(col / 100, row / 100, 4, 0.35) * 0.6
-    ridges = pow(noise.ridged(col * 0.02, row * 0.02, 5), 1.8) * 0.35
-    directional = abs(noise.noise2D(col * 0.005, row * 0.12)) * -0.2
+    continent_mask = _cylinder_fbm(noise, col, row, 0.002, 3, 0.5)
+    base = _cylinder_fbm(noise, col, row, 0.01, 4, 0.35) * 0.6
+    ridges = pow(_cylinder_ridged(noise, col, row, 0.02, 0.02, 5), 1.8) * 0.35
+    directional = abs(_cylinder_noise2d(noise, col, row, 0.005, 0.12)) * -0.2
     return continent_mask * 0.7 + (base + ridges + directional) * 0.3
 
 
@@ -116,9 +142,14 @@ def find_land_position(existing_positions: set, seed: int = 123456, min_distance
 
     nation_count = len(existing_positions)
     max_attempts = 800
-    center_col, center_row = 80, 142
-    col_lo, col_hi = 18, 142
-    row_lo, row_hi = 24, 260
+    center_col, center_row = _MAP_COLS // 2, _MAP_ROWS // 2
+    row_lo, row_hi = 24, _MAP_ROWS - 24
+
+    def wrap_dx(a: int, b: int) -> float:
+        d = (a - b) % _MAP_COLS
+        if d > _MAP_COLS / 2:
+            d -= _MAP_COLS
+        return d
 
     for attempt in range(max_attempts):
         if nation_count == 0 and attempt == 0:
@@ -126,33 +157,35 @@ def find_land_position(existing_positions: set, seed: int = 123456, min_distance
         else:
             angle = (nation_count + attempt) * 2.4 + random.uniform(-0.5, 0.5)
             radius = 15 + (attempt * 2.5) + random.uniform(-3, 3)
-            test_col = int(center_col + radius * math.cos(angle))
+            test_col = int(center_col + radius * math.cos(angle)) % _MAP_COLS
             test_row = int(center_row + radius * math.sin(angle))
 
-        if not (col_lo < test_col < col_hi and row_lo < test_row < row_hi):
+        if not (row_lo < test_row < row_hi):
             continue
         if not is_land_tile(test_col, test_row, seed):
             continue
 
         valid_distance = True
         for (ex_col, ex_row) in existing_positions:
-            distance = math.sqrt((test_col - ex_col) ** 2 + (test_row - ex_row) ** 2)
+            dx = wrap_dx(test_col, ex_col)
+            distance = math.sqrt(dx ** 2 + (test_row - ex_row) ** 2)
             if distance < min_distance:
                 valid_distance = False
                 break
         if valid_distance:
             return (test_col, test_row)
 
-    for grid_row in range(40, 250, 8):
-        for grid_col in range(25, 140, 8):
+    for grid_row in range(40, _MAP_ROWS - 34, 8):
+        for grid_col in range(0, _MAP_COLS, 8):
             if not is_land_tile(grid_col, grid_row, seed):
                 continue
             valid = True
             for (ex_col, ex_row) in existing_positions:
-                if math.sqrt((grid_col - ex_col) ** 2 + (grid_row - ex_row) ** 2) < min_distance:
+                dx = wrap_dx(grid_col, ex_col)
+                if math.sqrt(dx ** 2 + (grid_row - ex_row) ** 2) < min_distance:
                     valid = False
                     break
             if valid:
                 return (grid_col, grid_row)
 
-    return (80, 142)
+    return (center_col, center_row)

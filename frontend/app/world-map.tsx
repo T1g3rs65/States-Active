@@ -34,15 +34,16 @@ import {
   MAP_WIDTH,
   MAP_HEIGHT,
   VORONOI_CELLS,
+  wrapDx,
 } from '../utils/mapConstants';
 
-const WORLD_SEED = 123456; // Constant seed for deterministic terrain
-const MAP_CACHE_KEY = `world_map_terrain_v8_sparse_${WORLD_SEED}`;
+const WORLD_SEED = 123456;
+const MAP_CACHE_KEY = `world_map_terrain_v9_cylinder_${WORLD_SEED}`;
 const MAX_ZOOM = 8;
 
-function fitZoomFor(width: number, height: number): number {
-  if (width < 8 || height < 8) return 1;
-  return Math.min(width / MAP_WIDTH, height / MAP_HEIGHT);
+function fitZoomFor(_width: number, height: number): number {
+  if (height < 8) return 1;
+  return height / MAP_HEIGHT;
 }
 
 interface Territory extends VoronoiCell {
@@ -115,6 +116,15 @@ export default function WorldMap() {
       router.replace('/');
     }
   }, [router]);
+
+  useEffect(() => {
+    if (loading) return;
+    const worldW = MAP_WIDTH * zoom;
+    const id = requestAnimationFrame(() => {
+      horizontalScrollRef.current?.scrollTo({ x: worldW, animated: false });
+    });
+    return () => cancelAnimationFrame(id);
+  }, [loading, fitZoom]);
   
   // World-specific data
   const worldId = nation?.world_id || null;
@@ -167,7 +177,7 @@ export default function WorldMap() {
     const screenWidth = viewport.w || Dimensions.get('window').width;
     const screenHeight = viewport.h || Dimensions.get('window').height - 150;
     
-    const scrollX = Math.max(0, nationX - screenWidth / 2);
+    const scrollX = Math.max(0, nationX + MAP_WIDTH * targetZoom - screenWidth / 2);
     const scrollY = Math.max(0, nationY - screenHeight / 2);
     
     // Delay scroll to allow zoom to apply first
@@ -346,7 +356,7 @@ export default function WorldMap() {
       }
       
       // v5 = 40k Voronoi. Older caches were hex or 1500-cell and must not be reused.
-      const worldCacheKey = `world_map_terrain_v8_sparse_${mapSeed}`;
+      const worldCacheKey = `world_map_terrain_v9_cylinder_${mapSeed}`;
       
       setLoadingStatus('Checking cache...');
       
@@ -380,7 +390,7 @@ export default function WorldMap() {
     } catch (error) {
       console.error('Error loading map:', error);
       // Fallback to generating terrain
-      await generateAndCacheTerrain(worldSeed, `world_map_terrain_v8_sparse_${worldSeed}`);
+      await generateAndCacheTerrain(worldSeed, `world_map_terrain_v9_cylinder_${worldSeed}`);
     }
   };
 
@@ -533,7 +543,8 @@ export default function WorldMap() {
         let best = landCells[0];
         let bestD = Infinity;
         for (const t of landCells) {
-          const d = (t.col - col) ** 2 + (t.row - row) ** 2;
+          const dx = wrapDx(t.col - col);
+          const d = dx * dx + (t.row - row) ** 2;
           if (d < bestD) {
             bestD = d;
             best = t;
@@ -687,12 +698,13 @@ export default function WorldMap() {
     const ne: any = event.nativeEvent;
     const lx = Number(ne.locationX ?? ne.offsetX ?? 0);
     const ly = Number(ne.locationY ?? ne.offsetY ?? 0);
-    const mx = lx / zoom;
+    let mx = (lx / zoom) % MAP_WIDTH;
+    if (mx < 0) mx += MAP_WIDTH;
     const my = ly / zoom;
     let best: Territory | null = null;
     let bestD = Infinity;
     for (const t of territories) {
-      const dx = t.x - mx;
+      const dx = wrapDx((t.x - mx) / CELL_SCALE) * CELL_SCALE;
       const dy = t.y - my;
       const d = dx * dx + dy * dy;
       if (d < bestD) {
@@ -890,12 +902,23 @@ export default function WorldMap() {
         horizontal
         style={{ flex: 1 }}
         contentContainerStyle={{
-          minWidth: Math.max(viewport.w, mapWidth * zoom),
+          minWidth: mapWidth * zoom * 3,
           minHeight: Math.max(viewport.h, mapHeight * zoom),
           justifyContent: 'center',
-          alignItems: 'center',
+          alignItems: 'flex-start',
         }}
         showsHorizontalScrollIndicator={true}
+        onScroll={(e) => {
+          const x = e.nativeEvent.contentOffset.x;
+          const worldW = mapWidth * zoom;
+          if (worldW < 8) return;
+          if (x < worldW * 0.45) {
+            horizontalScrollRef.current?.scrollTo({ x: x + worldW, animated: false });
+          } else if (x > worldW * 1.55) {
+            horizontalScrollRef.current?.scrollTo({ x: x - worldW, animated: false });
+          }
+        }}
+        scrollEventThrottle={16}
       >
         <ScrollView
           ref={verticalScrollRef}
@@ -907,22 +930,36 @@ export default function WorldMap() {
           }}
           showsVerticalScrollIndicator={true}
         >
-        <View style={{ width: mapWidth * zoom, height: mapHeight * zoom }}>
-          <Pressable onPress={handleMapPress}>
-            {mapImageUri ? (
-              <Image
-                source={{ uri: mapImageUri }}
-                style={{ width: mapWidth * zoom, height: mapHeight * zoom }}
-                resizeMode="stretch"
-              />
-            ) : null}
+        <View style={{ width: mapWidth * zoom * 3, height: mapHeight * zoom }}>
+          <Pressable
+            onPress={handleMapPress}
+            style={{ width: mapWidth * zoom * 3, height: mapHeight * zoom }}
+          >
+            {[0, 1, 2].map((copy) => (
+              mapImageUri ? (
+                <Image
+                  key={copy}
+                  source={{ uri: mapImageUri }}
+                  style={{
+                    position: 'absolute',
+                    left: copy * mapWidth * zoom,
+                    top: 0,
+                    width: mapWidth * zoom,
+                    height: mapHeight * zoom,
+                  }}
+                  resizeMode="stretch"
+                />
+              ) : null
+            ))}
           </Pressable>
           <Svg
-            width={mapWidth * zoom}
+            width={mapWidth * zoom * 3}
             height={mapHeight * zoom}
             style={{ position: 'absolute', left: 0, top: 0 }}
             pointerEvents="none"
           >
+            {[0, 1, 2].map((copy) => (
+              <G key={`wrap-${copy}`} x={copy * mapWidth * zoom}>
             {/* Nation territory discs - make territories visible at global zoom */}
             {nationClusters.map((cluster) => {
               const centerTerritory = territories.find(
@@ -1028,6 +1065,8 @@ export default function WorldMap() {
                 </G>
               );
             })}
+              </G>
+            ))}
           </Svg>
         </View>
         </ScrollView>

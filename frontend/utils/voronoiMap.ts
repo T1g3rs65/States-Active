@@ -89,8 +89,8 @@ function generateVariedPoints(
     for (let c = 0; c < cols; c++) {
       const cx = c * cellW + cellW / 2;
       const cy = r * cellH + cellH / 2;
-      const continent = (noise.fbm(cx * 0.002, cy * 0.002, 3, 0.5) + 1) * 0.5;
-      const clump = (noise.fbm(cx * 0.045 + 40, cy * 0.045 - 17, 2, 0.55) + 1) * 0.5;
+      const continent = (cylinderFbm(noise, cx, cy, mapCols, 0.002, 3, 0.5) + 1) * 0.5;
+      const clump = (cylinderFbm(noise, cx + 40, cy - 17, mapCols, 0.045, 2, 0.55) + 1) * 0.5;
       const prospect = prospectAt(cx, cy, continent, clump);
       // Empty tiles: low keep (large cells). Resource belts: extra sites (small cells).
       const keep = 0.04 + continent * 0.16 + prospect * 1.05 + clump * 0.08;
@@ -107,8 +107,8 @@ function generateVariedPoints(
   while (points.length < count && guard++ < count * 8) {
     const x = rng() * mapCols;
     const y = rng() * mapRows;
-    const continent = (noise.fbm(x * 0.002, y * 0.002, 3, 0.5) + 1) * 0.5;
-    const clump = (noise.fbm(x * 0.045 + 40, y * 0.045 - 17, 2, 0.55) + 1) * 0.5;
+    const continent = (cylinderFbm(noise, x, y, mapCols, 0.002, 3, 0.5) + 1) * 0.5;
+    const clump = (cylinderFbm(noise, x + 40, y - 17, mapCols, 0.045, 2, 0.55) + 1) * 0.5;
     if (rng() < 0.08 + prospectAt(x, y, continent, clump) * 0.95) {
       points.push(clamp(x, y));
     }
@@ -116,14 +116,48 @@ function generateVariedPoints(
   // Do not scatter-fill empties — leftover budget stays unused so barren cells stay large.
   if (points.length > count) {
     const scored = points.map((p) => {
-      const continent = (noise.fbm(p[0] * 0.002, p[1] * 0.002, 3, 0.5) + 1) * 0.5;
-      const clump = (noise.fbm(p[0] * 0.045 + 40, p[1] * 0.045 - 17, 2, 0.55) + 1) * 0.5;
+      const continent = (cylinderFbm(noise, p[0], p[1], mapCols, 0.002, 3, 0.5) + 1) * 0.5;
+      const clump = (cylinderFbm(noise, p[0] + 40, p[1] - 17, mapCols, 0.045, 2, 0.55) + 1) * 0.5;
       return { p, s: prospectAt(p[0], p[1], continent, clump) + rng() * 0.05 };
     });
     scored.sort((a, b) => b.s - a.s);
     return scored.slice(0, count).map(x => x.p);
   }
   return points;
+}
+
+function cylinderFbm(
+  noise: SimplexNoise,
+  col: number,
+  row: number,
+  mapCols: number,
+  freq: number,
+  octaves: number,
+  pers: number
+): number {
+  const t = (2 * Math.PI * col) / mapCols;
+  const r = mapCols / (2 * Math.PI);
+  const a = noise.fbm(Math.cos(t) * r * freq, row * freq, octaves, pers);
+  const b = noise.fbm(Math.sin(t) * r * freq, row * freq + 50, octaves, pers);
+  return (a + b) * 0.5;
+}
+
+function cylinderNoise2D(noise: SimplexNoise, col: number, row: number, mapCols: number, fx: number, fy: number): number {
+  const t = (2 * Math.PI * col) / mapCols;
+  const r = mapCols / (2 * Math.PI);
+  return (
+    noise.noise2D(Math.cos(t) * r * fx, row * fy) * 0.5 +
+    noise.noise2D(Math.sin(t) * r * fx, row * fy + 80) * 0.5
+  );
+}
+
+function cylinderRidged(noise: SimplexNoise, col: number, row: number, mapCols: number, fx: number, fy: number, octaves: number): number {
+  const t = (2 * Math.PI * col) / mapCols;
+  const r = mapCols / (2 * Math.PI);
+  return (
+    noise.ridged(Math.cos(t) * r * fx, row * fy, octaves) * 0.5 +
+    noise.ridged(Math.sin(t) * r * fx, row * fy + 90, octaves) * 0.5
+  );
 }
 
 function mulberry32(seed: number): () => number {
@@ -365,9 +399,9 @@ function assignBiome(
  */
 export function generateVoronoiCells(
   seed: number = 123456,
-  mapCols: number = 160,
+  mapCols: number = 505,
   mapRows: number = 284,
-  cellCount: number = 45440,
+  cellCount: number = 68800,
   pixelScale: number = 6
 ): VoronoiCell[] {
   const rng = mulberry32(seed);
@@ -383,10 +417,10 @@ export function generateVoronoiCells(
     for (let c = 0; c < elevCols; c++) {
       const col = (c / (elevCols - 1)) * mapCols;
       const row = (r / (elevRows - 1)) * mapRows;
-      const continentMask = noise.fbm(col * 0.002, row * 0.002, 3, 0.5);
-      const base = noise.fbm(col / 100, row / 100, 4, 0.35) * 0.6;
-      const ridges = Math.pow(noise.ridged(col * 0.02, row * 0.02, 5), 1.8) * 0.35;
-      const directional = Math.abs(noise.noise2D(col * 0.005, row * 0.12)) * -0.2;
+      const continentMask = cylinderFbm(noise, col, row, mapCols, 0.002, 3, 0.5);
+      const base = cylinderFbm(noise, col, row, mapCols, 0.01, 4, 0.35) * 0.6;
+      const ridges = Math.pow(cylinderRidged(noise, col, row, mapCols, 0.02, 0.02, 5), 1.8) * 0.35;
+      const directional = Math.abs(cylinderNoise2D(noise, col, row, mapCols, 0.005, 0.12)) * -0.2;
       const elevation = continentMask * 0.7 + (base + ridges + directional) * 0.3;
       rawElevations.push(elevation);
       minElev = Math.min(minElev, elevation);
@@ -402,18 +436,27 @@ export function generateVoronoiCells(
   const relaxedPoints = lloydRelaxVoronoi(initialPoints, bounds, 1, 0.3);
 
   // PASS 3: build Delaunay/Voronoi from relaxed points
-  const delaunay = Delaunay.from(relaxedPoints);
-  // d3-delaunay's voronoi() expects an iterable bounds array [xmin, ymin, xmax, ymax].
-  const voronoi = delaunay.voronoi([bounds.xmin, bounds.ymin, bounds.xmax, bounds.ymax]);
+  const n = relaxedPoints.length;
+  const tiled: Array<[number, number]> = [];
+  for (const k of [-1, 0, 1]) {
+    for (const [x, y] of relaxedPoints) tiled.push([x + k * mapCols, y]);
+  }
+  const delaunay = Delaunay.from(tiled);
+  const voronoi = delaunay.voronoi([-mapCols, 0, mapCols * 2, mapRows]);
 
-  // Collect neighbor lists
   const neighbors: number[][] = [];
-  for (let i = 0; i < relaxedPoints.length; i++) {
-    neighbors[i] = Array.from(delaunay.neighbors(i));
+  for (let i = 0; i < n; i++) {
+    const seen = new Set<number>();
+    for (const j of delaunay.neighbors(n + i)) {
+      const oi = ((j % n) + n) % n;
+      if (oi !== i) seen.add(oi);
+    }
+    neighbors[i] = [...seen];
   }
 
   // PASS 4: rivers
-  const riverIndices = generateRiverCells(relaxedPoints, noise, mapCols, mapRows, delaunay, 20);
+  const delaunayPlain = Delaunay.from(relaxedPoints);
+  const riverIndices = generateRiverCells(relaxedPoints, noise, mapCols, mapRows, delaunayPlain, 20);
 
   // PASS 5: build cells
   const cells: VoronoiCell[] = [];
@@ -422,10 +465,12 @@ export function generateVoronoiCells(
   // d3-delaunay v6 yields the polygon itself (with .index set), not a
   // [index, polygon] tuple — use polyGrid.index for the cell index.
   for (const polyGrid of voronoi.cellPolygons()) {
-    const index = polyGrid.index;
+    const ti = polyGrid.index;
+    if (ti < n || ti >= 2 * n) continue;
+    const index = ti - n;
     const [col, row] = relaxedPoints[index];
     const [cx, cy] = polygonCentroid(polyGrid);
-    const centroidCol = cx;
+    const centroidCol = ((cx % mapCols) + mapCols) % mapCols;
     const centroidRow = cy;
 
     // Sample normalized elevation at centroid (bilinear-ish from coarse grid)
@@ -486,10 +531,12 @@ export function generateVoronoiCells(
   }
 
   // PASS 6: near-water flag (used by border ownership)
+  const byI = new Map(cells.map(c => [c.index, c]));
   for (const cell of cells) {
     if (WATER_BIOMES.has(cell.biome)) continue;
-    for (const n of cell.neighbors) {
-      if (WATER_BIOMES.has(cells[n].biome)) {
+    for (const ni of cell.neighbors) {
+      const o = byI.get(ni);
+      if (o && WATER_BIOMES.has(o.biome)) {
         cell.nearWater = true;
         break;
       }
