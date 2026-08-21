@@ -2,6 +2,8 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { ReactNode } from 'react';
 import { colors, typography, spacing } from '../utils/theme';
+import { useNationStore } from '../store/nationStore';
+import { leaningColor, leaningWash } from '../utils/politicalCompass';
 
 type Props = {
   title: string;
@@ -11,17 +13,24 @@ type Props = {
 };
 
 export default function ScreenHeader({ title, subtitle, onBack, right }: Props) {
+  const { nation } = useNationStore();
+  const tint = leaningColor(nation);
   return (
-    <View style={styles.wrap}>
+    <View
+      style={[
+        styles.wrap,
+        { backgroundColor: leaningWash(nation, 0.16), borderBottomColor: tint, borderBottomWidth: 2 },
+      ]}
+    >
       <View style={styles.row}>
         {onBack ? (
-          <TouchableOpacity onPress={onBack} style={styles.iconBtn} hitSlop={8}>
-            <Ionicons name="chevron-back" size={22} color={colors.text.primary} />
+          <TouchableOpacity onPress={onBack} style={[styles.iconBtn, { borderColor: tint }]} hitSlop={8}>
+            <Ionicons name="chevron-back" size={22} color={tint} />
           </TouchableOpacity>
         ) : null}
         <View style={{ flex: 1 }}>
           <Text style={styles.title}>{title}</Text>
-          {subtitle ? <Text style={styles.sub}>{subtitle}</Text> : null}
+          {subtitle ? <Text style={[styles.sub, { color: tint }]}>{subtitle}</Text> : null}
         </View>
         {right}
       </View>
@@ -38,9 +47,11 @@ export function HeaderIcon({
   onPress: () => void;
   badge?: number;
 }) {
+  const { nation } = useNationStore();
+  const tint = leaningColor(nation);
   return (
-    <TouchableOpacity onPress={onPress} style={styles.iconBtn} hitSlop={8}>
-      <Ionicons name={name} size={20} color={colors.text.secondary} />
+    <TouchableOpacity onPress={onPress} style={[styles.iconBtn, { borderColor: tint }]} hitSlop={8}>
+      <Ionicons name={name} size={20} color={tint} />
       {!!badge && badge > 0 && (
         <View style={styles.badge}>
           <Text style={styles.badgeText}>{badge > 9 ? '9+' : badge}</Text>

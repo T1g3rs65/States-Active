@@ -63,3 +63,16 @@ export function leaningColor(nation?: {
   if (!s) return '#6B7280';
   return getPoliticalCompassTheme(s.civil_rights ?? 50, s.gdp ?? 50, s.political_freedom ?? 50).color;
 }
+
+export function hexAlpha(hex: string, a: number): string {
+  const h = (hex || '#6B7280').replace('#', '');
+  const n = h.length === 3 ? h.split('').map((c) => c + c).join('') : h;
+  const r = parseInt(n.slice(0, 2), 16) || 0;
+  const g = parseInt(n.slice(2, 4), 16) || 0;
+  const b = parseInt(n.slice(4, 6), 16) || 0;
+  return `rgba(${r},${g},${b},${a})`;
+}
+
+export function leaningWash(nation: Parameters<typeof leaningColor>[0], a = 0.1): string {
+  return hexAlpha(leaningColor(nation), a);
+}

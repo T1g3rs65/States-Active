@@ -16,7 +16,7 @@ import { Issue } from '../../types';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter , useFocusEffect } from 'expo-router';
 import { getRaceTheme } from '../../utils/raceColors';
-import { leaningColor } from '../../utils/politicalCompass';
+import { leaningColor, leaningWash } from '../../utils/politicalCompass';
 import { colors, typography, spacing, radii } from '../../utils/theme';
 
 export default function Issues() {
@@ -174,7 +174,12 @@ export default function Issues() {
 
   // Header component to be reused
   const renderHeader = () => (
-    <View style={styles.topHeader}>
+    <View
+      style={[
+        styles.topHeader,
+        { backgroundColor: leaningWash(nation, 0.18), borderBottomColor: themeColor, borderBottomWidth: 2 },
+      ]}
+    >
       <Text style={styles.topHeaderTitle}>Issues</Text>
       <View style={styles.headerButtons}>
         <TouchableOpacity 
@@ -246,7 +251,7 @@ export default function Issues() {
 
   // Always render wrapper with modal
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: leaningWash(nation, 0.08) }]}>
       {renderHeader()}
       {renderContent()}
       
@@ -264,11 +269,14 @@ export default function Issues() {
         {issues.map((issue) => (
           <TouchableOpacity
             key={issue.id || issue._id}
-            style={styles.issueCard}
+            style={[
+              styles.issueCard,
+              { borderColor: themeColor, borderLeftWidth: 4, backgroundColor: leaningWash(nation, 0.12) },
+            ]}
             onPress={() => setSelectedIssue(issue)}
           >
             <View style={styles.issueCardInner}>
-              <Text style={styles.issueCardTitle}>{issue.title}</Text>
+              <Text style={[styles.issueCardTitle, { color: themeColor }]}>{issue.title}</Text>
               <Text style={styles.issueCardPreview} numberOfLines={3}>
                 {issue.description}
               </Text>

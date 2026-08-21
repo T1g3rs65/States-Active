@@ -3,6 +3,8 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, typography, spacing, radii } from '../../utils/theme';
 import ScreenHeader from '../../components/ScreenHeader';
+import { useNationStore } from '../../store/nationStore';
+import { leaningColor, leaningWash } from '../../utils/politicalCompass';
 
 interface MenuItem {
   label: string;
@@ -42,15 +44,17 @@ const GROUPS: { title: string; items: MenuItem[] }[] = [
 
 export default function More() {
   const router = useRouter();
+  const { nation } = useNationStore();
+  const tint = leaningColor(nation);
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: leaningWash(nation, 0.08) }]}>
       <ScreenHeader title="More" subtitle="Everything else, still here" />
       <ScrollView contentContainerStyle={styles.menu}>
         {GROUPS.map((group) => (
           <View key={group.title} style={styles.group}>
-            <Text style={styles.groupTitle}>{group.title}</Text>
-            <View style={styles.card}>
+            <Text style={[styles.groupTitle, { color: tint }]}>{group.title}</Text>
+            <View style={[styles.card, { borderColor: tint }]}>
               {group.items.map((item, i) => (
                 <TouchableOpacity
                   key={item.route}
@@ -58,8 +62,8 @@ export default function More() {
                   onPress={() => router.push(item.route as any)}
                   activeOpacity={0.7}
                 >
-                  <View style={styles.iconWrap}>
-                    <Ionicons name={item.icon} size={18} color={colors.accent.primary} />
+                  <View style={[styles.iconWrap, { backgroundColor: leaningWash(nation, 0.22) }]}>
+                    <Ionicons name={item.icon} size={18} color={tint} />
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.rowText}>{item.label}</Text>

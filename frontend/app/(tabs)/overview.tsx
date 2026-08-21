@@ -16,7 +16,7 @@ import { SvgXml } from 'react-native-svg';
 import DonutChart from '../../components/DonutChart';
 import { colors, typography, spacing, radii } from '../../utils/theme';
 import { getNationSizeClass } from '../../utils/nationSize';
-import { getPoliticalCompassTheme, leaningColor } from '../../utils/politicalCompass';
+import { getPoliticalCompassTheme, leaningColor, leaningWash } from '../../utils/politicalCompass';
 import { getRaceTheme } from '../../utils/raceColors';
 import { govTitle } from '../../utils/govCopy';
 
@@ -193,9 +193,14 @@ export default function Overview() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: leaningWash(nation, 0.08) }]}>
       {/* Header */}
-      <View style={styles.topHeader}>
+      <View
+        style={[
+          styles.topHeader,
+          { backgroundColor: leaningWash(nation, 0.18), borderBottomColor: themeColor, borderBottomWidth: 2 },
+        ]}
+      >
         <Text style={styles.topHeaderTitle}>Statistics</Text>
         <View style={styles.headerButtons}>
           <TouchableOpacity 
@@ -225,7 +230,12 @@ export default function Overview() {
           <RefreshControl refreshing={refreshing} onRefresh={refreshNation} tintColor="#00E0C7" />
         }
       >
-      <View style={styles.headerCard}>
+      <View
+        style={[
+          styles.headerCard,
+          { backgroundColor: leaningWash(nation, 0.2), borderColor: themeColor, borderWidth: 1 },
+        ]}
+      >
         <View style={styles.headerTop}>
           {nation.flag_base64 && (() => {
             const isSvg = nation.flag_base64.includes('svg');

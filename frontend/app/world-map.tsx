@@ -17,6 +17,7 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useNationStore } from '../store/nationStore';
+import { leaningColor } from '../utils/politicalCompass';
 import Svg, { Polygon, G, Text as SvgText, Rect, Circle , SvgXml } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
 import { SimplexNoise } from '../utils/noise';
@@ -116,6 +117,7 @@ function goldStarPoints(cx: number, cy: number, r: number): string {
 export default function WorldMap() {
   const router = useRouter();
   const { nation, saveNation } = useNationStore();
+  const tint = leaningColor(nation);
   const params = useLocalSearchParams<{ place?: string }>();
   const [placing, setPlacing] = useState(params.place === '1' || params.place === 'true');
   const [placeConfirm, setPlaceConfirm] = useState<Territory | null>(null);
@@ -1019,7 +1021,7 @@ export default function WorldMap() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#00E0C7" />
+        <ActivityIndicator size="large" color={tint} />
         <Text style={styles.loadingText}>{loadingStatus}</Text>
         <Text style={styles.loadingSubtext}>First load carves the world; later loads are much faster</Text>
       </View>
@@ -1034,7 +1036,7 @@ export default function WorldMap() {
     <View style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.replace(placing ? '/quiz' : '/(tabs)/nation')} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#00E0C7" />
+          <Ionicons name="arrow-back" size={24} color={tint} />
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <Text style={styles.title}>{placing ? 'Place Capital' : foundingCity ? 'Found a City' : 'World Map'}</Text>
@@ -1042,7 +1044,7 @@ export default function WorldMap() {
         </View>
         {!placing && (
         <TouchableOpacity onPress={zoomToMyNation} style={styles.myNationButton}>
-        <Ionicons name="locate" size={18} color="#2EE6C5" />
+        <Ionicons name="locate" size={18} color={tint} />
         </TouchableOpacity>
         )}
       </View>
@@ -1072,7 +1074,7 @@ export default function WorldMap() {
               <Text style={styles.legendDotText}>You</Text>
             </View>
             <View style={styles.legendDot}>
-              <View style={[styles.dot, { backgroundColor: '#00E0C7' }]} />
+              <View style={[styles.dot, { backgroundColor: tint }]} />
               <Text style={styles.legendDotText}>Faction</Text>
             </View>
             <View style={styles.legendDot}>
@@ -1143,7 +1145,7 @@ export default function WorldMap() {
                 <Ionicons 
                   name={mode.icon as any} 
                   size={20} 
-                  color={mapMode === mode.key ? '#00E0C7' : 'rgba(243,246,250,0.70)'} 
+                  color={mapMode === mode.key ? tint : 'rgba(243,246,250,0.70)'} 
                 />
                 <Text style={[
                   styles.dropdownItemText,
@@ -1152,7 +1154,7 @@ export default function WorldMap() {
                   {mode.label}
                 </Text>
                 {mapMode === mode.key && (
-                  <Ionicons name="checkmark" size={20} color="#00E0C7" />
+                  <Ionicons name="checkmark" size={20} color={tint} />
                 )}
               </TouchableOpacity>
             ))}
@@ -1415,7 +1417,7 @@ export default function WorldMap() {
                   <Text style={styles.placeCancelText}>Cancel</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={styles.placeGo}
+                  style={[styles.placeGo, { backgroundColor: tint }]}
                   onPress={() => void commitCapital(placeConfirm)}
                 >
                   <Text style={styles.placeGoText}>Found here</Text>

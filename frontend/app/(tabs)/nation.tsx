@@ -17,7 +17,7 @@ import { SvgXml } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
 import { getNationSizeClass } from '../../utils/nationSize';
 import { getRaceTheme, getRaceName, getRaceIcon } from '../../utils/raceColors';
-import { leaningColor } from '../../utils/politicalCompass';
+import { leaningColor, leaningWash, hexAlpha } from '../../utils/politicalCompass';
 import { colors, typography, spacing, radii } from '../../utils/theme';
 import { govTitle, govBlurb } from '../../utils/govCopy';
 import NewsFeed from '../../components/NewsFeed';
@@ -390,9 +390,14 @@ export default function Nation() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: leaningWash(nation, 0.08) }]}>
       {/* Top Header Bar */}
-      <View style={styles.topHeader}>
+      <View
+        style={[
+          styles.topHeader,
+          { backgroundColor: leaningWash(nation, 0.18), borderBottomColor: themeColor, borderBottomWidth: 2 },
+        ]}
+      >
         <Text style={styles.topHeaderTitle}>{nation.name}</Text>
         <View style={styles.headerButtons}>
           {/* Notification Button */}
@@ -425,7 +430,12 @@ export default function Nation() {
           <RefreshControl refreshing={refreshing} onRefresh={refreshNation} tintColor={themeColor} />
         }
       >
-      <View style={styles.headerCard}>
+      <View
+        style={[
+          styles.headerCard,
+          { backgroundColor: leaningWash(nation, 0.2), borderColor: themeColor, borderWidth: 1 },
+        ]}
+      >
         {renderFlag()}
         <Text style={styles.nationName}>{nation.name}</Text>
         <TouchableOpacity onPress={showRaceInfo} style={styles.raceRow} activeOpacity={0.7}>
@@ -434,7 +444,7 @@ export default function Nation() {
           <Ionicons name="information-circle-outline" size={14} color={themeColor} style={{ marginLeft: 4, opacity: 0.7 }} />
         </TouchableOpacity>
         <TouchableOpacity onPress={showGovernmentInfo} activeOpacity={0.7}>
-          <Text style={[styles.governmentType, { textDecorationLine: 'underline' }]}>{govTitle(nation.government_type)}</Text>
+          <Text style={[styles.governmentType, { textDecorationLine: 'underline', color: themeColor }]}>{govTitle(nation.government_type)}</Text>
         </TouchableOpacity>
         <Text style={[styles.sizeClass, { color: themeColor }]}>{getNationSizeClass(stats.population)}</Text>
         {nation.motto && (
@@ -444,7 +454,7 @@ export default function Nation() {
 
       <View style={styles.actionButtons}>
         <TouchableOpacity
-          style={[styles.actionButton, { borderColor: themeColor }]}
+          style={[styles.actionButton, { borderColor: themeColor, backgroundColor: leaningWash(nation, 0.22) }]}
           onPress={() => router.push('/world-map')}
         >
           <Ionicons name="globe" size={16} color={colors.text.primary} style={{ marginRight: 8 }} />
@@ -452,7 +462,7 @@ export default function Nation() {
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.actionButton, { borderColor: themeColor }]}
+          style={[styles.actionButton, { borderColor: themeColor, backgroundColor: leaningWash(nation, 0.22) }]}
           onPress={() => router.push('/policies')}
         >
           <Ionicons name="document-text" size={16} color={colors.text.primary} style={{ marginRight: 8 }} />
