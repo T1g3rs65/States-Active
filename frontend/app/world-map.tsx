@@ -317,8 +317,8 @@ export default function WorldMap() {
         }
       }
       
-      // Use world-specific cache key
-      const worldCacheKey = `world_map_terrain_v3_${mapSeed}`;
+      // v4 = Voronoi cells with polygons. v3 was hex tiles and will crash the renderer.
+      const worldCacheKey = `world_map_terrain_v4_voronoi_${mapSeed}`;
       
       setLoadingStatus('Checking cache...');
       
@@ -330,13 +330,13 @@ export default function WorldMap() {
         console.log('Found cached terrain, loading...');
         const baseTerritories: Territory[] = JSON.parse(cachedData);
         
-        // Check if cache has resources
         const resourceCount = baseTerritories.filter(t => t.resourceId).length;
-        console.log(`Cached territories: ${baseTerritories.length}, with resources: ${resourceCount}`);
+        const polygonCount = baseTerritories.filter(t => Array.isArray(t.polygon) && t.polygon.length >= 3).length;
+        console.log(`Cached territories: ${baseTerritories.length}, with resources: ${resourceCount}, with polygons: ${polygonCount}`);
         
-        // If cache is old (no resources), regenerate
-        if (resourceCount === 0) {
-          console.log('Cache is outdated (no resources), regenerating...');
+        // Reject hex/v3-shaped cache (no polygons) or resource-less cache
+        if (polygonCount < baseTerritories.length * 0.8 || resourceCount === 0) {
+          console.log('Cache is outdated (missing Voronoi polygons or resources), regenerating...');
           await AsyncStorage.removeItem(worldCacheKey);
           await generateAndCacheTerrain(mapSeed, worldCacheKey);
           return;
@@ -352,33 +352,42 @@ export default function WorldMap() {
     } catch (error) {
       console.error('Error loading map:', error);
       // Fallback to generating terrain
-      await generateAndCacheTerrain(worldSeed, `world_map_terrain_v3_${worldSeed}`);
+      await generateAndCacheTerrain(worldSeed, `world_map_terrain_v4_voronoi_${worldSeed}`);
     }
   };
 
   // Generate terrain and cache it
   const generateAndCacheTerrain = async (seed: number = WORLD_SEED, cacheKey: string = MAP_CACHE_KEY) => {
     try {
+      // Yield so the loading label can paint before the sync Voronoi pass
+      setLoadingStatus('Shaping the world into territories...');
+      await new Promise<void>((resolve) => setTimeout(resolve, 50));
       const baseTerritories = generateBaseTerrain(seed);
       
       // Cache the base terrain (without nation ownership)
       setLoadingStatus('Caching terrain for faster future loads...');
       try {
-        // Store a simplified version (only essential data)
+        // Must keep polygon vertices — without them the SVG renderer crashes
         const cacheData = baseTerritories.map(t => ({
           id: t.id,
+          index: t.index,
           col: t.col,
           row: t.row,
           x: t.x,
           y: t.y,
+          polygon: t.polygon,
+          neighbors: t.neighbors,
           normalized: t.normalized,
+          moisture: t.moisture,
           biome: t.biome,
           color: t.color,
           resourceId: t.resourceId || null,
           ownerId: null,
+          isRiver: t.isRiver,
+          nearWater: t.nearWater,
         }));
         await AsyncStorage.setItem(cacheKey, JSON.stringify(cacheData));
-        console.log('Terrain cached successfully (with resources)');
+        console.log('Terrain cached successfully (with polygons + resources)');
       } catch (cacheError) {
         console.warn('Failed to cache terrain:', cacheError);
       }
@@ -838,6 +847,9 @@ export default function WorldMap() {
             
             {/* Render hexagon territories */}
             {territories.map((territory) => {
+              if (!Array.isArray(territory.polygon) || territory.polygon.length < 3) {
+                return null;
+              }
               const isBorder = isBorderTerritory(territory);
               const isOwned = !!territory.ownerId;
               const fillColor = getTerritoryColor(territory);
