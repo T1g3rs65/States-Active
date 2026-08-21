@@ -37,6 +37,8 @@ import {
   wrapDx,
   timezoneColor,
   timezoneLabel,
+  officialTimezoneColor,
+  contiguousOccupiedBands,
   mercatorY,
 } from '../utils/mapConstants';
 
@@ -108,6 +110,7 @@ export default function WorldMap() {
   const userHasZoomed = useRef(false);
   const [mapMode, setMapMode] = useState<MapMode>('political');
   const [showModeDropdown, setShowModeDropdown] = useState(false);
+  const tzPolicyRef = useRef<Map<string, { bands: number[]; count: number }>>(new Map());
 
   // Direct URL /world-map.html is not the game — send them home.
   useEffect(() => {
@@ -299,8 +302,16 @@ export default function WorldMap() {
         // Everyone else - Red
         return '#FF5A65';
 
-      case 'timezone':
+      case 'timezone': {
+        const owner = territory.ownerId;
+        if (owner) {
+          const p = tzPolicyRef.current.get(owner);
+          if (p && p.bands.length) {
+            return officialTimezoneColor(territory.col, p.bands, p.count);
+          }
+        }
         return timezoneColor(territory.col);
+      }
         
       case 'political':
       default:
@@ -496,6 +507,7 @@ export default function WorldMap() {
         maxRadius: number;
         primary: string;
         secondary: string;
+        timezoneCount: number | null;
       }[] = [];
       
       let totalCapacity = 0;
@@ -526,6 +538,7 @@ export default function WorldMap() {
             maxRadius: 0,
             primary: palette.primary,
             secondary: palette.secondary,
+            timezoneCount: nationData.timezone_count ?? null,
           });
         } catch (error) {
           console.error(`Error loading nation:`, error);
@@ -597,6 +610,21 @@ export default function WorldMap() {
         `${workingTerritories.filter(t => t.ownerId).length} owned tiles, ` +
         `${nationSeeds.length} nations`
       );
+
+      const nextTz = new Map<string, { bands: number[]; count: number }>();
+      for (const seed of nationSeeds) {
+        const cols = workingTerritories.filter(t => t.ownerId === seed.nationId).map(t => t.col);
+        const bands = contiguousOccupiedBands(cols);
+        const geoMax = Math.max(1, bands.length);
+        const count = Math.max(1, Math.min(geoMax, seed.timezoneCount ?? geoMax));
+        nextTz.set(seed.nationId, { bands, count });
+      }
+      tzPolicyRef.current = nextTz;
+      const playerId = nation?.id || nation?._id;
+      if (playerId && nextTz.has(playerId)) {
+        const p = nextTz.get(playerId)!;
+        api.reportTimezoneGeo(playerId, p.bands.length, p.bands).catch(() => {});
+      }
       
       // Calculate territory counts for each nation and sync to backend
       setLoadingStatus('Syncing territory data...');

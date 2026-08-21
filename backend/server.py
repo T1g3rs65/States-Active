@@ -534,6 +534,18 @@ async def get_territory_stats(nation_id: str):
         "message": "Calculate territory stats on frontend from world map"
     }
 
+@api_router.post("/nations/{nation_id}/timezone-geo")
+async def set_timezone_geo(nation_id: str, body: dict):
+    from bson import ObjectId
+    raw_bands = body.get("bands") or []
+    bands = [int(b) % 24 for b in raw_bands]
+    geo_max = max(1, min(24, int(body.get("geo_max") or 1)))
+    await db.nations.update_one(
+        {"_id": ObjectId(nation_id)},
+        {"$set": {"timezone_geo_max": geo_max, "timezone_bands": bands}}
+    )
+    return {"success": True, "geo_max": geo_max, "bands": bands}
+
 # ============== Issues Endpoints ==============
 
 @api_router.get("/nations/{nation_id}/issues")
@@ -565,6 +577,23 @@ async def get_daily_issues(nation_id: str, force_generate: bool = False):
         for issue in current_issues:
             issue["id"] = str(issue["_id"])
             issue["_id"] = str(issue["_id"])
+
+        geo_max = int(nation_data.get("timezone_geo_max") or 1)
+        has_tz = any(i.get("kind") == "timezone" for i in current_issues)
+        if geo_max >= 2 and not has_tz:
+            from timezone_issue import build_timezone_issue
+            tz_issue = build_timezone_issue(
+                nation_id,
+                nation_data.get("name", "Your nation"),
+                geo_max,
+                nation_data.get("timezone_count"),
+            )
+            tz_doc = tz_issue.dict()
+            tz_ins = await db.issues.insert_one(tz_doc)
+            tz_doc["id"] = str(tz_ins.inserted_id)
+            tz_doc["_id"] = str(tz_ins.inserted_id)
+            current_issues.append(tz_doc)
+
         
         now = datetime.utcnow()
         generated_now = False
@@ -691,8 +720,10 @@ async def submit_decision(request: SubmitDecisionRequest):
         # Apply stat changes
         choice = issue.choices[request.choice_index]
         current_stats = nation_data["stats"]
-        
+        tz_count = choice.effects.get("timezone_count")
         for stat_name, change in choice.effects.items():
+            if stat_name == "timezone_count":
+                continue
             if stat_name in current_stats:
                 current_stats[stat_name] = max(0, min(100, current_stats[stat_name] + change))
         
@@ -759,13 +790,17 @@ async def submit_decision(request: SubmitDecisionRequest):
             logger.info(f"Policy created: {law_name}")
         
         # Update nation with new stats AND government type
+        nation_set = {
+            "stats": current_stats,
+            "government_type": new_gov_type.value
+        }
+        if tz_count is not None:
+            geo_max = int(nation_data.get("timezone_geo_max") or 1)
+            nation_set["timezone_count"] = max(1, min(geo_max, int(tz_count)))
         await db.nations.update_one(
             {"_id": ObjectId(request.nation_id)},
             {
-                "$set": {
-                    "stats": current_stats,
-                    "government_type": new_gov_type.value
-                },
+                "$set": nation_set,
                 "$push": {"stats_history": snapshot},
                 "$inc": {"total_decisions": 1}
             }

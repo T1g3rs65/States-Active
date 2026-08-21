@@ -112,6 +112,15 @@ export const api = {
     });
     return response.json();
   },
+
+  reportTimezoneGeo: async (nationId: string, geoMax: number, bands: number[]) => {
+    const response = await fetch(`${API_URL}/api/nations/${nationId}/timezone-geo`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ geo_max: geoMax, bands }),
+    });
+    return response.json();
+  },
   
   // Rankings
   getRankings: async (statName: string, limit = 100, worldId?: string) => {

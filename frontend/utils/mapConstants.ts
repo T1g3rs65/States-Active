@@ -48,8 +48,11 @@ export function timezoneLabel(col: number, cols: number = MAP_COLS): string {
 }
 
 export function timezoneColor(col: number, cols: number = MAP_COLS): string {
-  const band = timezoneBand(col, cols);
-  const hue = band * 15;
+  return timezoneBandColor(timezoneBand(col, cols));
+}
+
+export function timezoneBandColor(band: number): string {
+  const hue = ((band % 24) + 24) % 24 * 15;
   const sat = band % 2 === 0 ? 0.52 : 0.40;
   const l = band % 2 === 0 ? 0.48 : 0.36;
   const f = (n: number) => {
@@ -59,6 +62,44 @@ export function timezoneColor(col: number, cols: number = MAP_COLS): string {
   };
   const hex = (n: number) => n.toString(16).padStart(2, '0');
   return `#${hex(f(0))}${hex(f(8))}${hex(f(4))}`;
+}
+
+/** Longest circular run of occupied hourly bands. Disconnected hours are dropped. */
+export function contiguousOccupiedBands(cols: number[]): number[] {
+  const set = new Set(cols.map((c) => timezoneBand(c)));
+  if (set.size === 0) return [];
+  const occ = Array.from({ length: 24 }, (_, i) => set.has(i));
+  const ext = occ.concat(occ);
+  let bestStart = 0;
+  let bestLen = 0;
+  let run = 0;
+  let runStart = 0;
+  for (let i = 0; i < ext.length; i++) {
+    if (ext[i]) {
+      if (run === 0) runStart = i;
+      run += 1;
+      if (run > bestLen) {
+        bestLen = run;
+        bestStart = runStart;
+      }
+    } else {
+      run = 0;
+    }
+  }
+  bestLen = Math.min(bestLen, 24);
+  return Array.from({ length: bestLen }, (_, i) => (bestStart + i) % 24);
+}
+
+export function officialTimezoneColor(col: number, occupied: number[], count: number): string {
+  if (!occupied.length) return timezoneColor(col);
+  const n = occupied.length;
+  const c = Math.max(1, Math.min(count, n));
+  if (c >= n) return timezoneColor(col);
+  let idx = occupied.indexOf(timezoneBand(col));
+  if (idx < 0) idx = 0;
+  const group = Math.min(c - 1, Math.floor((idx * c) / n));
+  const pick = occupied[Math.min(n - 1, Math.floor(((group + 0.5) * n) / c))];
+  return timezoneBandColor(pick);
 }
 export function poleScale(row: number, mapRows: number = MAP_ROWS): number {
   const lat = Math.abs(row / mapRows - 0.5) * 2;

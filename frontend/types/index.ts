@@ -76,6 +76,9 @@ export interface Nation {
   advisors?: Advisor[];
   last_reform_sent?: string;
   policies?: Policy[];
+  timezone_count?: number | null;
+  timezone_geo_max?: number;
+  timezone_bands?: number[];
 }
 
 export interface Advisor {

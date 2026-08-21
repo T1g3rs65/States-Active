@@ -240,6 +240,11 @@ class Nation(BaseModel):
     # Territory counts by biome type (for industry system)
     territory_counts: Dict[str, int] = Field(default_factory=dict)
     total_territories: int = 0
+
+    # Official timezones (contiguous). None = geographic max.
+    timezone_count: Optional[int] = None
+    timezone_geo_max: int = 1
+    timezone_bands: List[int] = Field(default_factory=list)
     
     # Reform cooldown (nation-level, 7-day)
     last_reform_sent: Optional[datetime] = None
@@ -264,6 +269,8 @@ class Issue(BaseModel):
     resolved: bool = False
     resolved_at: Optional[datetime] = None
     chosen_index: Optional[int] = None
+    kind: Optional[str] = None
+
 
 class Decision(BaseModel):
     id: Optional[str] = None
