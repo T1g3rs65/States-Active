@@ -40,13 +40,14 @@ function mixRgb(
   return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
 }
 
+function litRgb(r: number, g: number, b: number, shade: number, jitter: number, isWater: boolean): string {
+  const s = Math.max(shade, isWater ? 0.7 : 0.85);
+  return toCss(r * s + jitter * 8, g * s + jitter * 8, b * s + jitter * 6);
+}
+
 function litColor(hex: string, shade: number, jitter: number, isWater: boolean): string {
-  let [r, g, b] = parseHex(hex);
-  const s = Math.max(shade, isWater ? 0.62 : 0.78);
-  r = r * s + jitter * 8;
-  g = g * s + jitter * 8;
-  b = b * s + jitter * 6;
-  return toCss(r, g, b);
+  const [r, g, b] = parseHex(hex);
+  return litRgb(r, g, b, shade, jitter, isWater);
 }
 
 function cellJitter(index: number): number {
@@ -289,7 +290,7 @@ export function rasterizeWorldMap(opts: {
     const keepHue = mapMode === 'political' && !!t.ownerId;
     ctx.fillStyle = keepHue
       ? litColor(fillFor(t), 0.82 + 0.28 * shade, j * 0.25, true)
-      : litColor(toCss(...mixed), shade, j, water);
+      : litRgb(mixed[0], mixed[1], mixed[2], shade, j, water);
     ctx.fill();
   }
 
