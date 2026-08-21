@@ -23,6 +23,7 @@ import { lloydRelaxation, calculateBorderOwnership } from '../utils/borders';
 import { calculateCapacityFromPopulation } from '../utils/nationSize';
 import { generateVoronoiCells, VoronoiCell, DEEP_WATER_BIOMES } from '../utils/voronoiMap';
 import { assignResourceToTile, RESOURCE_BY_ID, TIER_COLORS } from '../utils/resources';
+import { rasterizeWorldMap } from '../utils/mapPaint';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -655,50 +656,19 @@ export default function WorldMap() {
     return false;
   };
 
-  // Rasterize 40k cells to a bitmap — React cannot mount 40k SVG polygons.
+  // Rasterize 40k cells to a bitmap — hillshade, coasts, grain (not flat fills).
   useEffect(() => {
     if (!territories.length) return;
-    if (typeof document === 'undefined') return;
-
-    const scale = 2;
-    const canvas = document.createElement('canvas');
-    canvas.width = MAP_WIDTH * scale;
-    canvas.height = MAP_HEIGHT * scale;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    ctx.scale(scale, scale);
-    ctx.fillStyle = '#001133';
-    ctx.fillRect(0, 0, MAP_WIDTH, MAP_HEIGHT);
-
-    for (const t of territories) {
-      if (!Array.isArray(t.polygon) || t.polygon.length < 3) continue;
-      const isOwned = !!t.ownerId;
-      const isBorder = isBorderTerritory(t);
-      ctx.beginPath();
-      ctx.moveTo(t.polygon[0][0], t.polygon[0][1]);
-      for (let i = 1; i < t.polygon.length; i++) {
-        ctx.lineTo(t.polygon[i][0], t.polygon[i][1]);
-      }
-      ctx.closePath();
-      ctx.globalAlpha =
-        t.biome === 'deep_ocean' ? 0.75 : t.biome === 'shallow_sea' ? 0.65 : isOwned ? 1 : 0.9;
-      ctx.fillStyle = getTerritoryColor(t);
-      ctx.fill();
-      const stroke = getTerritoryStroke(t, isBorder, isOwned);
-      ctx.globalAlpha = 1;
-      ctx.strokeStyle = stroke.color;
-      ctx.lineWidth = Math.min(stroke.width, 1.15) / scale;
-      ctx.stroke();
-
-      if (mapMode === 'resources' && t.resourceId) {
-        ctx.beginPath();
-        ctx.arc(t.x, t.y, 1.6, 0, Math.PI * 2);
-        ctx.fillStyle = RESOURCE_BY_ID.get(t.resourceId)?.color || '#F3F6FA';
-        ctx.fill();
-      }
-    }
-
-    setMapImageUri(canvas.toDataURL('image/png'));
+    const uri = rasterizeWorldMap({
+      territories,
+      mapWidth: MAP_WIDTH,
+      mapHeight: MAP_HEIGHT,
+      fillFor: (t) => getTerritoryColor(t as Territory),
+      isNationBorder: (t) => isBorderTerritory(t as Territory),
+      mapMode,
+      resourceColor: (id) => RESOURCE_BY_ID.get(id)?.color,
+    });
+    if (uri) setMapImageUri(uri);
   }, [territories, mapMode, diplomaticData, terrainColors, nation]);
 
   const handleMapPress = (event: GestureResponderEvent) => {
