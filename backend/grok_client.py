@@ -12,8 +12,9 @@ import json
 
 # OpenClaw gateway OpenAI-compatible endpoint.
 GATEWAY_BASE_URL = os.environ.get("OPENCLAW_GATEWAY_URL", "http://127.0.0.1:18789/v1")
-DEFAULT_MODEL = "openclaw/default"
-CODE_MODEL = "openclaw/coding"
+# Augur: cheap game-AI model via Hermes xAI proxy (OpenAI-compat).
+DEFAULT_MODEL = os.environ.get("STATES_AI_MODEL", "grok-4.3")
+CODE_MODEL = os.environ.get("STATES_AI_CODE_MODEL", DEFAULT_MODEL)
 
 
 class GrokChat:
@@ -65,6 +66,8 @@ class GrokChat:
             "grok-3-mini-latest": DEFAULT_MODEL,
             "grok-4": DEFAULT_MODEL,
             "grok-4.3": DEFAULT_MODEL,
+            "openclaw/default": DEFAULT_MODEL,
+            "openclaw/coding": CODE_MODEL,
             "code": CODE_MODEL,
             "coding": CODE_MODEL,
         }
