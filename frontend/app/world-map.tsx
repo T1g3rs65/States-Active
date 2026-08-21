@@ -22,7 +22,7 @@ import { SimplexNoise } from '../utils/noise';
 import { api } from '../utils/api';
 import { lloydRelaxation, calculateBorderOwnership } from '../utils/borders';
 import { calculateCapacityFromPopulation } from '../utils/nationSize';
-import { generateVoronoiCells, VoronoiCell, DEEP_WATER_BIOMES } from '../utils/voronoiMap';
+import { generateVoronoiCells, VoronoiCell, DEEP_WATER_BIOMES, WATER_BIOMES } from '../utils/voronoiMap';
 import { assignResourceToTile, RESOURCE_BY_ID, TIER_COLORS } from '../utils/resources';
 import { rasterizeWorldMap } from '../utils/mapPaint';
 import {
@@ -539,6 +539,26 @@ export default function WorldMap() {
         nationSeeds[idx].row = pos.row;
       });
 
+      // Lloyd can slide a capital into ocean — snap to nearest land cell.
+      const landCells = workingTerritories.filter(
+        t => !WATER_BIOMES.has(t.biome)
+      );
+      if (landCells.length) {
+        for (const seed of nationSeeds) {
+          let best = landCells[0];
+          let bestD = Infinity;
+          for (const t of landCells) {
+            const d = (t.col - seed.col) ** 2 + (t.row - seed.row) ** 2;
+            if (d < bestD) {
+              bestD = d;
+              best = t;
+            }
+          }
+          seed.col = best.col;
+          seed.row = best.row;
+        }
+      }
+
       // Assign every land-ish cell to the best noise-warped seed within its radius.
       // Skip deep ocean so nations don't own open water.
       for (const territory of workingTerritories) {
@@ -684,9 +704,11 @@ export default function WorldMap() {
   }, [territories, mapMode, diplomaticData, terrainColors, nation]);
 
   const handleMapPress = (event: GestureResponderEvent) => {
-    const { locationX, locationY } = event.nativeEvent;
-    const mx = locationX / zoom;
-    const my = locationY / zoom;
+    const ne: any = event.nativeEvent;
+    const lx = Number(ne.locationX ?? ne.offsetX ?? 0);
+    const ly = Number(ne.locationY ?? ne.offsetY ?? 0);
+    const mx = lx / zoom;
+    const my = ly / zoom;
     let best: Territory | null = null;
     let bestD = Infinity;
     for (const t of territories) {
@@ -729,23 +751,7 @@ export default function WorldMap() {
   };
 
   const handleTerritoryPress = (territory: Territory) => {
-    if (zoom <= fitZoom * 1.2) {
-      userHasZoomed.current = true;
-      const targetZoom = Math.min(Math.max(fitZoom * 3.5, 1.2), MAX_ZOOM);
-      setZoom(targetZoom);
-      const tx = territory.x * targetZoom;
-      const ty = territory.y * targetZoom;
-      const screenWidth = viewport.w || Dimensions.get('window').width;
-      const screenHeight = viewport.h || Dimensions.get('window').height - 150;
-      const scrollX = Math.max(0, tx - screenWidth / 2);
-      const scrollY = Math.max(0, ty - screenHeight / 2);
-      setTimeout(() => {
-        horizontalScrollRef.current?.scrollTo({ x: scrollX, animated: true });
-        verticalScrollRef.current?.scrollTo({ y: scrollY, animated: true });
-      }, 100);
-    } else {
-      setSelectedTerritory(territory);
-    }
+    setSelectedTerritory(territory);
   };
 
   // Fix overlapping nation positions and reload map
