@@ -17,7 +17,6 @@ const GROUPS: { title: string; items: MenuItem[] }[] = [
   {
     title: 'Realm',
     items: [
-      { label: 'Statistics', hint: 'Every national stat', icon: 'stats-chart', route: '/(tabs)/overview' },
       { label: 'Advisors', hint: 'Cabinet and daily jobs', icon: 'people', route: '/(tabs)/advisors' },
       { label: 'Industry', hint: 'Resources and output', icon: 'construct', route: '/(tabs)/industry' },
       { label: 'World Map', hint: 'Borders, cities, timezones', icon: 'globe', route: '/world-map' },
@@ -27,6 +26,7 @@ const GROUPS: { title: string; items: MenuItem[] }[] = [
   {
     title: 'World',
     items: [
+      { label: 'Rankings', hint: 'Who is on top', icon: 'trophy', route: '/(tabs)/rankings' },
       { label: 'World News', hint: 'What other nations did', icon: 'newspaper', route: '/world-news' },
       { label: 'Alliances', hint: 'Pacts and diplomacy', icon: 'git-network', route: '/alliances' },
       { label: 'Factions', hint: 'Blocs and vassals', icon: 'flag', route: '/faction-browser' },

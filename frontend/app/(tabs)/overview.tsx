@@ -16,7 +16,7 @@ import { SvgXml } from 'react-native-svg';
 import DonutChart from '../../components/DonutChart';
 import { colors, typography, spacing, radii } from '../../utils/theme';
 import { getNationSizeClass } from '../../utils/nationSize';
-import { getPoliticalCompassTheme, leaningColor, leaningWash } from '../../utils/politicalCompass';
+import { getPoliticalCompassTheme, leaningColor, leaningWash, mixIntoDark } from '../../utils/politicalCompass';
 import { getRaceTheme } from '../../utils/raceColors';
 import { govTitle } from '../../utils/govCopy';
 
@@ -30,6 +30,8 @@ export default function Overview() {
   // Get race-based theme color for UI
   const raceTheme = getRaceTheme(nation?.race);
   const themeColor = leaningColor(nation);
+  const inkMid = mixIntoDark(themeColor, 0.4);
+  const inkDeep = mixIntoDark(themeColor, 0.65);
   
   // Load notification count on focus
   useFocusEffect(
@@ -227,7 +229,7 @@ export default function Overview() {
         style={styles.scrollView}
         contentContainerStyle={styles.content}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={refreshNation} tintColor="#00E0C7" />
+          <RefreshControl refreshing={refreshing} onRefresh={refreshNation} tintColor={themeColor} />
         }
       >
       <View
@@ -325,9 +327,9 @@ export default function Overview() {
             <DonutChart data={(() => {
                 const budgets = [
                   { name: 'Defense', value: nation.stats.budget_defense || 10, color: '#FF5A65' },
-                  { name: 'Education', value: nation.stats.budget_education || 15, color: '#00B8B8' },
+                  { name: 'Education', value: nation.stats.budget_education || 15, color: inkMid },
                   { name: 'Healthcare', value: nation.stats.budget_healthcare || 20, color: '#27D17A' },
-                  { name: 'Welfare', value: nation.stats.budget_welfare || 15, color: '#00B8B8' },
+                  { name: 'Welfare', value: nation.stats.budget_welfare || 15, color: themeColor },
                   { name: 'Environment', value: nation.stats.budget_environment || 5, color: '#27D17A' },
                   { name: 'Infrastructure', value: nation.stats.budget_infrastructure || 20, color: '#F2C94C' },
                   { name: 'Other', value: nation.stats.budget_other || 15, color: 'rgba(243,246,250,0.48)' },
@@ -353,7 +355,7 @@ export default function Overview() {
             <DonutChart data={(() => {
                 const sectors = [
                   { name: 'Private Sector', value: 100 - nation.stats.tax_rate - nation.stats.unemployment, color: '#27D17A' },
-                  { name: 'Government', value: nation.stats.tax_rate, color: '#00E0C7' },
+                  { name: 'Government', value: nation.stats.tax_rate, color: themeColor },
                   { name: 'Defense Industry', value: nation.stats.budget_defense * 0.7, color: '#FF5A65' },
                   { name: 'Healthcare', value: nation.stats.budget_healthcare * 0.5, color: '#00B8B8' },
                   { name: 'Black Market', value: nation.stats.crime_rate * 0.5, color: 'rgba(243,246,250,0.48)' },
@@ -382,8 +384,8 @@ export default function Overview() {
                   { name: 'Old Age', value: Math.max(10, nation.stats.life_expectancy * 0.65), color: '#27D17A' },
                   { name: 'Heart Disease', value: Math.max(5, (100 - nation.stats.healthcare_quality) * 0.4), color: '#FF5A65' },
                   { name: 'Cancer', value: Math.max(3, nation.stats.pollution * 0.08 + 5), color: '#F2C94C' },
-                  { name: 'Violence/Crime', value: Math.max(1, nation.stats.crime_rate * 0.15), color: '#00E0C7' },
-                  { name: 'Accidents', value: 3, color: '#00E0C7' },
+                  { name: 'Violence/Crime', value: Math.max(1, nation.stats.crime_rate * 0.15), color: inkDeep },
+                  { name: 'Accidents', value: 3, color: themeColor },
                 ];
                 const total = causes.reduce((sum, c) => sum + c.value, 0);
                 return causes.map(c => ({

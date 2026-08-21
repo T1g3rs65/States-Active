@@ -42,11 +42,11 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="rankings"
+        name="overview"
         options={{
-          title: 'Rankings',
+          title: 'Statistics',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="trophy-outline" size={size} color={color} />
+            <Ionicons name="stats-chart-outline" size={size} color={color} />
           ),
         }}
       />
@@ -59,7 +59,7 @@ export default function TabLayout() {
           ),
         }}
       />
-      <Tabs.Screen name="overview" options={{ href: null }} />
+      <Tabs.Screen name="rankings" options={{ href: null }} />
       <Tabs.Screen name="advisors" options={{ href: null }} />
       <Tabs.Screen name="industry" options={{ href: null }} />
     </Tabs>
