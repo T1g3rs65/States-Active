@@ -45,16 +45,15 @@ const WATER_BIOMES = new Set<string>([
 const DEEP_WATER_BIOMES = new Set<string>(['abyss', 'midnight_zone', 'deep_ocean']);
 
 /**
- * Seed points with spatially varying density so Voronoi cells are NOT a
- * uniform honeycomb. Land gets smaller cells, ocean larger ones, plus
- * noisy clumps. Full-cell jitter so it doesn't read as a warped grid.
+ * Seed points. Cell size only grows toward the poles (poleScale).
+ * Empty/resource tiles do not change density — deposits stay a spawn roll.
  */
 function generateVariedPoints(
   mapCols: number,
   mapRows: number,
   count: number,
   rng: () => number,
-  noise: SimplexNoise
+  _noise: SimplexNoise
 ): Array<[number, number]> {
   const points: Array<[number, number]> = [];
   const area = mapCols * mapRows;
@@ -75,31 +74,11 @@ function generateVariedPoints(
     points.push(clamp(cx + jx, cy + jy));
   };
 
-  // Prospect ~ chance this site is a resource deposit (forests, grass, ore, fishing banks).
-  // Low prospect = empty land/water → fewer seeds → larger Voronoi cells.
-  const prospectAt = (cx: number, cy: number, continent: number, clump: number) => {
-    const moisture = (noise.fbm((cx + 500) / 18, (cy + 500) / 18, 3, 0.5) + 1) * 0.5;
-    const ridges = noise.ridged(cx * 0.02, cy * 0.02, 4);
-    const land = continent > 0.46
-      ? Math.min(1, moisture * 0.5 + Math.max(0, ridges - 0.38) * 0.55 + (1 - Math.abs(moisture - 0.42)) * 0.25)
-      : 0;
-    const banks = continent < 0.4 ? clump * 0.75 : 0;
-    return Math.max(land, banks);
-  };
-
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
       const cx = c * cellW + cellW / 2;
       const cy = r * cellH + cellH / 2;
-      const continent = (cylinderFbm(noise, cx, cy, mapCols, 0.002, 3, 0.5) + 1) * 0.5;
-      const clump = (cylinderFbm(noise, cx + 40, cy - 17, mapCols, 0.045, 2, 0.55) + 1) * 0.5;
-      const prospect = prospectAt(cx, cy, continent, clump);
-      // Empty tiles: low keep (large cells). Resource belts: extra sites (small cells).
-      const keep = (0.04 + continent * 0.16 + prospect * 1.05 + clump * 0.08) * poleScale(cy, mapRows);
-      if (rng() < Math.min(0.92, keep)) {
-        pushJittered(cx, cy);
-      }
-      if (rng() < prospect * 0.45 * poleScale(cy, mapRows)) {
+      if (rng() < poleScale(cy, mapRows)) {
         pushJittered(cx, cy);
       }
     }
@@ -109,21 +88,14 @@ function generateVariedPoints(
   while (points.length < count && guard++ < count * 8) {
     const x = rng() * mapCols;
     const y = rng() * mapRows;
-    const continent = (cylinderFbm(noise, x, y, mapCols, 0.002, 3, 0.5) + 1) * 0.5;
-    const clump = (cylinderFbm(noise, x + 40, y - 17, mapCols, 0.045, 2, 0.55) + 1) * 0.5;
-    if (rng() < (0.08 + prospectAt(x, y, continent, clump) * 0.95) * poleScale(y, mapRows)) {
+    if (rng() < poleScale(y, mapRows)) {
       points.push(clamp(x, y));
     }
   }
-  // Do not scatter-fill empties — leftover budget stays unused so barren cells stay large.
   if (points.length > count) {
-    const scored = points.map((p) => {
-      const continent = (cylinderFbm(noise, p[0], p[1], mapCols, 0.002, 3, 0.5) + 1) * 0.5;
-      const clump = (cylinderFbm(noise, p[0] + 40, p[1] - 17, mapCols, 0.045, 2, 0.55) + 1) * 0.5;
-      return { p, s: prospectAt(p[0], p[1], continent, clump) + rng() * 0.05 };
-    });
+    const scored = points.map((p) => ({ p, s: poleScale(p[1], mapRows) + rng() * 0.02 }));
     scored.sort((a, b) => b.s - a.s);
-    return scored.slice(0, count).map(x => x.p);
+    return scored.slice(0, count).map((x) => x.p);
   }
   return points;
 }
