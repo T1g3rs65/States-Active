@@ -11,6 +11,7 @@ import {
   Pressable,
   Image,
   GestureResponderEvent,
+  LayoutChangeEvent,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
@@ -25,8 +26,6 @@ import { generateVoronoiCells, VoronoiCell, DEEP_WATER_BIOMES } from '../utils/v
 import { assignResourceToTile, RESOURCE_BY_ID, TIER_COLORS } from '../utils/resources';
 import { rasterizeWorldMap } from '../utils/mapPaint';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-
 const WORLD_SEED = 123456; // Constant seed for deterministic terrain
 const MAP_CACHE_KEY = `world_map_terrain_v5_voronoi_${WORLD_SEED}`; // v5 = 40k Voronoi (old hex density)
 
@@ -36,14 +35,11 @@ const CELL_SCALE = 6; // Pixels per grid unit
 const MAP_WIDTH = MAP_COLS * CELL_SCALE;
 const MAP_HEIGHT = MAP_ROWS * CELL_SCALE;
 const VORONOI_CELLS = 40000; // Match prior 200×200 hex density, irregular cells
-const MAP_CHROME_HEIGHT = 150; // header + mode bar
 const MAX_ZOOM = 8;
 
-/** Whole world visible — never smaller than the viewport. */
-function getFitZoom(): number {
-  const { width, height } = Dimensions.get('window');
-  const availH = Math.max(200, height - MAP_CHROME_HEIGHT);
-  return Math.min(width / MAP_WIDTH, availH / MAP_HEIGHT);
+function fitZoomFor(width: number, height: number): number {
+  if (width < 8 || height < 8) return 1;
+  return Math.min(width / MAP_WIDTH, height / MAP_HEIGHT);
 }
 
 interface Territory extends VoronoiCell {}
@@ -97,7 +93,10 @@ export default function WorldMap() {
   const [loading, setLoading] = useState(true);
   const [loadingStatus, setLoadingStatus] = useState('Initializing...');
   const [selectedTerritory, setSelectedTerritory] = useState<Territory | null>(null);
-  const [zoom, setZoom] = useState(getFitZoom);
+  const [zoom, setZoom] = useState(1);
+  const [fitZoom, setFitZoom] = useState(1);
+  const [viewport, setViewport] = useState({ w: 0, h: 0 });
+  const userHasZoomed = useRef(false);
   const [mapMode, setMapMode] = useState<MapMode>('political');
   const [showModeDropdown, setShowModeDropdown] = useState(false);
   
@@ -140,7 +139,8 @@ export default function WorldMap() {
     }
     
     // Set zoom level to see the nation clearly
-    const targetZoom = 0.8;
+    const targetZoom = Math.max(0.8, fitZoom * 2.2);
+    userHasZoomed.current = true;
     setZoom(targetZoom);
     
     // Calculate the pixel position of the nation's center
@@ -148,8 +148,8 @@ export default function WorldMap() {
     const nationY = centerRow * CELL_SCALE * targetZoom;
     
     // Calculate scroll offset to center the nation on screen
-    const screenWidth = SCREEN_WIDTH;
-    const screenHeight = Dimensions.get('window').height - 150; // Account for header
+    const screenWidth = viewport.w || Dimensions.get('window').width;
+    const screenHeight = viewport.h || Dimensions.get('window').height - 150;
     
     const scrollX = Math.max(0, nationX - screenWidth / 2);
     const scrollY = Math.max(0, nationY - screenHeight / 2);
@@ -689,17 +689,42 @@ export default function WorldMap() {
     if (best) handleTerritoryPress(best);
   };
 
-  const handleZoomIn = () => setZoom(prev => Math.min(prev * 1.3, MAX_ZOOM));
-  const handleZoomOut = () => setZoom(prev => Math.max(prev / 1.3, getFitZoom()));
+  const handleZoomIn = () => {
+    userHasZoomed.current = true;
+    setZoom(prev => Math.min(prev * 1.3, MAX_ZOOM));
+  };
+  const handleZoomOut = () => {
+    setZoom(prev => {
+      const next = prev / 1.3;
+      if (next <= fitZoom * 1.02) {
+        userHasZoomed.current = false;
+        return fitZoom;
+      }
+      return next;
+    });
+  };
+
+  const onMapViewportLayout = (event: LayoutChangeEvent) => {
+    const { width, height } = event.nativeEvent.layout;
+    if (width < 8 || height < 8) return;
+    const nextFit = fitZoomFor(width, height);
+    setViewport({ w: width, h: height });
+    setFitZoom(nextFit);
+    setZoom((z) => {
+      if (!userHasZoomed.current) return nextFit;
+      return Math.max(z, nextFit);
+    });
+  };
 
   const handleTerritoryPress = (territory: Territory) => {
-    if (zoom <= getFitZoom() * 1.2) {
-      const targetZoom = Math.min(Math.max(getFitZoom() * 3.5, 1.2), MAX_ZOOM);
+    if (zoom <= fitZoom * 1.2) {
+      userHasZoomed.current = true;
+      const targetZoom = Math.min(Math.max(fitZoom * 3.5, 1.2), MAX_ZOOM);
       setZoom(targetZoom);
       const tx = territory.x * targetZoom;
       const ty = territory.y * targetZoom;
-      const screenWidth = SCREEN_WIDTH;
-      const screenHeight = Dimensions.get('window').height - 150;
+      const screenWidth = viewport.w || Dimensions.get('window').width;
+      const screenHeight = viewport.h || Dimensions.get('window').height - 150;
       const scrollX = Math.max(0, tx - screenWidth / 2);
       const scrollY = Math.max(0, ty - screenHeight / 2);
       setTimeout(() => {
@@ -861,17 +886,27 @@ export default function WorldMap() {
         </TouchableOpacity>
       </View>
 
+      <View style={{ flex: 1 }} onLayout={onMapViewportLayout}>
       <ScrollView
         ref={horizontalScrollRef}
         horizontal
         style={{ flex: 1 }}
-        contentContainerStyle={{ width: mapWidth * zoom }}
+        contentContainerStyle={{
+          minWidth: Math.max(viewport.w, mapWidth * zoom),
+          minHeight: Math.max(viewport.h, mapHeight * zoom),
+          justifyContent: 'center',
+          alignItems: 'center',
+        }}
         showsHorizontalScrollIndicator={true}
       >
         <ScrollView
           ref={verticalScrollRef}
           style={{ flex: 1 }}
-          contentContainerStyle={{ height: mapHeight * zoom }}
+          contentContainerStyle={{
+            minHeight: Math.max(viewport.h, mapHeight * zoom),
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}
           showsVerticalScrollIndicator={true}
         >
         <View style={{ width: mapWidth * zoom, height: mapHeight * zoom }}>
@@ -999,6 +1034,7 @@ export default function WorldMap() {
         </View>
         </ScrollView>
       </ScrollView>
+      </View>
 
       {selectedTerritory && (
         <View style={styles.infoPanel}>
