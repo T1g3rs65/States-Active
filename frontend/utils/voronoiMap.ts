@@ -1,6 +1,7 @@
 import { Delaunay } from 'd3-delaunay';
 import { SimplexNoise } from './noise';
 import { assignResourceToTile } from './resources';
+import { mercatorY, poleScale } from './mapConstants';
 
 export interface VoronoiCell {
   id: string;
@@ -93,11 +94,11 @@ function generateVariedPoints(
       const clump = (cylinderFbm(noise, cx + 40, cy - 17, mapCols, 0.045, 2, 0.55) + 1) * 0.5;
       const prospect = prospectAt(cx, cy, continent, clump);
       // Empty tiles: low keep (large cells). Resource belts: extra sites (small cells).
-      const keep = 0.04 + continent * 0.16 + prospect * 1.05 + clump * 0.08;
+      const keep = (0.04 + continent * 0.16 + prospect * 1.05 + clump * 0.08) * poleScale(cy, mapRows);
       if (rng() < Math.min(0.92, keep)) {
         pushJittered(cx, cy);
       }
-      if (rng() < prospect * 0.45) {
+      if (rng() < prospect * 0.45 * poleScale(cy, mapRows)) {
         pushJittered(cx, cy);
       }
     }
@@ -109,7 +110,7 @@ function generateVariedPoints(
     const y = rng() * mapRows;
     const continent = (cylinderFbm(noise, x, y, mapCols, 0.002, 3, 0.5) + 1) * 0.5;
     const clump = (cylinderFbm(noise, x + 40, y - 17, mapCols, 0.045, 2, 0.55) + 1) * 0.5;
-    if (rng() < 0.08 + prospectAt(x, y, continent, clump) * 0.95) {
+    if (rng() < (0.08 + prospectAt(x, y, continent, clump) * 0.95) * poleScale(y, mapRows)) {
       points.push(clamp(x, y));
     }
   }
@@ -505,9 +506,12 @@ export function generateVoronoiCells(
 
     if (WATER_BIOMES.has(biome)) waterCellCount++;
 
-    const polygon = polyGrid.map(([x, y]) => [x * pixelScale, y * pixelScale]);
+    const polygon = polyGrid.map(([gx, gy]) => [
+      gx * pixelScale,
+      mercatorY(gy, mapRows, mapRows * pixelScale),
+    ]);
     const x = centroidCol * pixelScale;
-    const y = centroidRow * pixelScale;
+    const y = mercatorY(centroidRow, mapRows, mapRows * pixelScale);
 
     cells.push({
       id: `cell-${index}`,

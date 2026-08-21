@@ -38,7 +38,7 @@ import {
 } from '../utils/mapConstants';
 
 const WORLD_SEED = 123456;
-const MAP_CACHE_KEY = `world_map_terrain_v9_cylinder_${WORLD_SEED}`;
+const MAP_CACHE_KEY = `world_map_terrain_v10_cyl_merc_${WORLD_SEED}`;
 const MAX_ZOOM = 8;
 
 function fitZoomFor(_width: number, height: number): number {
@@ -356,7 +356,7 @@ export default function WorldMap() {
       }
       
       // v5 = 40k Voronoi. Older caches were hex or 1500-cell and must not be reused.
-      const worldCacheKey = `world_map_terrain_v9_cylinder_${mapSeed}`;
+      const worldCacheKey = `world_map_terrain_v10_cyl_merc_${mapSeed}`;
       
       setLoadingStatus('Checking cache...');
       
@@ -390,7 +390,7 @@ export default function WorldMap() {
     } catch (error) {
       console.error('Error loading map:', error);
       // Fallback to generating terrain
-      await generateAndCacheTerrain(worldSeed, `world_map_terrain_v9_cylinder_${worldSeed}`);
+      await generateAndCacheTerrain(worldSeed, `world_map_terrain_v10_cyl_merc_${worldSeed}`);
     }
   };
 
@@ -942,7 +942,7 @@ export default function WorldMap() {
                   source={{ uri: mapImageUri }}
                   style={{
                     position: 'absolute',
-                    left: copy * mapWidth * zoom,
+                    left: Math.round(copy * mapWidth * zoom),
                     top: 0,
                     width: mapWidth * zoom,
                     height: mapHeight * zoom,

@@ -83,11 +83,24 @@ function hillshade(t: Paintable, byIndex: Map<number, Paintable>): number {
   return 0.4 + 0.6 * Math.max(0, d);
 }
 
-function pathCell(ctx: CanvasRenderingContext2D, poly: number[][]) {
+function pathCell(ctx: CanvasRenderingContext2D, poly: number[][], dx = 0) {
   ctx.beginPath();
-  ctx.moveTo(poly[0][0], poly[0][1]);
-  for (let i = 1; i < poly.length; i++) ctx.lineTo(poly[i][0], poly[i][1]);
+  ctx.moveTo(poly[0][0] + dx, poly[0][1]);
+  for (let i = 1; i < poly.length; i++) ctx.lineTo(poly[i][0] + dx, poly[i][1]);
   ctx.closePath();
+}
+
+function wrapOffsets(poly: number[][], mapWidth: number): number[] {
+  let minx = Infinity;
+  let maxx = -Infinity;
+  for (const p of poly) {
+    if (p[0] < minx) minx = p[0];
+    if (p[0] > maxx) maxx = p[0];
+  }
+  const d: number[] = [0];
+  if (minx < 40) d.push(mapWidth);
+  if (maxx > mapWidth - 40) d.push(-mapWidth);
+  return d;
 }
 
 function bbox(poly: number[][]): [number, number, number, number] {
@@ -269,7 +282,7 @@ export function rasterizeWorldMap(opts: {
   const ctx = canvas.getContext('2d');
   if (!ctx) return null;
   ctx.scale(scale, scale);
-  ctx.fillStyle = '#071018';
+  ctx.fillStyle = '#12203a';
   ctx.fillRect(0, 0, mapWidth, mapHeight);
   ctx.lineJoin = 'round';
   ctx.lineCap = 'round';
@@ -285,29 +298,38 @@ export function rasterizeWorldMap(opts: {
     const shade = hillshade(t, byIndex);
     const j = political ? cellJitter(t.index) * 0.25 : cellJitter(t.index) * 0.08;
     const mixed = blendedFill(t, fillFor, byIndex);
-    pathCell(ctx, t.polygon);
-    ctx.globalAlpha = 1;
     const keepHue = mapMode === 'political' && !!t.ownerId;
     ctx.fillStyle = keepHue
       ? litColor(fillFor(t), 0.82 + 0.28 * shade, j * 0.25, true)
       : litRgb(mixed[0], mixed[1], mixed[2], shade, j, water);
-    ctx.fill();
+    ctx.globalAlpha = 1;
+    for (const dx of wrapOffsets(t.polygon, mapWidth)) {
+      pathCell(ctx, t.polygon, dx);
+      ctx.fill();
+    }
   }
 
   const texAlpha = political ? 0.12 : 0.32;
   ctx.globalAlpha = texAlpha;
   for (const t of territories) {
     if (!t.polygon || t.polygon.length < 3) continue;
-    paintTexture(ctx, t, family(t.biome));
+    for (const dx of wrapOffsets(t.polygon, mapWidth)) {
+      ctx.save();
+      ctx.translate(dx, 0);
+      paintTexture(ctx, t, family(t.biome));
+      ctx.restore();
+    }
   }
   ctx.globalAlpha = 1;
 
   for (const t of territories) {
     if (!t.isRiver || !t.polygon) continue;
-    pathCell(ctx, t.polygon);
     ctx.fillStyle = '#2a6aa8';
     ctx.globalAlpha = 0.7;
-    ctx.fill();
+    for (const dx of wrapOffsets(t.polygon, mapWidth)) {
+      pathCell(ctx, t.polygon, dx);
+      ctx.fill();
+    }
   }
   ctx.globalAlpha = 1;
 
@@ -316,9 +338,11 @@ export function rasterizeWorldMap(opts: {
     ctx.lineWidth = 0.95;
     for (const t of territories) {
       if (!isNationBorder(t) || !t.polygon) continue;
-      pathCell(ctx, t.polygon);
       ctx.strokeStyle = mapMode === 'faction' ? '#F3F6FA' : (t.borderColor || '#f0d78c');
-      ctx.stroke();
+      for (const dx of wrapOffsets(t.polygon, mapWidth)) {
+        pathCell(ctx, t.polygon, dx);
+        ctx.stroke();
+      }
     }
   }
 
@@ -326,10 +350,15 @@ export function rasterizeWorldMap(opts: {
     ctx.globalAlpha = 0.95;
     for (const t of territories) {
       if (!t.resourceId) continue;
-      ctx.beginPath();
-      ctx.arc(t.x, t.y, 1.7, 0, Math.PI * 2);
       ctx.fillStyle = resourceColor?.(t.resourceId) || '#F3F6FA';
-      ctx.fill();
+      const xs = [t.x];
+      if (t.x < 40) xs.push(t.x + mapWidth);
+      if (t.x > mapWidth - 40) xs.push(t.x - mapWidth);
+      for (const x of xs) {
+        ctx.beginPath();
+        ctx.arc(x, t.y, 1.7, 0, Math.PI * 2);
+        ctx.fill();
+      }
     }
   }
 
