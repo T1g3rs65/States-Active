@@ -111,8 +111,6 @@ export function rasterizeWorldMap(opts: {
   const byIndex = new Map<number, Paintable>();
   for (const t of territories) byIndex.set(t.index, t);
 
-  const coast: Paintable[] = [];
-
   for (const t of territories) {
     if (!Array.isArray(t.polygon) || t.polygon.length < 3) continue;
     const water = WATER_BIOMES.has(t.biome);
@@ -122,42 +120,6 @@ export function rasterizeWorldMap(opts: {
     ctx.globalAlpha = 1;
     ctx.fillStyle = litColor(fillFor(t), shade, j, water);
     ctx.fill();
-
-    if (!water) {
-      for (const ni of t.neighbors || []) {
-        const o = byIndex.get(ni);
-        if (o && WATER_BIOMES.has(o.biome)) {
-          coast.push(t);
-          break;
-        }
-      }
-    }
-  }
-
-  // Soft cell seams (very faint) — depth without coloring-book outlines
-  ctx.globalAlpha = 0.14;
-  ctx.strokeStyle = 'rgba(8,12,16,0.9)';
-  ctx.lineWidth = 0.22;
-  for (const t of territories) {
-    if (!t.polygon || t.polygon.length < 3) continue;
-    if (WATER_BIOMES.has(t.biome)) continue;
-    pathCell(ctx, t.polygon);
-    ctx.stroke();
-  }
-
-  // Coastline — the thing that makes it read as a map
-  ctx.globalAlpha = 1;
-  ctx.strokeStyle = '#d7c4a0';
-  ctx.lineWidth = 0.85;
-  for (const t of coast) {
-    pathCell(ctx, t.polygon);
-    ctx.stroke();
-  }
-  ctx.strokeStyle = 'rgba(180, 230, 255, 0.35)';
-  ctx.lineWidth = 1.5;
-  for (const t of coast) {
-    pathCell(ctx, t.polygon);
-    ctx.stroke();
   }
 
   // Rivers

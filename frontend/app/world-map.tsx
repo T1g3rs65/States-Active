@@ -100,6 +100,17 @@ export default function WorldMap() {
   const userHasZoomed = useRef(false);
   const [mapMode, setMapMode] = useState<MapMode>('political');
   const [showModeDropdown, setShowModeDropdown] = useState(false);
+
+  // Direct URL /world-map.html is not the game — send them home.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const host = window.location.host;
+    const referrer = document.referrer || '';
+    const fromThisApp = referrer.includes(host);
+    if (!fromThisApp && window.history.length <= 2) {
+      router.replace('/');
+    }
+  }, [router]);
   
   // World-specific data
   const worldId = nation?.world_id || null;
@@ -775,7 +786,7 @@ export default function WorldMap() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+        <TouchableOpacity onPress={() => router.replace('/(tabs)/nation')} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="#00E0C7" />
         </TouchableOpacity>
         <View style={styles.headerCenter}>
