@@ -116,7 +116,10 @@ export default function WorldMap() {
   const router = useRouter();
   const { nation, saveNation } = useNationStore();
   const params = useLocalSearchParams<{ place?: string }>();
-  const placing = params.place === '1';
+  const [placing, setPlacing] = useState(params.place === '1' || params.place === 'true');
+  const [placeConfirm, setPlaceConfirm] = useState<Territory | null>(null);
+  const [placeError, setPlaceError] = useState<string | null>(null);
+  const mapPressRef = useRef<View>(null);
   const [territories, setTerritories] = useState<Territory[]>([]);
   const [mapImageUri, setMapImageUri] = useState<string | null>(null);
   const [nationClusters, setNationClusters] = useState<NationCluster[]>([]);
@@ -132,14 +135,24 @@ export default function WorldMap() {
   const [foundingCity, setFoundingCity] = useState(false);
   const tzPolicyRef = useRef<Map<string, { bands: number[]; count: number }>>(new Map());
 
+  useEffect(() => {
+    AsyncStorage.getItem('pending_nation').then((raw) => {
+      if (raw) setPlacing(true);
+    });
+  }, []);
+
   // Direct URL /world-map.html is not the game — send them home.
   useEffect(() => {
     if (typeof window === 'undefined') return;
+    if (placing) return;
     const host = window.location.host;
     const referrer = document.referrer || '';
     const fromThisApp = referrer.includes(host);
-    if (!placing && !fromThisApp && window.history.length <= 2) {
-      router.replace('/');
+    if (!fromThisApp && window.history.length <= 2) {
+      AsyncStorage.getItem('pending_nation').then((raw) => {
+        if (raw) setPlacing(true);
+        else router.replace('/');
+      });
     }
   }, [router, placing]);
 
@@ -805,10 +818,7 @@ export default function WorldMap() {
     if (uri) setMapImageUri(uri);
   }, [territories, mapMode, diplomaticData, terrainColors, nation]);
 
-  const handleMapPress = (event: GestureResponderEvent) => {
-    const ne: any = event.nativeEvent;
-    const lx = Number(ne.locationX ?? ne.offsetX ?? 0);
-    const ly = Number(ne.locationY ?? ne.offsetY ?? 0);
+  const pickTerritoryAt = (lx: number, ly: number) => {
     let mx = (lx / zoom) % MAP_WIDTH;
     if (mx < 0) mx += MAP_WIDTH;
     const my = ly / zoom;
@@ -824,6 +834,23 @@ export default function WorldMap() {
       }
     }
     if (best) handleTerritoryPress(best);
+  };
+
+  const handleMapPress = (event: GestureResponderEvent) => {
+    const ne: any = event.nativeEvent;
+    const touch = ne.changedTouches?.[0] || ne.touches?.[0];
+    let lx = Number(ne.locationX);
+    let ly = Number(ne.locationY);
+    const pageX = Number(ne.pageX ?? touch?.pageX ?? ne.clientX);
+    const pageY = Number(ne.pageY ?? touch?.pageY ?? ne.clientY);
+    const missing = !Number.isFinite(lx) || !Number.isFinite(ly) || (lx === 0 && ly === 0 && Number.isFinite(pageX));
+    if (missing && mapPressRef.current && Number.isFinite(pageX) && Number.isFinite(pageY)) {
+      mapPressRef.current.measureInWindow((x, y) => {
+        pickTerritoryAt(pageX - x, pageY - y);
+      });
+      return;
+    }
+    pickTerritoryAt(lx, ly);
   };
 
   const handleZoomIn = () => {
@@ -910,55 +937,50 @@ export default function WorldMap() {
   const confirmCapital = async (territory: Territory) => {
     if (placingBusy.current) return;
     if (WATER_BIOMES.has(territory.biome)) {
-      Alert.alert('Water', 'Found your capital on land, not in the ocean.');
+      setPlaceError('That tile is water. Tap land.');
       return;
     }
     if (territory.ownerId) {
-      Alert.alert('Claimed', `${territory.ownerName || 'Another nation'} already holds this land.`);
+      setPlaceError(`${territory.ownerName || 'Another nation'} already holds this land.`);
       return;
     }
+    setPlaceError(null);
+    setPlaceConfirm(territory);
+  };
+
+  const commitCapital = async (territory: Territory) => {
+    if (placingBusy.current) return;
     placingBusy.current = true;
-    Alert.alert(
-      'Found your capital here?',
-      `${territory.biome.replace(/_/g, ' ')} at (${Math.round(territory.col)}, ${Math.round(territory.row)})`,
-      [
-        { text: 'Cancel', style: 'cancel', onPress: () => { placingBusy.current = false; } },
-        {
-          text: 'Found here',
-          onPress: async () => {
-            try {
-              const raw = await AsyncStorage.getItem('pending_nation');
-              if (!raw) {
-                Alert.alert('Missing quiz', 'Go back and finish founding first.');
-                placingBusy.current = false;
-                return;
-              }
-              const pending = JSON.parse(raw);
-              setLoading(true);
-              setLoadingStatus('Founding your nation...');
-              const response = await api.createNation(
-                pending.userId,
-                pending.quizResult,
-                pending.race || 'human',
-                pending.worldId,
-                { col: Math.round(territory.col), row: Math.round(territory.row) }
-              );
-              if (!response.success || !response.nation) {
-                throw new Error(response.detail || 'Create failed');
-              }
-              await AsyncStorage.setItem('user_id', pending.userId);
-              await AsyncStorage.removeItem('pending_nation');
-              await saveNation(response.nation);
-              router.replace('/(tabs)/overview');
-            } catch (e: any) {
-              setLoading(false);
-              placingBusy.current = false;
-              Alert.alert('Could not found here', e?.message || 'Try another tile.');
-            }
-          },
-        },
-      ]
-    );
+    try {
+      const raw = await AsyncStorage.getItem('pending_nation');
+      if (!raw) {
+        setPlaceError('Go back and finish founding first.');
+        placingBusy.current = false;
+        return;
+      }
+      const pending = JSON.parse(raw);
+      setLoading(true);
+      setLoadingStatus('Founding your nation...');
+      const response = await api.createNation(
+        pending.userId,
+        pending.quizResult,
+        pending.race || 'human',
+        pending.worldId,
+        { col: Math.round(territory.col), row: Math.round(territory.row) }
+      );
+      if (!response.success || !response.nation) {
+        throw new Error(response.detail || 'Create failed');
+      }
+      await AsyncStorage.setItem('user_id', pending.userId);
+      await AsyncStorage.removeItem('pending_nation');
+      await saveNation(response.nation);
+      setPlaceConfirm(null);
+      router.replace('/(tabs)/overview');
+    } catch (e: any) {
+      setLoading(false);
+      placingBusy.current = false;
+      setPlaceError(e?.message || 'Try another tile.');
+    }
   };
 
   // Fix overlapping nation positions and reload map
@@ -1179,6 +1201,7 @@ export default function WorldMap() {
         >
         <View style={{ width: mapWidth * zoom * 3, height: mapHeight * zoom }}>
           <Pressable
+            ref={mapPressRef as any}
             onPress={handleMapPress}
             style={{ width: mapWidth * zoom * 3, height: mapHeight * zoom }}
           >
@@ -1187,6 +1210,7 @@ export default function WorldMap() {
                 <Image
                   key={copy}
                   source={{ uri: mapImageUri }}
+                  pointerEvents="none"
                   style={{
                     position: 'absolute',
                     left: copy * sliceW,
@@ -1369,7 +1393,35 @@ export default function WorldMap() {
       </ScrollView>
       </View>
 
-      {selectedTerritory && (
+      {placing && (placeError || placeConfirm) && (
+        <View style={styles.placeSheet}>
+          {placeError ? <Text style={styles.placeError}>{placeError}</Text> : null}
+          {placeConfirm ? (
+            <>
+              <Text style={styles.placeTitle}>Found your capital here?</Text>
+              <Text style={styles.placeBody}>
+                {placeConfirm.biome.replace(/_/g, ' ')} · ({Math.round(placeConfirm.col)}, {Math.round(placeConfirm.row)})
+              </Text>
+              <View style={styles.placeRow}>
+                <TouchableOpacity
+                  style={styles.placeCancel}
+                  onPress={() => { setPlaceConfirm(null); setPlaceError(null); }}
+                >
+                  <Text style={styles.placeCancelText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.placeGo}
+                  onPress={() => void commitCapital(placeConfirm)}
+                >
+                  <Text style={styles.placeGoText}>Found here</Text>
+                </TouchableOpacity>
+              </View>
+            </>
+          ) : null}
+        </View>
+      )}
+
+      {selectedTerritory && !placing && (
         <View style={styles.infoPanel}>
           <View style={styles.infoPanelHeader}>
             <View style={{ flex: 1 }}>
@@ -1651,6 +1703,56 @@ const styles = StyleSheet.create({
   cityBarBtnText: {
     color: '#F2C94C',
     fontSize: 12,
+    fontWeight: '700',
+  },
+  placeSheet: {
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    backgroundColor: '#111317',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.08)',
+  },
+  placeTitle: {
+    color: '#F4F5F6',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  placeBody: {
+    color: '#B4B8C0',
+    fontSize: 13,
+    marginTop: 4,
+    marginBottom: 12,
+  },
+  placeError: {
+    color: '#F2616A',
+    fontSize: 13,
+    marginBottom: 8,
+  },
+  placeRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  placeCancel: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    alignItems: 'center',
+  },
+  placeCancelText: {
+    color: '#B4B8C0',
+    fontWeight: '600',
+  },
+  placeGo: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    backgroundColor: '#2EE6C5',
+    alignItems: 'center',
+  },
+  placeGoText: {
+    color: '#08090A',
     fontWeight: '700',
   },
   mapModeSelector: {
