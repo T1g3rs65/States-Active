@@ -170,6 +170,9 @@ def publicize_advisors(advisors: list) -> list:
         adv.setdefault("role_blurb", meta.get("today"))
         adv.setdefault("task_hint", meta.get("task_hint"))
         known_at = adv.get("trust_known_at")
+        sent = adv.get("last_task_sent")
+        if isinstance(sent, datetime):
+            adv["last_task_sent"] = sent.isoformat() + ("Z" if sent.tzinfo is None else "")
         if known_at:
             if isinstance(known_at, datetime):
                 age = (now - known_at).days
@@ -188,6 +191,21 @@ def publicize_advisors(advisors: list) -> list:
             adv["trust_age_days"] = None
         out.append(adv)
     return out
+
+
+def task_used_today(advisors: list) -> bool:
+    today = datetime.utcnow().date()
+    for adv in advisors or []:
+        raw = adv.get("last_task_sent")
+        if not raw:
+            continue
+        try:
+            last = raw.date() if isinstance(raw, datetime) else datetime.fromisoformat(str(raw).replace("Z", "")).date()
+            if last == today:
+                return True
+        except Exception:
+            continue
+    return False
 
 
 def reveal_trust(advisors: list, target_slot: int, now: Optional[datetime] = None) -> Optional[int]:

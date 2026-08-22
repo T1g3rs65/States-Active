@@ -33,7 +33,7 @@ from economy_utils import calculate_realistic_gdp, format_gdp_display
 from budget_utils import normalize_budget
 from advisor_utils import generate_advisors, regenerate_advisor_names
 from terrain_utils import find_land_position, is_land_tile, validate_capital_site, extra_city_count, _wrap_dx, _MAP_COLS
-from advisor_effects import apply_daily_ticks, publicize_advisors, reveal_trust, ROLE
+from advisor_effects import apply_daily_ticks, publicize_advisors, reveal_trust, ROLE, task_used_today
 from race_service import get_races_for_api, get_race_ai_description, is_race_enabled, get_race_display_info
 from grok_client import LlmChat, UserMessage
 
@@ -302,6 +302,7 @@ async def get_nation(nation_id: str):
         nation["id"] = str(nation["_id"])
         nation["_id"] = str(nation["_id"])  # Convert ObjectId to string for JSON serialization
         nation["advisors"] = publicize_advisors(nation.get("advisors") or [])
+        nation["task_used_today"] = task_used_today(nation["advisors"])
         
         # Always recalculate government type based on current stats
         # This ensures government type stays in sync as stats change from decisions
@@ -377,6 +378,7 @@ async def get_user_nation(user_id: str):
         nation["id"] = str(nation["_id"])
         nation["_id"] = str(nation["_id"])  # Convert ObjectId to string for JSON serialization
         nation["advisors"] = publicize_advisors(nation.get("advisors") or [])
+        nation["task_used_today"] = task_used_today(nation["advisors"])
         
         # Calculate realistic GDP values
         population = nation["stats"]["population"]
@@ -1723,6 +1725,7 @@ async def probe_advisor_trust(nation_id: str, request: dict):
         "trust_known": value,
         "target": target,
         "advisors": nation["advisors"],
+        "task_used_today": True,
         "note": "This is today's reading. It will go stale in a week unless you spy again.",
     }
 

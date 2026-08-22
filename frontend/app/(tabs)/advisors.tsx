@@ -97,6 +97,15 @@ const getAdvisorPortrait = (race: string | undefined, slot: number, advisorName?
   return portraitSet[slotKey] || PORTRAITS.human_male['1'];
 };
 
+function utcTaskUsed(advisors?: any[]) {
+  const today = new Date().toISOString().slice(0, 10);
+  return (advisors || []).some((a) => {
+    if (!a?.last_task_sent) return false;
+    const d = new Date(a.last_task_sent);
+    return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === today;
+  });
+}
+
 export default function Advisors() {
   const { nation, setNation } = useNationStore();
   const router = useRouter();
@@ -113,6 +122,7 @@ export default function Advisors() {
   const [showProbeModal, setShowProbeModal] = useState(false);
   const [probing, setProbing] = useState(false);
   const [notificationCount, setNotificationCount] = useState(0);
+  const [taskUsedToday, setTaskUsedToday] = useState(false);
   
   // War-related state
   const [showDeclareWarModal, setShowDeclareWarModal] = useState(false);
@@ -301,7 +311,9 @@ export default function Advisors() {
       const nationId = nation.id || nation._id;
       const response = await api.getNation(nationId);
       if (response.success) {
-        setNation(response.nation);
+        const n = response.nation;
+        setNation(n);
+        setTaskUsedToday(!!n.task_used_today || utcTaskUsed(n.advisors));
       }
     } catch (error) {
       console.error('Error fetching nation:', error);
@@ -337,20 +349,9 @@ export default function Advisors() {
   };
 
   const canSendTaskToday = () => {
-    if (!nation.advisors) return false;
-    
-    const now = new Date();
-    const today = now.toDateString();
-    
-    for (const advisor of nation.advisors) {
-      if (advisor.last_task_sent) {
-        const lastTaskDate = new Date(advisor.last_task_sent).toDateString();
-        if (lastTaskDate === today) {
-          return false;
-        }
-      }
-    }
-    return true;
+    if (taskUsedToday) return false;
+    if (nation?.task_used_today) return false;
+    return !utcTaskUsed(nation?.advisors);
   };
 
   // Global reform cooldown - check nation-level last_reform_sent
@@ -401,6 +402,8 @@ export default function Advisors() {
         Alert.alert('Success', 'Task sent! Check the Issues tab for the advisor response.');
         setShowTaskModal(false);
         setTaskDescription('');
+        setTaskUsedToday(true);
+        setNation({ ...nation, task_used_today: true });
         fetchNation();
       }
     } catch (error) {
@@ -753,8 +756,14 @@ export default function Advisors() {
                       a.name,
                       `Trust ${response.trust_known}/100 today.\n${response.note || ''}`
                     );
-                    await fetchNation();
+                    setTaskUsedToday(true);
+                    setNation({
+                      ...nation,
+                      task_used_today: true,
+                      advisors: response.advisors || nation.advisors,
+                    });
                     setShowProbeModal(false);
+                    fetchNation();
                   } else {
                     Alert.alert('Failed', response.detail || 'Could not probe');
                   }

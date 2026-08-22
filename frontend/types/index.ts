@@ -75,6 +75,7 @@ export interface Nation {
   resource_counts?: Record<string, number>;
   advisors?: Advisor[];
   last_reform_sent?: string;
+  task_used_today?: boolean;
   policies?: Policy[];
   timezone_count?: number | null;
   timezone_geo_max?: number;
