@@ -18,6 +18,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useNationStore } from '../store/nationStore';
 import { leaningColor } from '../utils/politicalCompass';
+import StatusDots from '../components/StatusDots';
 import Svg, { Polygon, G, Text as SvgText, Rect, Circle , SvgXml } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
 import { SimplexNoise } from '../utils/noise';
@@ -1056,9 +1057,7 @@ export default function WorldMap() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={tint} />
-        <Text style={styles.loadingText}>{loadingStatus}</Text>
-        <Text style={styles.loadingSubtext}>First load carves the world; later loads are much faster</Text>
+        <StatusDots status={loadingStatus} color={tint} />
       </View>
     );
   }

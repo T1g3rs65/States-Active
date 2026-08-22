@@ -1,7 +1,7 @@
 import { Slot } from 'expo-router';
 import { useEffect } from 'react';
 
-export const APP_BUILD = '21f';
+export const APP_BUILD = '21g';
 
 export default function RootLayout() {
   useEffect(() => {
