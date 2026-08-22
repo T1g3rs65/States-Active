@@ -14,6 +14,7 @@ import { api } from '../utils/api';
 import { LineChart } from 'react-native-gifted-charts';
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
+import { leaningColor, hexAlpha } from '../utils/politicalCompass';
 
 const { width } = Dimensions.get('window');
 
@@ -21,6 +22,7 @@ export default function StatDetail() {
   const params = useLocalSearchParams();
   const router = useRouter();
   const { nation } = useNationStore();
+  const tint = leaningColor(nation);
   
   const statName = params.stat as string;
   const statLabel = params.label as string;
@@ -121,7 +123,7 @@ export default function StatDetail() {
     <View style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.push('/(tabs)/overview')}>
-          <Ionicons name="arrow-back" size={24} color="#00E0C7" />
+          <Ionicons name="arrow-back" size={24} color={tint} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{statLabel}</Text>
         <View style={{ width: 40 }} />
@@ -131,7 +133,7 @@ export default function StatDetail() {
         <View style={styles.currentValueCard}>
           <Text style={styles.currentLabel}>Current Value</Text>
           <View style={styles.currentRow}>
-            <Text style={styles.currentValue}>{isGDP ? currentValue : Number(currentValue).toFixed(1)}</Text>
+            <Text style={[styles.currentValue, { color: tint }]}>{isGDP ? currentValue : Number(currentValue).toFixed(1)}</Text>
             {trend !== 0 && (
               <View style={[styles.trendBadge, trend > 0 ? styles.trendUp : styles.trendDown]}>
                 <Ionicons
@@ -153,7 +155,7 @@ export default function StatDetail() {
               key={days}
               style={[
                 styles.periodButton,
-                selectedPeriod === days && styles.periodButtonActive,
+                selectedPeriod === days && { backgroundColor: tint },
               ]}
               onPress={() => setSelectedPeriod(days)}
             >
@@ -171,7 +173,7 @@ export default function StatDetail() {
 
         {loading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#00E0C7" />
+            <ActivityIndicator size="large" color={tint} />
             <Text style={styles.loadingText}>Loading chart...</Text>
           </View>
         ) : historyData.length === 0 ? (
@@ -190,10 +192,10 @@ export default function StatDetail() {
               spacing={getChartSpacing()}
               initialSpacing={10}
               endSpacing={10}
-              color="#00E0C7"
+              color={tint}
               thickness={2}
-              startFillColor="rgba(59, 130, 246, 0.3)"
-              endFillColor="rgba(59, 130, 246, 0.05)"
+              startFillColor={hexAlpha(tint, 0.28)}
+              endFillColor={hexAlpha(tint, 0.04)}
               startOpacity={0.9}
               endOpacity={0.2}
               areaChart
@@ -210,7 +212,7 @@ export default function StatDetail() {
               noOfSections={5}
               showVerticalLines
               verticalLinesColor="rgba(255,255,255,0.08)"
-              dataPointsColor="#00E0C7"
+              dataPointsColor={tint}
               dataPointsRadius={chartData.length > 30 ? 2 : 4}
               textColor="rgba(243,246,250,0.70)"
               textFontSize={10}
@@ -223,19 +225,19 @@ export default function StatDetail() {
         <View style={styles.statsInfo}>
           <View style={styles.statInfoItem}>
             <Text style={styles.statInfoLabel}>Highest</Text>
-            <Text style={styles.statInfoValue}>
+            <Text style={[styles.statInfoValue, { color: tint }]}>
               {isGDP ? formatGDPValue(maxValue) : maxValue.toFixed(1)}
             </Text>
           </View>
           <View style={styles.statInfoItem}>
             <Text style={styles.statInfoLabel}>Lowest</Text>
-            <Text style={styles.statInfoValue}>
+            <Text style={[styles.statInfoValue, { color: tint }]}>
               {isGDP ? formatGDPValue(minValue) : minValue.toFixed(1)}
             </Text>
           </View>
           <View style={styles.statInfoItem}>
             <Text style={styles.statInfoLabel}>Average</Text>
-            <Text style={styles.statInfoValue}>
+            <Text style={[styles.statInfoValue, { color: tint }]}>
               {isGDP 
                 ? formatGDPValue(historyData.reduce((sum, d) => sum + d.value, 0) / historyData.length || 0)
                 : (historyData.reduce((sum, d) => sum + d.value, 0) / historyData.length || 0).toFixed(1)
