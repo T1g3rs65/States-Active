@@ -1335,32 +1335,6 @@ export default function WorldMap() {
                     
                     return null;
                   })()}
-                  
-                  {/* Paradox-style name: simple, bigger for larger nations */}
-                  {(() => {
-                    const tiles = cluster.tileCount || 1;
-                    const fontSize = Math.max(9, Math.min(36, (8 + Math.sqrt(tiles) * 0.95) * Math.max(0.7, Math.min(zoom * 1.1, 1.8))));
-                    const label = String(cluster.nationName || '')
-                      .replace(/^(the\s+)?(united\s+)?(republic|kingdom|empire|commonwealth|federation|confederation|state|states)\s+of\s+/i, '')
-                      .replace(/^the\s+/i, '')
-                      .trim() || cluster.nationName;
-                    return (
-                      <SvgText
-                        x={centerX}
-                        y={centerY + flagHeight * 0.35 + fontSize * 0.35}
-                        fontSize={fontSize}
-                        fill="#F4EBD0"
-                        stroke="#0B0F14"
-                        strokeWidth={Math.max(2, fontSize * 0.16)}
-                        textAnchor="middle"
-                        fontWeight="700"
-                        letterSpacing={0.6}
-                        opacity={0.96}
-                      >
-                        {label}
-                      </SvgText>
-                    );
-                  })()}
                 </G>
               );
             })}
@@ -1397,6 +1371,40 @@ export default function WorldMap() {
               </G>
             ))}
           </Svg>
+          {nationClusters.map((cluster) => {
+            const label =
+              String(cluster.nationName || '')
+                .replace(/^(the\s+)?(united\s+)?(republic|kingdom|empire|commonwealth|federation|confederation|state|states)\s+of\s+/i, '')
+                .replace(/^the\s+/i, '')
+                .trim() || cluster.nationName;
+            const tiles = cluster.tileCount || 1;
+            const fontSize = Math.max(12, Math.min(42, 10 + Math.sqrt(tiles) * 1.2));
+            const x = cluster.centerCol * CELL_SCALE * zoom;
+            const y = mercatorY(cluster.centerRow) * zoom;
+            return [0, 1, 2].map((copy) => (
+              <Text
+                key={`nlab-${cluster.nationId}-${copy}`}
+                pointerEvents="none"
+                style={{
+                  position: 'absolute',
+                  left: copy * sliceW + x - 90,
+                  top: y - fontSize * 0.55,
+                  width: 180,
+                  textAlign: 'center',
+                  color: '#F4EBD0',
+                  fontSize,
+                  fontWeight: '800',
+                  letterSpacing: 0.7,
+                  textShadowColor: 'rgba(0,0,0,0.95)',
+                  textShadowOffset: { width: 0, height: 1 },
+                  textShadowRadius: 5,
+                  zIndex: 20,
+                }}
+              >
+                {label}
+              </Text>
+            ));
+          })}
         </View>
         </ScrollView>
       </ScrollView>

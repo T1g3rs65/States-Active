@@ -263,7 +263,7 @@ const styles = StyleSheet.create({
   currentValue: {
     fontSize: 48,
     fontWeight: 'bold',
-    color: '#00E0C7',
+    color: '#F3F6FA',
     marginRight: 16,
   },
   trendBadge: {
@@ -299,7 +299,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   periodButtonActive: {
-    backgroundColor: '#00E0C7',
+    backgroundColor: '#333841',
   },
   periodButtonText: {
     color: 'rgba(243,246,250,0.70)',
@@ -367,7 +367,7 @@ const styles = StyleSheet.create({
   statInfoValue: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#00E0C7',
+    color: '#F3F6FA',
   },
   errorText: {
     color: '#FF5A65',
