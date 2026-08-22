@@ -72,6 +72,8 @@ interface NationCluster {
   color: string;
   discRadius?: number;
   tileCount?: number;
+  spanCol?: number;
+  spanRow?: number;
 }
 
 // Map mode types
@@ -727,6 +729,8 @@ export default function WorldMap() {
         let centerCol = seed.col;
         let centerRow = seed.row;
         let discRadius = 0;
+        let spanCol = 1;
+        let spanRow = 1;
         if (owned.length > 0) {
           const tau = (2 * Math.PI) / MAP_COLS;
           const sx = owned.reduce((acc, t) => acc + Math.cos(t.col * tau), 0);
@@ -741,6 +745,13 @@ export default function WorldMap() {
               )
             )
           );
+          const pct = (arr: number[], q: number) => {
+            if (!arr.length) return 1;
+            const s = [...arr].sort((a, b) => a - b);
+            return s[Math.min(s.length - 1, Math.floor(s.length * q))];
+          };
+          spanCol = Math.max(1, 2 * pct(owned.map((t) => Math.abs(wrapDx(t.col - centerCol))), 0.7) + 1);
+          spanRow = Math.max(1, 2 * pct(owned.map((t) => Math.abs(t.row - centerRow)), 0.7) + 1);
         }
         clusters.push({
           nationId: seed.nationId,
@@ -756,6 +767,8 @@ export default function WorldMap() {
           color: seed.primary,
           discRadius,
           tileCount: owned.length,
+          spanCol,
+          spanRow,
         });
       }
       
@@ -1375,13 +1388,10 @@ export default function WorldMap() {
                   .replace(/^the\s+/i, '')
                   .trim() || cluster.nationName || '';
               if (!label) return null;
-              const tiles = Math.max(1, cluster.tileCount || 1);
-              const radiusTiles = cluster.discRadius || Math.sqrt(tiles / Math.PI);
-              const diamPx = Math.max(8, radiusTiles * 2 * CELL_SCALE * zoom);
-              const maxW = diamPx * 0.86;
-              const maxH = diamPx * 0.34;
-              const fontSize = Math.min(40, maxH, maxW / Math.max(label.length, 1) / 0.58);
-              if (fontSize < 10) return null;
+              const wPx = Math.max(8, (cluster.spanCol || 2) * CELL_SCALE * zoom);
+              const hPx = Math.max(8, (cluster.spanRow || 2) * CELL_SCALE * zoom);
+              const fontSize = Math.min(34, hPx * 0.28, wPx / Math.max(label.length, 1) / 0.66);
+              if (fontSize < 11) return null;
               const x = cluster.centerCol * CELL_SCALE * zoom;
               const y = mercatorY(cluster.centerRow) * zoom;
               return (
