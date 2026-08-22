@@ -14,7 +14,9 @@ import { api } from '../utils/api';
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import { leaningColor } from '../utils/politicalCompass';
-import CompassLineChart from '../components/CompassLineChart';
+import CompassLineChart, { ChartView } from '../components/CompassLineChart';
+import ScreenHeader from '../components/ScreenHeader';
+import ScreenCanvas from '../components/ScreenCanvas';
 
 const { width } = Dimensions.get('window');
 
@@ -30,6 +32,7 @@ export default function StatDetail() {
   const [loading, setLoading] = useState(true);
   const [historyData, setHistoryData] = useState<any[]>([]);
   const [selectedPeriod, setSelectedPeriod] = useState(90);
+  const [chartView, setChartView] = useState<ChartView>('line');
   const [chartW, setChartW] = useState(Math.max(240, width - 72));
 
   useEffect(() => {
@@ -121,14 +124,9 @@ export default function StatDetail() {
   }));
 
   return (
+    <ScreenCanvas>
     <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.push('/(tabs)/overview')}>
-          <Ionicons name="arrow-back" size={24} color={tint} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>{statLabel} · 21d</Text>
-        <View style={{ width: 40 }} />
-      </View>
+      <ScreenHeader title={statLabel} subtitle="History" onBack={() => router.push('/(tabs)/overview')} />
 
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.currentValueCard}>
@@ -191,8 +189,24 @@ export default function StatDetail() {
               if (inner > 80) setChartW(inner);
             }}
           >
-            <Text style={styles.chartTitle}>Historical Trend</Text>
-            <CompassLineChart data={chartData} width={chartW} height={250} color={tint} />
+            <View style={styles.chartHead}>
+              <Text style={styles.chartTitle}>Historical Trend</Text>
+              <View style={styles.viewToggle}>
+                <TouchableOpacity
+                  style={[styles.viewBtn, chartView === 'line' && { backgroundColor: tint }]}
+                  onPress={() => setChartView('line')}
+                >
+                  <Ionicons name="analytics-outline" size={16} color={chartView === 'line' ? '#08090A' : tint} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.viewBtn, chartView === 'bar' && { backgroundColor: tint }]}
+                  onPress={() => setChartView('bar')}
+                >
+                  <Ionicons name="bar-chart-outline" size={16} color={chartView === 'bar' ? '#08090A' : tint} />
+                </TouchableOpacity>
+              </View>
+            </View>
+            <CompassLineChart data={chartData} width={chartW} height={250} color={tint} view={chartView} />
           </View>
         )}
 
@@ -221,13 +235,34 @@ export default function StatDetail() {
         </View>
       </ScrollView>
     </View>
+    </ScreenCanvas>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0B0F14',
+    backgroundColor: 'transparent',
+  },
+  chartHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  viewToggle: {
+    flexDirection: 'row',
+    gap: 6,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderRadius: 10,
+    padding: 3,
+  },
+  viewBtn: {
+    width: 32,
+    height: 28,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   header: {
     flexDirection: 'row',
@@ -328,7 +363,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     color: '#F3F6FA',
-    marginBottom: 16,
+    marginBottom: 0,
   },
   loadingContainer: {
     padding: 60,

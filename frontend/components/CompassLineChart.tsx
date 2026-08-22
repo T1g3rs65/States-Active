@@ -1,6 +1,7 @@
 import { View } from 'react-native';
-import Svg, { Path, Circle, Line, Text as SvgText, G } from 'react-native-svg';
+import Svg, { Path, Circle, Line, Rect, Text as SvgText, G } from 'react-native-svg';
 
+export type ChartView = 'line' | 'bar';
 type Point = { value: number; label?: string };
 
 export default function CompassLineChart({
@@ -8,11 +9,13 @@ export default function CompassLineChart({
   width,
   height = 250,
   color,
+  view = 'line',
 }: {
   data: Point[];
   width: number;
   height?: number;
   color: string;
+  view?: ChartView;
 }) {
   const padL = 40;
   const padR = 12;
@@ -36,14 +39,17 @@ export default function CompassLineChart({
 
   const xAt = (i: number) => padL + (n <= 1 ? innerW / 2 : (i / (n - 1)) * innerW);
   const yAt = (v: number) => padT + (1 - (v - yMin) / ySpan) * innerH;
+  const baseY = padT + innerH;
   const labelEvery = n <= 7 ? 1 : n <= 14 ? 2 : n <= 30 ? 5 : n <= 90 ? 15 : 30;
+  const slot = innerW / Math.max(n, 1);
+  const barW = Math.max(2, Math.min(18, slot * 0.62));
 
   const lineD = data
     .map((d, i) => `${i === 0 ? 'M' : 'L'} ${xAt(i).toFixed(1)} ${yAt(Number(d.value) || 0).toFixed(1)}`)
     .join(' ');
   const areaD =
     n > 1
-      ? `${lineD} L ${xAt(n - 1).toFixed(1)} ${(padT + innerH).toFixed(1)} L ${xAt(0).toFixed(1)} ${(padT + innerH).toFixed(1)} Z`
+      ? `${lineD} L ${xAt(n - 1).toFixed(1)} ${baseY.toFixed(1)} L ${xAt(0).toFixed(1)} ${baseY.toFixed(1)} Z`
       : '';
 
   return (
@@ -61,53 +67,84 @@ export default function CompassLineChart({
             </G>
           );
         })}
-        {n > 1 ? <Path d={areaD} fill={ink} fillOpacity={0.22} /> : null}
-        {data.slice(1).map((d, i) => (
-          <Line
-            key={`s${i}`}
-            x1={xAt(i)}
-            y1={yAt(Number(data[i].value) || 0)}
-            x2={xAt(i + 1)}
-            y2={yAt(Number(d.value) || 0)}
-            stroke={ink}
-            strokeWidth={2.6}
-          />
-        ))}
-        {n > 1 ? (
-          <Line
-            x1={xAt(n - 1)}
-            y1={padT}
-            x2={xAt(n - 1)}
-            y2={padT + innerH}
-            stroke={ink}
-            strokeWidth={1}
-            strokeDasharray="2 4"
-            opacity={0.35}
-          />
-        ) : null}
-        {data.map((d, i) => (
-          <Circle
-            key={`p${i}`}
-            cx={xAt(i)}
-            cy={yAt(Number(d.value) || 0)}
-            r={i === n - 1 ? 5 : n > 30 ? 2.2 : 3.4}
-            fill={ink}
-          />
-        ))}
-        {n > 0 ? (
-          <Circle
-            cx={xAt(n - 1)}
-            cy={yAt(Number(data[n - 1].value) || 0)}
-            r={9}
-            fill="none"
-            stroke={ink}
-            strokeWidth={1.4}
-            opacity={0.35}
-          />
-        ) : null}
+
+        {view === 'bar'
+          ? data.map((d, i) => {
+              const cx = n === 1 ? padL + innerW / 2 : padL + (i + 0.5) * slot;
+              const y = yAt(Number(d.value) || 0);
+              const bh = Math.max(1, baseY - y);
+              return (
+                <Rect
+                  key={`b${i}`}
+                  x={cx - barW / 2}
+                  y={y}
+                  width={barW}
+                  height={bh}
+                  rx={Math.min(3, barW / 3)}
+                  fill={ink}
+                  opacity={i === n - 1 ? 1 : 0.72}
+                />
+              );
+            })
+          : (
+            <>
+              {n > 1 ? <Path d={areaD} fill={ink} fillOpacity={0.22} /> : null}
+              {data.slice(1).map((d, i) => (
+                <Line
+                  key={`s${i}`}
+                  x1={xAt(i)}
+                  y1={yAt(Number(data[i].value) || 0)}
+                  x2={xAt(i + 1)}
+                  y2={yAt(Number(d.value) || 0)}
+                  stroke={ink}
+                  strokeWidth={2.6}
+                />
+              ))}
+              {n > 1 ? (
+                <Line
+                  x1={xAt(n - 1)}
+                  y1={padT}
+                  x2={xAt(n - 1)}
+                  y2={baseY}
+                  stroke={ink}
+                  strokeWidth={1}
+                  strokeDasharray="2 4"
+                  opacity={0.35}
+                />
+              ) : null}
+              {data.map((d, i) => (
+                <Circle
+                  key={`p${i}`}
+                  cx={xAt(i)}
+                  cy={yAt(Number(d.value) || 0)}
+                  r={i === n - 1 ? 5 : n > 30 ? 2.2 : 3.4}
+                  fill={ink}
+                />
+              ))}
+              {n > 0 ? (
+                <Circle
+                  cx={xAt(n - 1)}
+                  cy={yAt(Number(data[n - 1].value) || 0)}
+                  r={9}
+                  fill="none"
+                  stroke={ink}
+                  strokeWidth={1.4}
+                  opacity={0.35}
+                />
+              ) : null}
+            </>
+          )}
+
         {data.map((d, i) =>
           i % labelEvery === 0 && d.label ? (
-            <SvgText key={`l${i}`} x={xAt(i)} y={h - 7} fill="rgba(243,246,250,0.7)" fontSize={8} textAnchor="middle">
+            <SvgText
+              key={`l${i}`}
+              x={view === 'bar' ? (n === 1 ? padL + innerW / 2 : padL + (i + 0.5) * slot) : xAt(i)}
+              y={h - 7}
+              fill="rgba(243,246,250,0.7)"
+              fontSize={8}
+              textAnchor="middle"
+            >
               {d.label}
             </SvgText>
           ) : null
