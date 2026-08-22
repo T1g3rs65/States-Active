@@ -233,7 +233,8 @@ function generateRiverCells(
   mapCols: number,
   mapRows: number,
   delaunay: Delaunay,
-  riverCount: number = 20
+  riverCount: number = 20,
+  rng: () => number = () => 0.5
 ): Set<number> {
   const riverIndices = new Set<number>();
   const elevations = points.map(([col, row]) => {
@@ -247,8 +248,10 @@ function generateRiverCells(
   const sources = points
     .map((_, i) => i)
     .filter(i => elevations[i] > 0.8 && elevations[i] < 1.5)
-    .sort(() => Math.random() - 0.5)
-    .slice(0, riverCount);
+    .map((i) => ({ i, k: rng() }))
+    .sort((a, b) => a.k - b.k)
+    .slice(0, riverCount)
+    .map((s) => s.i);
 
   for (const start of sources) {
     let current = start;
@@ -444,7 +447,7 @@ export function generateVoronoiCells(
 
   // PASS 4: rivers
   const delaunayPlain = Delaunay.from(relaxedPoints);
-  const riverIndices = generateRiverCells(relaxedPoints, noise, mapCols, mapRows, delaunayPlain, 20);
+  const riverIndices = generateRiverCells(relaxedPoints, noise, mapCols, mapRows, delaunayPlain, 20, rng);
 
   // PASS 5: build cells
   const cells: VoronoiCell[] = [];

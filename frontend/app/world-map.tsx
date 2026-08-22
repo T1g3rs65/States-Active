@@ -405,26 +405,46 @@ export default function WorldMap() {
   const loadMap = async () => {
     try {
       setLoadingStatus('Loading world data...');
-      
-      // Load world seed from the world if nation has world_id
-      let mapSeed = WORLD_SEED;
-      if (worldId) {
-        try {
-          const worldResponse = await api.getWorld(worldId);
-          if (worldResponse.success && worldResponse.world) {
-            mapSeed = worldResponse.world.seed || WORLD_SEED;
-            setWorldSeed(mapSeed);
-            if (worldResponse.world.noise_settings) {
-              terrainRef.current = { ...DEFAULT_TERRAIN, ...worldResponse.world.noise_settings };
-            }
-            console.log(`Using world seed: ${mapSeed} from world: ${worldResponse.world.name}`);
-          }
-        } catch (e) {
-          console.log('Could not load world seed, using default');
-        }
+
+      let id = worldId || null;
+      if (!id) {
+        try { id = await AsyncStorage.getItem('selected_world_id'); } catch { /* ignore */ }
       }
-      
-      // v5 = 40k Voronoi. Older caches were hex or 1500-cell and must not be reused.
+      if (!id) {
+        setLoadingStatus('No world selected — not inventing a map.');
+        setLoading(false);
+        return;
+      }
+
+      let mapSeed: number | null = null;
+      try {
+        const worldResponse = await api.getWorld(id);
+        if (worldResponse.success && worldResponse.world) {
+          const w = worldResponse.world;
+          const raw = w.seed ?? w.map_seed ?? w.world_seed;
+          mapSeed = Number(raw);
+          if (w.noise_settings && typeof w.noise_settings === 'object') {
+            terrainRef.current = { ...DEFAULT_TERRAIN, ...w.noise_settings };
+          } else {
+            terrainRef.current = { ...DEFAULT_TERRAIN };
+          }
+          await AsyncStorage.setItem(`world_seed_lock_${id}`, String(mapSeed));
+          console.log(`Using world seed: ${mapSeed} from world: ${w.name}`);
+        }
+      } catch (e) {
+        console.log('Could not load world, trying locked seed');
+      }
+      if (mapSeed == null || !Number.isFinite(mapSeed)) {
+        const locked = await AsyncStorage.getItem(`world_seed_lock_${id}`);
+        mapSeed = locked != null ? Number(locked) : null;
+      }
+      if (mapSeed == null || !Number.isFinite(mapSeed)) {
+        setLoadingStatus('World has no seed.');
+        setLoading(false);
+        return;
+      }
+      setWorldSeed(mapSeed);
+
       const worldCacheKey = `world_map_terrain_v17_${terrainKey(mapSeed, terrainRef.current)}`;
       
       setLoadingStatus('Checking cache...');
@@ -458,8 +478,8 @@ export default function WorldMap() {
       }
     } catch (error) {
       console.error('Error loading map:', error);
-      // Fallback to generating terrain
-      await generateAndCacheTerrain(worldSeed, `world_map_terrain_v17_${terrainKey(worldSeed, terrainRef.current)}`);
+      setLoadingStatus('Map failed to load.');
+      setLoading(false);
     }
   };
 
@@ -1055,7 +1075,7 @@ export default function WorldMap() {
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <Text style={styles.title}>{placing ? 'Place Capital' : foundingCity ? 'Found a City' : 'World Map'}</Text>
-          <Text style={styles.subtitle}>{placing ? 'Tap unclaimed land' : foundingCity ? 'Tap your connected land' : 'Voronoi Territories'}</Text>
+          <Text style={styles.subtitle}>{placing ? 'Tap unclaimed land' : foundingCity ? 'Tap your connected land' : `seed ${worldSeed}`}</Text>
         </View>
         {!placing && (
         <TouchableOpacity onPress={zoomToMyNation} style={styles.myNationButton}>

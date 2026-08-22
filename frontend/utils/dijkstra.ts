@@ -79,7 +79,8 @@ export function dijkstraExpansion(
       }
       
       // Add randomness (±10%)
-      terrainCost *= (0.9 + Math.random() * 0.2);
+      const jitter = ((Math.sin((neighbor.col + 1) * 12.9898 + (neighbor.row + 1) * 78.233) * 43758.5453) % 1 + 1) % 1;
+      terrainCost *= 0.9 + jitter * 0.2;
       
       const newCost = current.cost + terrainCost;
       const neighborId = neighbor.id;
