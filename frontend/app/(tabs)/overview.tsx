@@ -20,6 +20,7 @@ import { getPoliticalCompassTheme, leaningColor, leaningWash, mixIntoDark } from
 import { getRaceTheme } from '../../utils/raceColors';
 import { govTitle } from '../../utils/govCopy';
 import { TabChrome } from '../../components/ScreenHeader';
+import ScreenCanvas from '../../components/ScreenCanvas';
 
 export default function Overview() {
   const router = useRouter();
@@ -196,7 +197,8 @@ export default function Overview() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: 'transparent' }]}>
+    <ScreenCanvas>
+    <View style={styles.container}>
       <TabChrome title="Statistics" subtitle="The numbers" badge={notificationCount} />
 
       <ScrollView
@@ -582,6 +584,7 @@ export default function Overview() {
       </View>
     </ScrollView>
     </View>
+    </ScreenCanvas>
   );
 }
 

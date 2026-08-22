@@ -24,6 +24,7 @@ import { useRouter , useFocusEffect } from 'expo-router';
 import PressScale from '../../components/PressScale';
 import FadeUp from '../../components/FadeUp';
 import { TabChrome } from '../../components/ScreenHeader';
+import ScreenCanvas from '../../components/ScreenCanvas';
 
 const { width } = Dimensions.get('window');
 
@@ -522,6 +523,7 @@ export default function Advisors() {
   }
 
   return (
+    <ScreenCanvas>
     <View style={styles.container}>
       <TabChrome title="Advisors" subtitle="Cabinet" badge={notificationCount} />
 
@@ -1021,6 +1023,7 @@ export default function Advisors() {
       </Modal>
     </ScrollView>
     </View>
+    </ScreenCanvas>
   );
 }
 

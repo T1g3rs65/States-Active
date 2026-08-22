@@ -18,6 +18,7 @@ import { api } from '../../utils/api';
 import { getRaceTheme } from '../../utils/raceColors';
 import { leaningColor } from '../../utils/politicalCompass';
 import { TabChrome } from '../../components/ScreenHeader';
+import ScreenCanvas from '../../components/ScreenCanvas';
 import {
   RESOURCES,
   RESOURCE_BY_ID,
@@ -410,6 +411,7 @@ export default function Industry() {
   }
 
   return (
+    <ScreenCanvas>
     <View style={styles.container}>
       <TabChrome title="Industry" subtitle="Output" badge={notificationCount} />
 
@@ -474,6 +476,7 @@ export default function Industry() {
         <View style={{ height: 100 }} />
       </ScrollView>
     </View>
+    </ScreenCanvas>
   );
 }
 

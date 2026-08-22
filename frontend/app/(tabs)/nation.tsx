@@ -23,6 +23,7 @@ import { govTitle, govBlurb } from '../../utils/govCopy';
 import NewsFeed from '../../components/NewsFeed';
 import CollapsibleSection from '../../components/CollapsibleSection';
 import { TabChrome } from '../../components/ScreenHeader';
+import ScreenCanvas from '../../components/ScreenCanvas';
 
 // Race descriptions
 const RACE_DESCRIPTIONS: Record<string, { description: string; lore: string }> = {
@@ -391,7 +392,8 @@ export default function Nation() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: 'transparent' }]}>
+    <ScreenCanvas>
+    <View style={styles.container}>
       <TabChrome title={nation.name} subtitle={govTitle(nation.government_type)} badge={notificationCount} />
 
       <ScrollView 
@@ -516,6 +518,7 @@ export default function Nation() {
       </TouchableOpacity>
     </Modal>
     </View>
+    </ScreenCanvas>
   );
 }
 

@@ -5,6 +5,7 @@ import { colors, typography, spacing, radii } from '../../utils/theme';
 import { TabChrome } from '../../components/ScreenHeader';
 import FadeUp from '../../components/FadeUp';
 import PressScale from '../../components/PressScale';
+import ScreenCanvas from '../../components/ScreenCanvas';
 import { useNationStore } from '../../store/nationStore';
 import { leaningColor, leaningWash } from '../../utils/politicalCompass';
 
@@ -50,7 +51,8 @@ export default function More() {
   const tint = leaningColor(nation);
 
   return (
-    <View style={[styles.container, { backgroundColor: 'transparent' }]}>
+    <ScreenCanvas>
+    <View style={styles.container}>
       <TabChrome title="More" subtitle="The rest" />
       <ScrollView contentContainerStyle={styles.menu}>
         {GROUPS.map((group, gi) => (
@@ -78,6 +80,7 @@ export default function More() {
         ))}
       </ScrollView>
     </View>
+    </ScreenCanvas>
   );
 }
 

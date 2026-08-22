@@ -19,6 +19,7 @@ import { getRaceTheme } from '../../utils/raceColors';
 import { leaningColor, leaningWash } from '../../utils/politicalCompass';
 import { colors, typography, spacing, radii } from '../../utils/theme';
 import { TabChrome } from '../../components/ScreenHeader';
+import ScreenCanvas from '../../components/ScreenCanvas';
 
 export default function Issues() {
   const router = useRouter();
@@ -226,7 +227,8 @@ export default function Issues() {
 
   // Always render wrapper with modal
   return (
-    <View style={[styles.container, { backgroundColor: 'transparent' }]}>
+    <ScreenCanvas>
+    <View style={styles.container}>
       {renderHeader()}
       {renderContent()}
       
@@ -314,6 +316,7 @@ export default function Issues() {
         }}
       />
     </View>
+    </ScreenCanvas>
   );
 }
 

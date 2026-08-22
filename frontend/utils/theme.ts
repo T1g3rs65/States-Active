@@ -4,7 +4,8 @@
 import { Platform } from 'react-native';
 
 export const colors = {
-  background: 'transparent',
+  background: '#08090A',
+  canvas: 'transparent',
   surface: 'rgba(255,255,255,0.03)',
   surfaceSolid: '#111317',
   surfaceRaised: '#16181D',

@@ -20,6 +20,7 @@ import { leaningColor } from '../../utils/politicalCompass';
 import { colors } from '../../utils/theme';
 import { govTitle } from '../../utils/govCopy';
 import { TabChrome } from '../../components/ScreenHeader';
+import ScreenCanvas from '../../components/ScreenCanvas';
 
 interface AllyInfo {
   ally_id: string;
@@ -245,6 +246,7 @@ export default function Rankings() {
   };
 
   return (
+    <ScreenCanvas>
     <View style={styles.container}>
       <TabChrome title="Rankings" subtitle="Who is on top" badge={notificationCount} />
 
@@ -376,6 +378,7 @@ export default function Rankings() {
         </ScrollView>
       )}
     </View>
+    </ScreenCanvas>
   );
 }
 
