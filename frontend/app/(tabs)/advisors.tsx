@@ -21,6 +21,9 @@ import { api } from '../../utils/api';
 import { getRaceTheme } from '../../utils/raceColors';
 import { leaningColor } from '../../utils/politicalCompass';
 import { useRouter , useFocusEffect } from 'expo-router';
+import PressScale from '../../components/PressScale';
+import FadeUp from '../../components/FadeUp';
+import ScreenHeader, { HeaderIcon } from '../../components/ScreenHeader';
 
 const { width } = Dimensions.get('window');
 
@@ -515,29 +518,16 @@ export default function Advisors() {
 
   return (
     <View style={styles.container}>
-      {/* Top Header Bar */}
-      <View style={styles.topHeader}>
-        <Text style={styles.topHeaderTitle}>Advisors</Text>
-        <View style={styles.headerButtons}>
-          <TouchableOpacity 
-            style={styles.notificationButton}
-            onPress={() => router.push('/notifications')}
-          >
-            <Ionicons name="notifications" size={24} color={themeColor} />
-            {notificationCount > 0 && (
-              <View style={[styles.notificationBadge, { backgroundColor: '#FF5A65' }]}>
-                <Text style={styles.notificationBadgeText}>{notificationCount}</Text>
-              </View>
-            )}
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={[styles.profileButton, { borderColor: themeColor }]}
-            onPress={() => router.push('/profile')}
-          >
-            <Ionicons name="person-circle" size={28} color={themeColor} />
-          </TouchableOpacity>
-        </View>
-      </View>
+      <ScreenHeader
+        title="Advisors"
+        subtitle="Cabinet"
+        right={
+          <>
+            <HeaderIcon name="notifications" onPress={() => router.push('/notifications')} badge={notificationCount} />
+            <HeaderIcon name="person-circle" onPress={() => router.push('/profile')} />
+          </>
+        }
+      />
 
     <ScrollView
       style={styles.scrollView}
@@ -599,8 +589,8 @@ export default function Advisors() {
       )}
 
       <View style={styles.advisorsGrid}>
-        {nation.advisors.filter(isFeatureComplete).map((advisor) => (
-          <View key={advisor.slot} style={styles.advisorCard}>
+        {nation.advisors.filter(isFeatureComplete).map((advisor, i) => (
+          <FadeUp key={advisor.slot} delay={i * 45} style={styles.advisorCard}>
             <View style={[styles.portrait, { borderColor: themeColor }]}>
               <Image 
                 source={getAdvisorPortrait(nation.race, advisor.slot, advisor.name)}
@@ -639,125 +629,84 @@ export default function Advisors() {
               <Text style={styles.trustLine}>{trustLine(advisor)}</Text>
             ) : null}
 
-            {isMilitaryAdvisor(advisor) ? (
-              // War buttons for Military advisor
-              <>
-                <TouchableOpacity
-                  style={[
-                    styles.warButton,
-                    { backgroundColor: canDeclareWar() ? '#FF5A65' : 'rgba(243,246,250,0.48)' }
-                  ]}
-                  onPress={handleOpenDeclareWarModal}
-                  disabled={!canDeclareWar()}
-                >
-                  <Ionicons name="flash" size={16} color="#F3F6FA" />
-                  <Text style={styles.warButtonText}>Declare War</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[
-                    styles.warButton,
-                    { 
-                      backgroundColor: hasActiveWar() ? '#F2C94C' : 'rgba(255,255,255,0.08)',
-                      opacity: hasActiveWar() ? 1 : 0.6
-                    }
-                  ]}
-                  onPress={handleViewActiveWar}
-                  disabled={!hasActiveWar()}
-                >
-                  <Ionicons name={hasActiveWar() ? "flame" : "moon-outline"} size={14} color="#F3F6FA" />
-                  <Text style={styles.warButtonText}>
-                    {hasActiveWar() ? 'View Active War' : 'No Active War'}
-                  </Text>
-                </TouchableOpacity>
-              </>
-            ) : isForeignAdvisor(advisor) ? (
-              // Diplomacy button for Foreign Affairs advisor
-              <>
-                <TouchableOpacity
-                  style={[
-                    styles.warButton,
-                    { backgroundColor: '#27D17A' }
-                  ]}
-                  onPress={() => router.push('/alliances')}
-                >
-                  <Ionicons name="shield-checkmark" size={16} color="#F3F6FA" />
-                  <Text style={styles.warButtonText}>Non-Aggression Pacts</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[
-                    styles.sendTaskButton,
-                    { backgroundColor: canSendTaskToday() ? themeColor : 'rgba(243,246,250,0.48)' }
-                  ]}
-                  onPress={() => handleOpenTaskModal(advisor)}
-                  disabled={!canSendTaskToday()}
-                >
-                  <Ionicons name="paper-plane" size={16} color="#F3F6FA" />
-                  <Text style={styles.sendTaskText}>Send Task</Text>
-                </TouchableOpacity>
-              </>
-            ) : (
-              // Regular buttons for other advisors
-              <>
-                <TouchableOpacity
-                  style={[
-                    styles.sendTaskButton,
-                    { backgroundColor: canSendTaskToday() ? themeColor : 'rgba(243,246,250,0.48)' }
-                  ]}
-                  onPress={() => handleOpenTaskModal(advisor)}
-                  disabled={!canSendTaskToday()}
-                >
-                  <Ionicons name="paper-plane" size={16} color="#F3F6FA" />
-                  <Text style={styles.sendTaskText}>Send Task</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[
-                    styles.reformButton,
-                    { 
-                      borderColor: canSendReform() && hasActivePolicies() ? themeColor : 'rgba(243,246,250,0.48)',
-                      opacity: canSendReform() && hasActivePolicies() ? 1 : 0.5
-                    }
-                  ]}
-                  onPress={() => handleOpenReformModal(advisor)}
-                  disabled={!canSendReform() || !hasActivePolicies()}
-                >
-                  <Ionicons 
-                    name="construct" 
-                    size={14} 
-                    color={canSendReform() && hasActivePolicies() ? themeColor : 'rgba(243,246,250,0.48)'} 
-                  />
-                  <Text style={[
-                    styles.reformButtonText, 
-                    { color: canSendReform() && hasActivePolicies() ? themeColor : 'rgba(243,246,250,0.48)' }
-                  ]}>
-                    Reform
-                  </Text>
-                </TouchableOpacity>
-              </>
-            )}
-
-            {isSpymaster(advisor) && (
-              <TouchableOpacity
-                style={[
-                  styles.sendTaskButton,
-                  { backgroundColor: canSendTaskToday() ? '#8B5CF6' : 'rgba(243,246,250,0.48)', marginTop: 8 }
-                ]}
-                onPress={() => {
-                  if (!canSendTaskToday()) {
-                    Alert.alert('Daily Limit Reached', 'Probing trust uses today\'s advisor task.');
-                    return;
-                  }
-                  setShowProbeModal(true);
-                }}
+            <View style={styles.actionStack}>
+              <PressScale
                 disabled={!canSendTaskToday()}
+                onPress={() => handleOpenTaskModal(advisor)}
+                style={[styles.actionBtn, { backgroundColor: canSendTaskToday() ? themeColor : 'rgba(243,246,250,0.12)' }]}
               >
-                <Ionicons name="eye" size={16} color="#F3F6FA" />
-                <Text style={styles.sendTaskText}>Probe loyalty</Text>
-              </TouchableOpacity>
-            )}
-          </View>
+                <Ionicons name="paper-plane" size={14} color="#F3F6FA" />
+                <Text style={styles.actionBtnText}>Task</Text>
+              </PressScale>
+
+              {isMilitaryAdvisor(advisor) && (
+                <>
+                  <PressScale
+                    disabled={!canDeclareWar()}
+                    onPress={handleOpenDeclareWarModal}
+                    style={[styles.actionBtn, { backgroundColor: canDeclareWar() ? '#FF5A65' : 'rgba(243,246,250,0.12)' }]}
+                  >
+                    <Ionicons name="flash" size={14} color="#F3F6FA" />
+                    <Text style={styles.actionBtnText}>War</Text>
+                  </PressScale>
+                  <PressScale
+                    disabled={!hasActiveWar()}
+                    onPress={handleViewActiveWar}
+                    style={[styles.actionBtn, { backgroundColor: hasActiveWar() ? '#C45C26' : 'rgba(243,246,250,0.12)' }]}
+                  >
+                    <Ionicons name={hasActiveWar() ? 'flame' : 'moon-outline'} size={14} color="#F3F6FA" />
+                    <Text style={styles.actionBtnText}>{hasActiveWar() ? 'Front' : 'Peace'}</Text>
+                  </PressScale>
+                </>
+              )}
+
+              {isForeignAdvisor(advisor) && (
+                <PressScale
+                  onPress={() => router.push('/alliances')}
+                  style={[styles.actionBtn, { backgroundColor: '#27D17A' }]}
+                >
+                  <Ionicons name="shield-checkmark" size={14} color="#F3F6FA" />
+                  <Text style={styles.actionBtnText}>Pacts</Text>
+                </PressScale>
+              )}
+
+              {isSpymaster(advisor) && (
+                <PressScale
+                  disabled={!canSendTaskToday()}
+                  onPress={() => {
+                    if (!canSendTaskToday()) {
+                      Alert.alert('Daily Limit Reached', "Probing trust uses today's advisor task.");
+                      return;
+                    }
+                    setShowProbeModal(true);
+                  }}
+                  style={[styles.actionBtn, { backgroundColor: canSendTaskToday() ? '#8B5CF6' : 'rgba(243,246,250,0.12)' }]}
+                >
+                  <Ionicons name="eye" size={14} color="#F3F6FA" />
+                  <Text style={styles.actionBtnText}>Probe</Text>
+                </PressScale>
+              )}
+
+              <PressScale
+                disabled={!canSendReform() || !hasActivePolicies()}
+                onPress={() => handleOpenReformModal(advisor)}
+                style={[
+                  styles.actionBtn,
+                  styles.actionGhost,
+                  { borderColor: canSendReform() && hasActivePolicies() ? themeColor : 'rgba(243,246,250,0.18)' },
+                ]}
+              >
+                <Ionicons
+                  name="construct"
+                  size={14}
+                  color={canSendReform() && hasActivePolicies() ? themeColor : 'rgba(243,246,250,0.45)'}
+                />
+                <Text style={[styles.actionBtnText, { color: canSendReform() && hasActivePolicies() ? themeColor : 'rgba(243,246,250,0.45)' }]}>
+                  Reform
+                </Text>
+              </PressScale>
+            </View>
+          </FadeUp>
         ))}
       </View>
 
@@ -1254,6 +1203,28 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   sendTaskText: {
+    color: '#F3F6FA',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  actionStack: {
+    width: '100%',
+    marginTop: 10,
+    gap: 6,
+  },
+  actionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  actionGhost: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+  },
+  actionBtnText: {
     color: '#F3F6FA',
     fontSize: 12,
     fontWeight: '600',

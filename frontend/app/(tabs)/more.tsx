@@ -1,8 +1,10 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, typography, spacing, radii } from '../../utils/theme';
 import ScreenHeader from '../../components/ScreenHeader';
+import FadeUp from '../../components/FadeUp';
+import PressScale from '../../components/PressScale';
 import { useNationStore } from '../../store/nationStore';
 import { leaningColor, leaningWash } from '../../utils/politicalCompass';
 
@@ -51,16 +53,15 @@ export default function More() {
     <View style={[styles.container, { backgroundColor: leaningWash(nation, 0.06) }]}>
       <ScreenHeader title="More" subtitle="The rest" />
       <ScrollView contentContainerStyle={styles.menu}>
-        {GROUPS.map((group) => (
-          <View key={group.title} style={styles.group}>
+        {GROUPS.map((group, gi) => (
+          <FadeUp key={group.title} delay={gi * 70} style={styles.group}>
             <Text style={[styles.groupTitle, { color: tint }]}>{group.title}</Text>
             <View style={[styles.card, { borderColor: tint }]}>
               {group.items.map((item, i) => (
-                <TouchableOpacity
+                <PressScale
                   key={item.route}
-                  style={[styles.row, i < group.items.length - 1 && styles.rowLine]}
                   onPress={() => router.push(item.route as any)}
-                  activeOpacity={0.7}
+                  style={[styles.row, i < group.items.length - 1 && styles.rowLine]}
                 >
                   <View style={[styles.iconWrap, { backgroundColor: leaningWash(nation, 0.12) }]}>
                     <Ionicons name={item.icon} size={18} color={tint} />
@@ -70,10 +71,10 @@ export default function More() {
                     {item.hint ? <Text style={styles.hint}>{item.hint}</Text> : null}
                   </View>
                   <Ionicons name="chevron-forward" size={16} color={colors.text.muted} />
-                </TouchableOpacity>
+                </PressScale>
               ))}
             </View>
-          </View>
+          </FadeUp>
         ))}
       </ScrollView>
     </View>
