@@ -1027,7 +1027,7 @@ export default function Advisors() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0B0F14',
+    backgroundColor: 'transparent',
   },
   topHeader: {
     flexDirection: 'row',

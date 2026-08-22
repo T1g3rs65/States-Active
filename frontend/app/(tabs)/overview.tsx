@@ -196,7 +196,7 @@ export default function Overview() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: leaningWash(nation, 0.06) }]}>
+    <View style={[styles.container, { backgroundColor: 'transparent' }]}>
       <TabChrome title="Statistics" subtitle="The numbers" badge={notificationCount} />
 
       <ScrollView

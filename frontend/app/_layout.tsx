@@ -1,9 +1,10 @@
 import { Slot } from 'expo-router';
 import { useEffect } from 'react';
 import { View, StyleSheet } from 'react-native';
+import AuroraBackground from '../components/AuroraBackground';
 import Grain from '../components/Grain';
 
-export const APP_BUILD = '21o';
+export const APP_BUILD = '21p';
 
 export default function RootLayout() {
   useEffect(() => {
@@ -19,7 +20,10 @@ export default function RootLayout() {
   }, []);
   return (
     <View style={styles.root}>
-      <Slot />
+      <AuroraBackground />
+      <View style={styles.fg}>
+        <Slot />
+      </View>
       <Grain />
     </View>
   );
@@ -27,4 +31,5 @@ export default function RootLayout() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#08090A' },
+  fg: { flex: 1, zIndex: 1, backgroundColor: 'transparent' },
 });

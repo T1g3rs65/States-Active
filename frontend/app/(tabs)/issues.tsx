@@ -226,7 +226,7 @@ export default function Issues() {
 
   // Always render wrapper with modal
   return (
-    <View style={[styles.container, { backgroundColor: leaningWash(nation, 0.06) }]}>
+    <View style={[styles.container, { backgroundColor: 'transparent' }]}>
       {renderHeader()}
       {renderContent()}
       

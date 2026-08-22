@@ -391,7 +391,7 @@ export default function Nation() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: leaningWash(nation, 0.06) }]}>
+    <View style={[styles.container, { backgroundColor: 'transparent' }]}>
       <TabChrome title={nation.name} subtitle={govTitle(nation.government_type)} badge={notificationCount} />
 
       <ScrollView 

@@ -5,7 +5,7 @@ export default function TabLayout() {
   return (
     <Tabs
       tabBar={(props) => <CompassTabBar {...props} />}
-      screenOptions={{ headerShown: false }}
+      screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: 'transparent' } }}
     >
       <Tabs.Screen name="nation" options={{ title: 'Nation' }} />
       <Tabs.Screen name="issues" options={{ title: 'Issues' }} />

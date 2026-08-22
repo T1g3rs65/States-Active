@@ -50,7 +50,7 @@ export default function More() {
   const tint = leaningColor(nation);
 
   return (
-    <View style={[styles.container, { backgroundColor: leaningWash(nation, 0.06) }]}>
+    <View style={[styles.container, { backgroundColor: 'transparent' }]}>
       <TabChrome title="More" subtitle="The rest" />
       <ScrollView contentContainerStyle={styles.menu}>
         {GROUPS.map((group, gi) => (
