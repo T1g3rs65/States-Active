@@ -19,6 +19,7 @@ import { getNationSizeClass } from '../../utils/nationSize';
 import { getPoliticalCompassTheme, leaningColor, leaningWash, mixIntoDark } from '../../utils/politicalCompass';
 import { getRaceTheme } from '../../utils/raceColors';
 import { govTitle } from '../../utils/govCopy';
+import { TabChrome } from '../../components/ScreenHeader';
 
 export default function Overview() {
   const router = useRouter();
@@ -196,34 +197,7 @@ export default function Overview() {
 
   return (
     <View style={[styles.container, { backgroundColor: leaningWash(nation, 0.06) }]}>
-      {/* Header */}
-      <View
-        style={[
-          styles.topHeader,
-          { backgroundColor: leaningWash(nation, 0.09), borderBottomColor: themeColor, borderBottomWidth: 2 },
-        ]}
-      >
-        <Text style={styles.topHeaderTitle}>Statistics</Text>
-        <View style={styles.headerButtons}>
-          <TouchableOpacity 
-            style={styles.notificationButton}
-            onPress={() => router.push('/notifications')}
-          >
-            <Ionicons name="notifications" size={24} color={themeColor} />
-            {notificationCount > 0 && (
-              <View style={[styles.notificationBadge, { backgroundColor: '#FF5A65' }]}>
-                <Text style={styles.notificationBadgeText}>{notificationCount}</Text>
-              </View>
-            )}
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={styles.profileButton}
-            onPress={() => router.push('/profile')}
-          >
-            <Ionicons name="person-circle" size={28} color={themeColor} />
-          </TouchableOpacity>
-        </View>
-      </View>
+      <TabChrome title="Statistics" subtitle="The numbers" badge={notificationCount} />
 
       <ScrollView
         style={styles.scrollView}

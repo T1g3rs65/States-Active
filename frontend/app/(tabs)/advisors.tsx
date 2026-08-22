@@ -23,7 +23,7 @@ import { leaningColor } from '../../utils/politicalCompass';
 import { useRouter , useFocusEffect } from 'expo-router';
 import PressScale from '../../components/PressScale';
 import FadeUp from '../../components/FadeUp';
-import ScreenHeader, { HeaderIcon } from '../../components/ScreenHeader';
+import { TabChrome } from '../../components/ScreenHeader';
 
 const { width } = Dimensions.get('window');
 
@@ -284,9 +284,11 @@ export default function Advisors() {
   };
   
   const handleViewActiveWar = () => {
+    const nationId = nation?.id || nation?._id;
     if (activeWar) {
-      const nationId = nation?.id || nation?._id;
       router.push(`/war-dashboard?warId=${activeWar._id || activeWar.id}&nationId=${nationId}`);
+    } else {
+      router.push(`/war-dashboard?nationId=${nationId}`);
     }
   };
   
@@ -521,16 +523,7 @@ export default function Advisors() {
 
   return (
     <View style={styles.container}>
-      <ScreenHeader
-        title="Advisors"
-        subtitle="Cabinet"
-        right={
-          <>
-            <HeaderIcon name="notifications" onPress={() => router.push('/notifications')} badge={notificationCount} />
-            <HeaderIcon name="person-circle" onPress={() => router.push('/profile')} />
-          </>
-        }
-      />
+      <TabChrome title="Advisors" subtitle="Cabinet" badge={notificationCount} />
 
     <ScrollView
       style={styles.scrollView}
@@ -653,7 +646,6 @@ export default function Advisors() {
                     <Text style={styles.actionBtnText}>War</Text>
                   </PressScale>
                   <PressScale
-                    disabled={!hasActiveWar()}
                     onPress={handleViewActiveWar}
                     style={[styles.actionBtn, { backgroundColor: hasActiveWar() ? '#C45C26' : 'rgba(243,246,250,0.12)' }]}
                   >

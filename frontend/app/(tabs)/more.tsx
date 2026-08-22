@@ -2,7 +2,7 @@ import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, typography, spacing, radii } from '../../utils/theme';
-import ScreenHeader from '../../components/ScreenHeader';
+import { TabChrome } from '../../components/ScreenHeader';
 import FadeUp from '../../components/FadeUp';
 import PressScale from '../../components/PressScale';
 import { useNationStore } from '../../store/nationStore';
@@ -51,7 +51,7 @@ export default function More() {
 
   return (
     <View style={[styles.container, { backgroundColor: leaningWash(nation, 0.06) }]}>
-      <ScreenHeader title="More" subtitle="The rest" />
+      <TabChrome title="More" subtitle="The rest" />
       <ScrollView contentContainerStyle={styles.menu}>
         {GROUPS.map((group, gi) => (
           <FadeUp key={group.title} delay={gi * 70} style={styles.group}>

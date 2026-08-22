@@ -17,6 +17,7 @@ import { useNationStore } from '../../store/nationStore';
 import { api } from '../../utils/api';
 import { getRaceTheme } from '../../utils/raceColors';
 import { leaningColor } from '../../utils/politicalCompass';
+import { TabChrome } from '../../components/ScreenHeader';
 import {
   RESOURCES,
   RESOURCE_BY_ID,
@@ -410,29 +411,7 @@ export default function Industry() {
 
   return (
     <View style={styles.container}>
-      {/* Top Header Bar */}
-      <View style={styles.topHeader}>
-        <Text style={styles.topHeaderTitle}>Industry</Text>
-        <View style={styles.headerButtons}>
-          <TouchableOpacity 
-            style={styles.notificationButton}
-            onPress={() => router.push('/notifications')}
-          >
-            <Ionicons name="notifications" size={24} color={themeColor} />
-            {notificationCount > 0 && (
-              <View style={[styles.notificationBadge, { backgroundColor: '#FF5A65' }]}>
-                <Text style={styles.notificationBadgeText}>{notificationCount}</Text>
-              </View>
-            )}
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={[styles.profileButton, { borderColor: themeColor }]}
-            onPress={() => router.push('/profile')}
-          >
-            <Ionicons name="person-circle" size={28} color={themeColor} />
-          </TouchableOpacity>
-        </View>
-      </View>
+      <TabChrome title="Industry" subtitle="Output" badge={notificationCount} />
 
       {/* Tab Selector */}
       <View style={styles.tabContainer}>

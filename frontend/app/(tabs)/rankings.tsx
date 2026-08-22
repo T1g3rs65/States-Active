@@ -19,6 +19,7 @@ import { getRaceTheme } from '../../utils/raceColors';
 import { leaningColor } from '../../utils/politicalCompass';
 import { colors } from '../../utils/theme';
 import { govTitle } from '../../utils/govCopy';
+import { TabChrome } from '../../components/ScreenHeader';
 
 interface AllyInfo {
   ally_id: string;
@@ -245,29 +246,7 @@ export default function Rankings() {
 
   return (
     <View style={styles.container}>
-      {/* Top Header Bar */}
-      <View style={styles.topHeader}>
-        <Text style={styles.topHeaderTitle}>Rankings</Text>
-        <View style={styles.headerButtons}>
-          <TouchableOpacity 
-            style={styles.notificationButton}
-            onPress={() => router.push('/notifications')}
-          >
-            <Ionicons name="notifications" size={24} color={themeColor} />
-            {notificationCount > 0 && (
-              <View style={[styles.notificationBadge, { backgroundColor: '#FF5A65' }]}>
-                <Text style={styles.notificationBadgeText}>{notificationCount}</Text>
-              </View>
-            )}
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={[styles.profileButton, { borderColor: themeColor }]}
-            onPress={() => router.push('/profile')}
-          >
-            <Ionicons name="person-circle" size={28} color={themeColor} />
-          </TouchableOpacity>
-        </View>
-      </View>
+      <TabChrome title="Rankings" subtitle="Who is on top" badge={notificationCount} />
 
       <View style={styles.categoryHeader}>
         <View style={styles.modeSelector}>

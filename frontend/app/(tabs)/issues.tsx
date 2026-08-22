@@ -18,6 +18,7 @@ import { useRouter , useFocusEffect } from 'expo-router';
 import { getRaceTheme } from '../../utils/raceColors';
 import { leaningColor, leaningWash } from '../../utils/politicalCompass';
 import { colors, typography, spacing, radii } from '../../utils/theme';
+import { TabChrome } from '../../components/ScreenHeader';
 
 export default function Issues() {
   const router = useRouter();
@@ -174,33 +175,7 @@ export default function Issues() {
 
   // Header component to be reused
   const renderHeader = () => (
-    <View
-      style={[
-        styles.topHeader,
-        { backgroundColor: leaningWash(nation, 0.09), borderBottomColor: themeColor, borderBottomWidth: 2 },
-      ]}
-    >
-      <Text style={styles.topHeaderTitle}>Issues</Text>
-      <View style={styles.headerButtons}>
-        <TouchableOpacity 
-          style={styles.notificationButton}
-          onPress={() => router.push('/notifications')}
-        >
-          <Ionicons name="notifications" size={24} color={themeColor} />
-          {notificationCount > 0 && (
-            <View style={[styles.notificationBadge, { backgroundColor: '#FF5A65' }]}>
-              <Text style={styles.notificationBadgeText}>{notificationCount}</Text>
-            </View>
-          )}
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={[styles.profileButton, { borderColor: themeColor }]}
-          onPress={() => router.push('/profile')}
-        >
-          <Ionicons name="person-circle" size={28} color={themeColor} />
-        </TouchableOpacity>
-      </View>
-    </View>
+    <TabChrome title="Issues" subtitle="Decisions" badge={notificationCount} />
   );
 
   // Render main content based on state

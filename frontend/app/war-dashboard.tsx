@@ -2,6 +2,12 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Image } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { api } from '../utils/api';
+import ScreenHeader from '../components/ScreenHeader';
+
+function leaveWarRoom() {
+  if (router.canGoBack()) router.back();
+  else router.replace('/(tabs)/advisors');
+}
 
 export default function WarDashboard() {
   const { warId, nationId } = useLocalSearchParams();
@@ -70,9 +76,12 @@ export default function WarDashboard() {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#FF5A65" />
-        <Text style={styles.loadingText}>Loading War Status...</Text>
+      <View style={styles.container}>
+        <ScreenHeader title="War Room" subtitle="Loading" onBack={leaveWarRoom} />
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#FF5A65" />
+          <Text style={styles.loadingText}>Loading War Status...</Text>
+        </View>
       </View>
     );
   }
@@ -80,7 +89,13 @@ export default function WarDashboard() {
   if (!war) {
     return (
       <View style={styles.container}>
-        <Text style={styles.errorText}>War not found</Text>
+        <ScreenHeader title="War Room" subtitle="No war" onBack={leaveWarRoom} />
+        <View style={styles.loadingContainer}>
+          <Text style={styles.errorText}>No active war.</Text>
+          <TouchableOpacity onPress={leaveWarRoom} style={styles.backButton}>
+            <Text style={styles.backText}>Back</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     );
   }
@@ -97,18 +112,11 @@ export default function WarDashboard() {
   
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Text style={styles.backText}>← Back</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>⚔️ WAR</Text>
-        {!isParticipant && (
-          <View style={styles.spectatorBadge}>
-            <Text style={styles.spectatorText}>👁️ Spectating</Text>
-          </View>
-        )}
-      </View>
+      <ScreenHeader
+        title="War Room"
+        subtitle={isParticipant ? 'In the field' : 'Spectating'}
+        onBack={leaveWarRoom}
+      />
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         {/* War Overview */}

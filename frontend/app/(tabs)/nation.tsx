@@ -22,6 +22,7 @@ import { colors, typography, spacing, radii } from '../../utils/theme';
 import { govTitle, govBlurb } from '../../utils/govCopy';
 import NewsFeed from '../../components/NewsFeed';
 import CollapsibleSection from '../../components/CollapsibleSection';
+import { TabChrome } from '../../components/ScreenHeader';
 
 // Race descriptions
 const RACE_DESCRIPTIONS: Record<string, { description: string; lore: string }> = {
@@ -391,37 +392,7 @@ export default function Nation() {
 
   return (
     <View style={[styles.container, { backgroundColor: leaningWash(nation, 0.06) }]}>
-      {/* Top Header Bar */}
-      <View
-        style={[
-          styles.topHeader,
-          { backgroundColor: leaningWash(nation, 0.09), borderBottomColor: themeColor, borderBottomWidth: 2 },
-        ]}
-      >
-        <Text style={styles.topHeaderTitle}>{nation.name}</Text>
-        <View style={styles.headerButtons}>
-          {/* Notification Button */}
-          <TouchableOpacity 
-            style={styles.notificationButton}
-            onPress={() => router.push('/notifications')}
-          >
-            <Ionicons name="notifications" size={24} color={themeColor} />
-            {notificationCount > 0 && (
-              <View style={[styles.notificationBadge, { backgroundColor: colors.danger }]}>
-                <Text style={styles.notificationBadgeText}>{notificationCount}</Text>
-              </View>
-            )}
-          </TouchableOpacity>
-          
-          {/* Profile Button */}
-          <TouchableOpacity 
-            style={[styles.profileButton, { borderColor: themeColor }]}
-            onPress={() => router.push('/profile')}
-          >
-            <Ionicons name="person-circle" size={28} color={themeColor} />
-          </TouchableOpacity>
-        </View>
-      </View>
+      <TabChrome title={nation.name} subtitle={govTitle(nation.government_type)} badge={notificationCount} />
 
       <ScrollView 
         style={styles.scrollContainer} 

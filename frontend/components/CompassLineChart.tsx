@@ -54,7 +54,7 @@ export default function CompassLineChart({
           const v = yMax - (i / 5) * ySpan;
           return (
             <G key={`g${i}`}>
-              <Line x1={padL} y1={y} x2={w - padR} y2={y} stroke="rgba(255,255,255,0.12)" strokeWidth={1} />
+              <Line x1={padL} y1={y} x2={w - padR} y2={y} stroke="rgba(255,255,255,0.08)" strokeWidth={1} strokeDasharray="3 5" />
               <SvgText x={padL - 6} y={y + 3} fill="rgba(243,246,250,0.7)" fontSize={10} textAnchor="end">
                 {Math.abs(v) >= 100 ? v.toFixed(0) : v.toFixed(1)}
               </SvgText>
@@ -73,9 +73,38 @@ export default function CompassLineChart({
             strokeWidth={2.6}
           />
         ))}
+        {n > 1 ? (
+          <Line
+            x1={xAt(n - 1)}
+            y1={padT}
+            x2={xAt(n - 1)}
+            y2={padT + innerH}
+            stroke={ink}
+            strokeWidth={1}
+            strokeDasharray="2 4"
+            opacity={0.35}
+          />
+        ) : null}
         {data.map((d, i) => (
-          <Circle key={`p${i}`} cx={xAt(i)} cy={yAt(Number(d.value) || 0)} r={n > 30 ? 2.2 : 4} fill={ink} />
+          <Circle
+            key={`p${i}`}
+            cx={xAt(i)}
+            cy={yAt(Number(d.value) || 0)}
+            r={i === n - 1 ? 5 : n > 30 ? 2.2 : 3.4}
+            fill={ink}
+          />
         ))}
+        {n > 0 ? (
+          <Circle
+            cx={xAt(n - 1)}
+            cy={yAt(Number(data[n - 1].value) || 0)}
+            r={9}
+            fill="none"
+            stroke={ink}
+            strokeWidth={1.4}
+            opacity={0.35}
+          />
+        ) : null}
         {data.map((d, i) =>
           i % labelEvery === 0 && d.label ? (
             <SvgText key={`l${i}`} x={xAt(i)} y={h - 7} fill="rgba(243,246,250,0.7)" fontSize={8} textAnchor="middle">

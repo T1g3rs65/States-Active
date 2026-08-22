@@ -1,6 +1,7 @@
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { ReactNode } from 'react';
+import { useRouter } from 'expo-router';
 import { colors, typography, spacing } from '../utils/theme';
 import { useNationStore } from '../store/nationStore';
 import { leaningColor, leaningWash } from '../utils/politicalCompass';
@@ -29,10 +30,16 @@ export default function ScreenHeader({ title, subtitle, onBack, right }: Props) 
           </TouchableOpacity>
         ) : null}
         <View style={{ flex: 1 }}>
-          <Text style={styles.title}>{title}</Text>
-          {subtitle ? <Text style={[styles.sub, { color: tint }]}>{subtitle}</Text> : null}
+          <Text style={styles.title} numberOfLines={1}>
+            {title}
+          </Text>
+          {subtitle ? (
+            <Text style={[styles.sub, { color: tint }]} numberOfLines={1}>
+              {subtitle}
+            </Text>
+          ) : null}
         </View>
-        {right}
+        {right ? <View style={styles.right}>{right}</View> : null}
       </View>
     </View>
   );
@@ -61,6 +68,30 @@ export function HeaderIcon({
   );
 }
 
+export function TabChrome({
+  title,
+  subtitle,
+  badge,
+}: {
+  title: string;
+  subtitle?: string;
+  badge?: number;
+}) {
+  const router = useRouter();
+  return (
+    <ScreenHeader
+      title={title}
+      subtitle={subtitle}
+      right={
+        <>
+          <HeaderIcon name="notifications" onPress={() => router.push('/notifications')} badge={badge} />
+          <HeaderIcon name="person-circle" onPress={() => router.push('/profile')} />
+        </>
+      }
+    />
+  );
+}
+
 const styles = StyleSheet.create({
   wrap: {
     paddingHorizontal: spacing.md,
@@ -71,6 +102,11 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.border,
   },
   row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  right: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
