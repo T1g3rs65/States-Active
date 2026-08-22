@@ -21,6 +21,7 @@ import { colors } from '../../utils/theme';
 import { govTitle } from '../../utils/govCopy';
 import { TabChrome } from '../../components/ScreenHeader';
 import ScreenCanvas from '../../components/ScreenCanvas';
+import LiquidGlass from '../../components/LiquidGlass';
 
 interface AllyInfo {
   ally_id: string;
@@ -251,13 +252,13 @@ export default function Rankings() {
       <TabChrome title="Rankings" subtitle="Who is on top" badge={notificationCount} />
 
       <View style={styles.categoryHeader}>
-        <View style={styles.modeSelector}>
+        <LiquidGlass radius={999} style={styles.modeSelector}>
           <TouchableOpacity
             style={[styles.modeButton, viewMode === 'standard' && { backgroundColor: themeColor }]}
             onPress={() => setViewMode('standard')}
           >
             <Text
-              style={[styles.modeButtonText, viewMode === 'standard' && styles.modeButtonTextActive]}
+              style={[styles.modeButtonText, viewMode === 'standard' && { color: '#000' }]}
             >
               Standard
             </Text>
@@ -267,12 +268,12 @@ export default function Rankings() {
             onPress={() => setViewMode('extreme')}
           >
             <Text
-              style={[styles.modeButtonText, viewMode === 'extreme' && styles.modeButtonTextActive]}
+              style={[styles.modeButtonText, viewMode === 'extreme' && { color: '#000' }]}
             >
               Extremes
             </Text>
           </TouchableOpacity>
-        </View>
+        </LiquidGlass>
 
         <ScrollView
           horizontal
@@ -323,12 +324,10 @@ export default function Rankings() {
             const isInMyFaction = isSameFaction(entry);
             
             return (
-              <View 
-                key={entry.nation_id} 
-                style={[
-                  styles.rankingCard, 
-                  { borderLeftWidth: 4, borderLeftColor: nationColor }
-                ]}
+              <LiquidGlass
+                key={entry.nation_id}
+                radius={22}
+                style={styles.rankingCard}
               >
                 <View style={styles.rankContainer}>
                   <Text style={styles.rankText}>{getMedalEmoji(entry.rank)}</Text>
@@ -340,13 +339,13 @@ export default function Rankings() {
                       <Text style={styles.allyStarIcon}>⭐</Text>
                     )}
                     {isInMyFaction && (
-                      <Ionicons name="star" size={14} color="#00E0C7" style={styles.factionStarIcon} />
+                      <Ionicons name="star" size={14} color={themeColor} style={styles.factionStarIcon} />
                     )}
                     <Text style={styles.nationName} numberOfLines={1}>
                       {entry.nation_name}
                     </Text>
                     {entry.faction_tag && (
-                      <View style={[styles.factionTagBadge, { backgroundColor: entry.faction_color || '#00E0C7' }]}>
+                      <View style={[styles.factionTagBadge, { backgroundColor: entry.faction_color || themeColor }]}>
                         <Text style={styles.factionTagText}>{entry.faction_tag}</Text>
                       </View>
                     )}
@@ -356,17 +355,17 @@ export default function Rankings() {
                   </Text>
                 </View>
                 <View style={styles.statContainer}>
-                  <Text style={[styles.statValue, { color: nationColor }]}>
+                  <Text style={[styles.statValue, { color: themeColor }]}>
                     {entry.stat_value_display || entry.stat_value.toFixed(1)}
                   </Text>
                 </View>
-                <TouchableOpacity 
-                  style={[styles.compareButton, { borderColor: nationColor }]}
+                <TouchableOpacity
+                  style={styles.compareButton}
                   onPress={() => router.push(`/compare?nationId=${entry.nation_id}`)}
                 >
-                  <Ionicons name="git-compare-outline" size={20} color={nationColor} />
+                  <Ionicons name="git-compare-outline" size={20} color={themeColor} />
                 </TouchableOpacity>
-              </View>
+              </LiquidGlass>
             );
           })}
 
@@ -433,32 +432,50 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   categoryHeader: {
-    backgroundColor: '#11171F',
+    backgroundColor: 'transparent',
     paddingTop: 12,
     paddingBottom: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.08)',
   },
   header: {
-    backgroundColor: '#11171F',
+    backgroundColor: 'transparent',
     paddingTop: 16,
     paddingBottom: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.08)',
   },
   modeSelector: {
     flexDirection: 'row',
     marginHorizontal: 16,
     marginBottom: 12,
-    backgroundColor: '#0B0F14',
-    borderRadius: 8,
     padding: 4,
   },
   modeButton: {
     flex: 1,
     paddingVertical: 8,
     alignItems: 'center',
-    borderRadius: 6,
+    borderRadius: 999,
+  },
+  categoryChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderRadius: 999,
+    marginRight: 8,
+  },
+  rankingCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    marginBottom: 12,
+  },
+  compareButton: {
+    marginLeft: 8,
+    padding: 8,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 999,
+  },
+  statValue: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#F3F6FA',
   },
   modeButtonActive: {
     // backgroundColor dynamically set inline
@@ -478,13 +495,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingBottom: 12,
     gap: 8,
-  },
-  categoryChip: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    backgroundColor: '#0B0F14',
-    borderRadius: 16,
-    marginRight: 8,
   },
   categoryChipActive: {
     // backgroundColor dynamically set inline
@@ -512,16 +522,6 @@ const styles = StyleSheet.create({
     marginTop: 16,
     color: 'rgba(243,246,250,0.70)',
     fontSize: 16,
-  },
-  rankingCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#11171F',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
   },
   rankContainer: {
     width: 50,
@@ -579,19 +579,6 @@ const styles = StyleSheet.create({
   },
   statContainer: {
     alignItems: 'flex-end',
-  },
-  statValue: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#00E0C7',
-  },
-  compareButton: {
-    marginLeft: 8,
-    padding: 8,
-    backgroundColor: '#0B0F14',
-    borderRadius: 8,
-    borderWidth: 1,
-    // borderColor dynamically set inline
   },
   emptyContainer: {
     padding: 32,

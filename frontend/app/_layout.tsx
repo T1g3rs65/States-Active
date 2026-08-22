@@ -3,7 +3,7 @@ import { useEffect } from 'react';
 import { View, StyleSheet } from 'react-native';
 import Grain from '../components/Grain';
 
-export const APP_BUILD = '21t';
+export const APP_BUILD = '21u';
 
 export default function RootLayout() {
   useEffect(() => {

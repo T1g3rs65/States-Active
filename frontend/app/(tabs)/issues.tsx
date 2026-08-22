@@ -20,6 +20,7 @@ import { leaningColor, leaningWash } from '../../utils/politicalCompass';
 import { colors, typography, spacing, radii } from '../../utils/theme';
 import { TabChrome } from '../../components/ScreenHeader';
 import ScreenCanvas from '../../components/ScreenCanvas';
+import LiquidGlass from '../../components/LiquidGlass';
 
 export default function Issues() {
   const router = useRouter();
@@ -269,40 +270,48 @@ export default function Issues() {
       
       {selectedIssue && (
       <Modal visible={!!selectedIssue} animationType="slide" onRequestClose={() => setSelectedIssue(null)}>
-        <View style={styles.container}>
+        <ScreenCanvas>
+        <View style={styles.detailRoot}>
           <ScrollView contentContainerStyle={styles.content}>
           <TouchableOpacity style={styles.backButton} onPress={() => setSelectedIssue(null)}>
-            <Text style={styles.backButtonText}>← Back to Issues</Text>
+            <Text style={[styles.backButtonText, { color: themeColor }]}>← Back to Issues</Text>
           </TouchableOpacity>
 
           <Text style={styles.issueTitle}>{selectedIssue.title}</Text>
-          <Text style={styles.issueDescription}>{selectedIssue.description}</Text>
+          <LiquidGlass radius={24} style={styles.issueBodyGlass}>
+            <Text style={styles.issueDescription}>{selectedIssue.description}</Text>
+          </LiquidGlass>
 
           <Text style={styles.choicesHeader}>How will you respond?</Text>
 
           {selectedIssue.choices.map((choice, index) => (
             <TouchableOpacity
               key={index}
-              style={styles.choiceCard}
               onPress={() => handleDecision(selectedIssue, index)}
               disabled={submitting}
+              activeOpacity={0.85}
             >
-              <View style={styles.choiceNumber}>
-                <Text style={styles.choiceNumberText}>{index + 1}</Text>
-              </View>
-              <Text style={styles.choiceText}>{choice.text}</Text>
-              <Text style={styles.choiceDescription}>{choice.description}</Text>
+              <LiquidGlass radius={22} style={styles.choiceCard}>
+                <View style={[styles.choiceNumber, { backgroundColor: themeColor }]}>
+                  <Text style={styles.choiceNumberText}>{index + 1}</Text>
+                </View>
+                <View style={styles.choiceCopy}>
+                  <Text style={styles.choiceText}>{choice.text}</Text>
+                  <Text style={styles.choiceDescription}>{choice.description}</Text>
+                </View>
+              </LiquidGlass>
             </TouchableOpacity>
           ))}
         </ScrollView>
 
         {submitting && (
           <View style={styles.loadingOverlay}>
-            <ActivityIndicator size="large" color="#00E0C7" />
+            <ActivityIndicator size="large" color={themeColor} />
             <Text style={styles.loadingText}>Processing decision...</Text>
           </View>
         )}
       </View>
+        </ScreenCanvas>
       </Modal>
       )}
       
@@ -494,25 +503,32 @@ const styles = StyleSheet.create({
   },
   backButton: {
     marginBottom: 20,
+    marginTop: 12,
   },
   backButtonText: {
-    color: colors.accent.primary,
+    color: colors.text.primary,
     fontSize: 15,
+    fontWeight: '500',
   },
   issueTitle: {
     ...typography.title,
     color: colors.text.primary,
     marginBottom: 12,
+    fontFamily: 'Instrument Serif, Georgia, serif',
+    fontWeight: '400',
+    fontSize: 28,
+  },
+  issueBodyGlass: {
+    padding: 16,
+    marginBottom: 24,
   },
   issueDescription: {
     ...typography.body,
-    color: colors.text.secondary,
-    marginBottom: 24,
-    padding: 14,
-    backgroundColor: colors.surfaceSolid,
-    borderRadius: radii.md,
-    borderWidth: 1,
-    borderColor: colors.border,
+    color: 'rgba(255,255,255,0.72)',
+    marginBottom: 0,
+    padding: 0,
+    backgroundColor: 'transparent',
+    borderWidth: 0,
   },
   choicesHeader: {
     ...typography.headline,
@@ -520,31 +536,29 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   choiceCard: {
-    backgroundColor: colors.surfaceSolid,
     padding: 16,
-    borderRadius: radii.md,
     marginBottom: 12,
-    borderWidth: 1,
-    borderColor: colors.border,
     flexDirection: 'row',
     alignItems: 'flex-start',
+  },
+  choiceCopy: {
+    flex: 1,
   },
   choiceNumber: {
     width: 28,
     height: 28,
-    borderRadius: 8,
+    borderRadius: 999,
     backgroundColor: colors.accent.primary,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
   },
   choiceNumberText: {
-    color: colors.background,
+    color: '#000',
     fontSize: 13,
     fontWeight: '700',
   },
   choiceText: {
-    flex: 1,
     ...typography.body,
     fontWeight: '600',
     color: colors.text.primary,
@@ -552,9 +566,13 @@ const styles = StyleSheet.create({
   },
   choiceDescription: {
     fontSize: 13,
-    color: colors.text.secondary,
+    color: 'rgba(255,255,255,0.62)',
     lineHeight: 19,
-    marginBottom: 10,
+    marginBottom: 0,
+  },
+  detailRoot: {
+    flex: 1,
+    backgroundColor: 'transparent',
   },
   effectsContainer: {
     borderTopWidth: StyleSheet.hairlineWidth,
