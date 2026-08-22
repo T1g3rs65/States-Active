@@ -30,6 +30,7 @@ export default function StatDetail() {
   const [loading, setLoading] = useState(true);
   const [historyData, setHistoryData] = useState<any[]>([]);
   const [selectedPeriod, setSelectedPeriod] = useState(90);
+  const [chartW, setChartW] = useState(Math.max(240, width - 72));
 
   useEffect(() => {
     if (nation && statName) {
@@ -125,7 +126,7 @@ export default function StatDetail() {
         <TouchableOpacity style={styles.backButton} onPress={() => router.push('/(tabs)/overview')}>
           <Ionicons name="arrow-back" size={24} color={tint} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{statLabel} · 21c</Text>
+        <Text style={styles.headerTitle}>{statLabel} · 21d</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -183,9 +184,15 @@ export default function StatDetail() {
             <Text style={styles.emptySubtext}>Make more decisions to see trends</Text>
           </View>
         ) : (
-          <View style={styles.chartCard}>
+          <View
+            style={styles.chartCard}
+            onLayout={(e) => {
+              const inner = e.nativeEvent.layout.width - 40;
+              if (inner > 80) setChartW(inner);
+            }}
+          >
             <Text style={styles.chartTitle}>Historical Trend</Text>
-            <CompassLineChart data={chartData} width={chartWidth} height={250} color={tint} />
+            <CompassLineChart data={chartData} width={chartW} height={250} color={tint} />
           </View>
         )}
 

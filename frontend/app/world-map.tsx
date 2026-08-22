@@ -1374,8 +1374,14 @@ export default function WorldMap() {
                   .replace(/^(the\s+)?(united\s+)?(republic|kingdom|empire|commonwealth|federation|confederation|state|states)\s+of\s+/i, '')
                   .replace(/^the\s+/i, '')
                   .trim() || cluster.nationName || '';
+              if (!label) return null;
               const tiles = Math.max(1, cluster.tileCount || 1);
-              const fontSize = Math.max(13, Math.min(44, 11 + Math.sqrt(tiles) * 1.25));
+              const radiusTiles = cluster.discRadius || Math.sqrt(tiles / Math.PI);
+              const diamPx = Math.max(8, radiusTiles * 2 * CELL_SCALE * zoom);
+              const maxW = diamPx * 0.86;
+              const maxH = diamPx * 0.34;
+              const fontSize = Math.min(40, maxH, maxW / Math.max(label.length, 1) / 0.58);
+              if (fontSize < 10) return null;
               const x = cluster.centerCol * CELL_SCALE * zoom;
               const y = mercatorY(cluster.centerRow) * zoom;
               return (
@@ -1387,7 +1393,7 @@ export default function WorldMap() {
                   fill="#F4EBD0"
                   textAnchor="middle"
                   fontWeight="800"
-                  opacity={0.98}
+                  opacity={0.96}
                 >
                   {label}
                 </SvgText>
