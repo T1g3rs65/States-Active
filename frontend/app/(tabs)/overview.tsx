@@ -592,7 +592,7 @@ const styles = StyleSheet.create({
   container: {
     ...typography.title,
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: 'transparent',
   },
   topHeader: {
     flexDirection: 'row',
