@@ -29,6 +29,7 @@ interface World {
   seed: number;
   max_players: number;
   nation_count: number;
+  player_count?: number;
   enabled_races: string[];
   owner_nation_name?: string;
   is_active: boolean;
@@ -272,7 +273,7 @@ export default function ServerSelectScreen() {
                       <View style={styles.playerBadge}>
                         <Ionicons name="people" size={14} color="#00E0C7" />
                         <Text style={styles.playerCount}>
-                          {world.nation_count}/{world.max_players}
+                          {world.player_count ?? 0} players · {world.nation_count}/{world.max_players}
                         </Text>
                       </View>
                     </View>

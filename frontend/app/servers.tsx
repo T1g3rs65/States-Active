@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
   Alert,
   Switch,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -18,6 +19,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { api } from '../utils/api';
 import { useNationStore } from '../store/nationStore';
+import { DEFAULT_TERRAIN, TerrainSettings } from '../utils/worldNoise';
+import { rasterizeWorldPreview } from '../utils/worldPreview';
 
 interface World {
   id: string;
@@ -27,6 +30,7 @@ interface World {
   seed: number;
   max_players: number;
   nation_count: number;
+  player_count?: number;
   enabled_races: string[];
   allows_migration: boolean;
   owner_nation_name?: string;
@@ -38,6 +42,38 @@ const RACE_INFO: Record<string, { name: string; emoji: string }> = {
   human: { name: 'Human', emoji: '👤' },
   zythera: { name: 'Zythera', emoji: '🐛' },
 };
+
+function Knob({
+  label,
+  hint,
+  display,
+  onMinus,
+  onPlus,
+}: {
+  label: string;
+  hint: string;
+  display: string;
+  onMinus: () => void;
+  onPlus: () => void;
+}) {
+  return (
+    <View style={{ marginBottom: 14 }}>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Text style={{ color: '#F4F5F6', fontSize: 14, fontWeight: '600' }}>{label}</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <TouchableOpacity onPress={onMinus} style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.06)', alignItems: 'center', justifyContent: 'center' }}>
+            <Text style={{ color: '#2EE6C5', fontSize: 18, fontWeight: '700' }}>−</Text>
+          </TouchableOpacity>
+          <Text style={{ color: '#B4B8C0', fontSize: 13, minWidth: 48, textAlign: 'center' }}>{display}</Text>
+          <TouchableOpacity onPress={onPlus} style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.06)', alignItems: 'center', justifyContent: 'center' }}>
+            <Text style={{ color: '#2EE6C5', fontSize: 18, fontWeight: '700' }}>+</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+      <Text style={{ color: '#7C818A', fontSize: 11, marginTop: 4 }}>{hint}</Text>
+    </View>
+  );
+}
 
 export default function WorldBrowserScreen() {
   const router = useRouter();
@@ -62,10 +98,21 @@ export default function WorldBrowserScreen() {
     human: true,
     zythera: true,
   });
+  const [terrain, setTerrain] = useState<TerrainSettings>({ ...DEFAULT_TERRAIN });
+  const [previewUri, setPreviewUri] = useState<string | null>(null);
 
   useEffect(() => {
     loadWorlds();
   }, []);
+
+  useEffect(() => {
+    if (!showCreateModal) return;
+    const seed = parseInt(newWorldSeed) || 1;
+    const t = setTimeout(() => {
+      setPreviewUri(rasterizeWorldPreview(seed, terrain));
+    }, 80);
+    return () => clearTimeout(t);
+  }, [showCreateModal, newWorldSeed, terrain]);
 
   const loadWorlds = async () => {
     try {
@@ -112,6 +159,7 @@ export default function WorldBrowserScreen() {
         max_players: parseInt(newWorldMaxPlayers) || 50,
         enabled_races: enabledRacesList,
         allows_migration: allowsMigration,
+        noise_settings: { ...terrain },
         creator_nation_id: nationId,
         creator_nation_name: nation?.name,
       });
@@ -139,6 +187,7 @@ export default function WorldBrowserScreen() {
     setNewWorldMaxPlayers('50');
     setAllowsMigration(true);
     setEnabledRaces({ human: true, zythera: true });
+    setTerrain({ ...DEFAULT_TERRAIN });
   };
 
   const handleMigrateToWorld = async (world: World) => {
@@ -287,7 +336,7 @@ export default function WorldBrowserScreen() {
                       <View style={styles.playerBadge}>
                         <Ionicons name="people" size={14} color="#00E0C7" />
                         <Text style={styles.playerCount}>
-                          {world.nation_count}/{world.max_players}
+                          {world.player_count ?? 0} players · {world.nation_count}/{world.max_players}
                         </Text>
                       </View>
                     </View>
@@ -413,6 +462,51 @@ export default function WorldBrowserScreen() {
                   </View>
                   <Text style={styles.formHint}>Same seed = same map terrain</Text>
                 </View>
+
+                <View style={styles.formGroup}>
+                  <Text style={styles.formLabel}>Terrain preview</Text>
+                  {previewUri ? (
+                    <Image source={{ uri: previewUri }} style={styles.preview} />
+                  ) : (
+                    <View style={[styles.preview, styles.previewEmpty]} />
+                  )}
+                  <Text style={styles.formHint}>Live heightmap — same field the map uses</Text>
+                </View>
+                <Knob
+                  label="Continent size"
+                  hint="Lower = larger landmasses"
+                  display={(1 / terrain.continentFreq / 100).toFixed(1)}
+                  onMinus={() => setTerrain(t => ({ ...t, continentFreq: Math.max(0.0008, +(t.continentFreq - 0.0003).toFixed(4)) }))}
+                  onPlus={() => setTerrain(t => ({ ...t, continentFreq: Math.min(0.006, +(t.continentFreq + 0.0003).toFixed(4)) }))}
+                />
+                <Knob
+                  label="Land vs ocean"
+                  hint="Higher = more land"
+                  display={`${Math.round((1 - terrain.landThreshold) * 100)}%`}
+                  onMinus={() => setTerrain(t => ({ ...t, landThreshold: Math.min(0.58, +(t.landThreshold + 0.02).toFixed(2)) }))}
+                  onPlus={() => setTerrain(t => ({ ...t, landThreshold: Math.max(0.32, +(t.landThreshold - 0.02).toFixed(2)) }))}
+                />
+                <Knob
+                  label="Mountains"
+                  hint="Ridged noise"
+                  display={terrain.ridgeAmount.toFixed(2)}
+                  onMinus={() => setTerrain(t => ({ ...t, ridgeAmount: Math.max(0.08, +(t.ridgeAmount - 0.05).toFixed(2)) }))}
+                  onPlus={() => setTerrain(t => ({ ...t, ridgeAmount: Math.min(0.7, +(t.ridgeAmount + 0.05).toFixed(2)) }))}
+                />
+                <Knob
+                  label="Coast detail"
+                  hint="Local hills and bays"
+                  display={terrain.detailFreq.toFixed(3)}
+                  onMinus={() => setTerrain(t => ({ ...t, detailFreq: Math.max(0.004, +(t.detailFreq - 0.002).toFixed(3)) }))}
+                  onPlus={() => setTerrain(t => ({ ...t, detailFreq: Math.min(0.03, +(t.detailFreq + 0.002).toFixed(3)) }))}
+                />
+                <Knob
+                  label="Continent weight"
+                  hint="Big shapes vs local noise"
+                  display={terrain.continentWeight.toFixed(2)}
+                  onMinus={() => setTerrain(t => ({ ...t, continentWeight: Math.max(0.35, +(t.continentWeight - 0.05).toFixed(2)) }))}
+                  onPlus={() => setTerrain(t => ({ ...t, continentWeight: Math.min(0.9, +(t.continentWeight + 0.05).toFixed(2)) }))}
+                />
 
                 {/* Max Players */}
                 <View style={styles.formGroup}>
@@ -805,5 +899,16 @@ const styles = StyleSheet.create({
     color: '#F3F6FA',
     fontSize: 16,
     fontWeight: '600',
+  },
+  preview: {
+    width: '100%',
+    height: 160,
+    borderRadius: 8,
+    backgroundColor: '#08090A',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+  },
+  previewEmpty: {
+    opacity: 0.4,
   },
 });

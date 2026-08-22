@@ -3913,8 +3913,16 @@ async def get_worlds():
         worlds = await worlds_cursor.to_list(length=100)
         
         for world in worlds:
-            world["id"] = str(world["_id"])
-            world["_id"] = str(world["_id"])
+            wid = str(world["_id"])
+            world["id"] = wid
+            world["_id"] = wid
+            ncount = await db.nations.count_documents({"world_id": wid})
+            user_ids = await db.nations.distinct("user_id", {"world_id": wid})
+            players = [u for u in user_ids if u and not str(u).startswith("test_npc")]
+            world["nation_count"] = ncount
+            world["player_count"] = len(players)
+        
+        worlds.sort(key=lambda w: w.get("player_count", 0), reverse=True)
         
         return {
             "success": True,
@@ -3988,6 +3996,8 @@ async def get_world(world_id: str):
         # Get nation count for this world
         nation_count = await db.nations.count_documents({"world_id": world_id})
         world["nation_count"] = nation_count
+        user_ids = await db.nations.distinct("user_id", {"world_id": world_id})
+        world["player_count"] = len([u for u in user_ids if u and not str(u).startswith("test_npc")])
         
         return {
             "success": True,
