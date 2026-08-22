@@ -1460,7 +1460,7 @@ gdp, economy_growth, unemployment, inflation, civil_rights, freedom_speech, free
 Generate an issue in JSON format:
 {{
   "title": "Brief title about the task outcome",
-  "description": "What happened, under 40 words",
+  "description": "What happened when the advisor attempted the task (100-200 words)",
   "choices": [
     {{
       "text": "Action option 1",
