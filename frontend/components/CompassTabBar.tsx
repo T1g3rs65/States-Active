@@ -16,6 +16,9 @@ const ICONS: Record<string, { on: keyof typeof Ionicons.glyphMap; off: keyof typ
   nation: { on: 'flag', off: 'flag-outline' },
   issues: { on: 'newspaper', off: 'newspaper-outline' },
   overview: { on: 'stats-chart', off: 'stats-chart-outline' },
+  rankings: { on: 'trophy', off: 'trophy-outline' },
+  advisors: { on: 'people', off: 'people-outline' },
+  industry: { on: 'construct', off: 'construct-outline' },
   more: { on: 'grid', off: 'grid-outline' },
 };
 
@@ -42,7 +45,7 @@ export default function CompassTabBar({ state, descriptors, navigation }: any) {
   const onBarLayout = (e: LayoutChangeEvent) => {
     const total = e.nativeEvent.layout.width;
     const w = total / Math.max(tabs.length, 1);
-    setSlots(tabs.map((_, i) => ({ x: i * w + 6, w: w - 12 })));
+    setSlots(tabs.map((_, i) => ({ x: i * w + 3, w: w - 6 })));
   };
 
   return (
@@ -69,7 +72,7 @@ export default function CompassTabBar({ state, descriptors, navigation }: any) {
                 if (!focused && !e.defaultPrevented) navigation.navigate(route.name);
               }}
             >
-              <Ionicons name={focused ? icons.on : icons.off} size={20} color={focused ? tint : 'rgba(243,246,250,0.45)'} />
+              <Ionicons name={focused ? icons.on : icons.off} size={18} color={focused ? tint : 'rgba(243,246,250,0.45)'} />
               <Text style={[styles.label, { color: focused ? tint : 'rgba(243,246,250,0.45)' }]}>{label}</Text>
             </Pressable>
           );
@@ -108,7 +111,7 @@ const styles = StyleSheet.create({
     height: 52,
   },
   label: {
-    fontSize: 10,
+    fontSize: 8,
     fontWeight: '700',
     letterSpacing: 0.2,
   },

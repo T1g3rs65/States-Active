@@ -9,11 +9,11 @@ export default function TabLayout() {
     >
       <Tabs.Screen name="nation" options={{ title: 'Nation' }} />
       <Tabs.Screen name="issues" options={{ title: 'Issues' }} />
-      <Tabs.Screen name="overview" options={{ title: 'Statistics' }} />
+      <Tabs.Screen name="overview" options={{ title: 'Stats' }} />
+      <Tabs.Screen name="rankings" options={{ title: 'Ranks' }} />
+      <Tabs.Screen name="advisors" options={{ title: 'Advisors' }} />
+      <Tabs.Screen name="industry" options={{ title: 'Industry' }} />
       <Tabs.Screen name="more" options={{ title: 'More' }} />
-      <Tabs.Screen name="rankings" options={{ href: null }} />
-      <Tabs.Screen name="advisors" options={{ href: null }} />
-      <Tabs.Screen name="industry" options={{ href: null }} />
     </Tabs>
   );
 }
