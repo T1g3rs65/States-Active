@@ -15,8 +15,8 @@ export default function DotLoader({
   duration = 140,
   color,
   dim = 'rgba(243,246,250,0.14)',
-  size = 5,
-  gap = 2,
+  size = 11,
+  gap = 4,
 }: Props) {
   const [frame, setFrame] = useState(0);
   const framesRef = useRef(frames);
@@ -40,7 +40,7 @@ export default function DotLoader({
           style={{
             width: size,
             height: size,
-            borderRadius: 1.5,
+            borderRadius: 2.5,
             backgroundColor: active.includes(i) ? color : dim,
           }}
         />

@@ -24,12 +24,12 @@ const SYNCING = [
   [24, 17, 10, 3, 2, 4],
   [17, 10, 3],
   [10, 3],
-  [3],
-  [],
-  [45],
+  [45, 38, 31, 24, 17],
+  [45, 38, 31, 24],
   [45, 38, 44, 46],
   [45, 38, 31, 37, 39],
   [45, 38, 31, 24, 30, 32],
+  [38, 31, 24, 17, 23, 25],
 ];
 
 const SEARCHING = [
@@ -107,16 +107,16 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 14,
+    gap: 20,
     backgroundColor: '#08090A',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 10,
+    paddingHorizontal: 22,
+    paddingVertical: 18,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.08)',
   },
   title: {
-    fontSize: 18,
+    fontSize: 28,
     fontWeight: '600',
     letterSpacing: 0.3,
   },

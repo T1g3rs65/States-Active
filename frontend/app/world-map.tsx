@@ -588,42 +588,44 @@ export default function WorldMap() {
       let totalCapacity = 0;
       
       setLoadingStatus(`Loading ${allNations.length} nations...`);
-      
-      // Load ALL nations
-      for (const nationEntry of allNations) {
-        try {
-          const nationResponse = await api.getNation(nationEntry.nation_id);
-          if (!nationResponse.success) continue;
-          
-          const nationData = nationResponse.nation;
-          const startCol = nationData.territory_center_col || 100;
-          const startRow = nationData.territory_center_row || 100;
-          
-          const capacity = calculateCapacityFromPopulation(nationData.stats.population);
-          totalCapacity += capacity;
-          
-          const palette = await colorsFromFlag(nationData.flag_base64, nationData.name || nationEntry.nation_id);
-          nationSeeds.push({
-            nationId: nationEntry.nation_id,
-            col: startCol,
-            row: startRow,
-            name: nationData.name,
-            flag: nationData.flag_base64 || null,
-            capacity,
-            maxRadius: 0,
-            primary: palette.primary,
-            secondary: palette.secondary,
-            timezoneCount: nationData.timezone_count ?? null,
-            population: nationData.stats.population || 0,
-            cities: Array.isArray(nationData.cities) ? nationData.cities : [],
-            npc: String(nationData.user_id || '').startsWith('test_npc_'),
-          });
-        } catch (error) {
-          console.error(`Error loading nation:`, error);
-        }
+
+      const loaded = await Promise.all(
+        allNations.map(async (nationEntry: any) => {
+          try {
+            const nationResponse = await api.getNation(nationEntry.nation_id);
+            if (!nationResponse.success) return null;
+            const nationData = nationResponse.nation;
+            const capacity = calculateCapacityFromPopulation(nationData.stats.population);
+            const palette = await colorsFromFlag(nationData.flag_base64, nationData.name || nationEntry.nation_id);
+            return {
+              nationId: nationEntry.nation_id,
+              col: nationData.territory_center_col || 100,
+              row: nationData.territory_center_row || 100,
+              name: nationData.name,
+              flag: nationData.flag_base64 || null,
+              capacity,
+              maxRadius: 0,
+              primary: palette.primary,
+              secondary: palette.secondary,
+              timezoneCount: nationData.timezone_count ?? null,
+              population: nationData.stats.population || 0,
+              cities: Array.isArray(nationData.cities) ? nationData.cities : [],
+              npc: String(nationData.user_id || '').startsWith('test_npc_'),
+            };
+          } catch (error) {
+            console.error('Error loading nation:', error);
+            return null;
+          }
+        })
+      );
+      for (const seed of loaded) {
+        if (!seed) continue;
+        totalCapacity += seed.capacity;
+        nationSeeds.push(seed);
       }
-      
+
       setLoadingStatus('Calculating borders...');
+      await new Promise<void>((r) => setTimeout(r, 32));
       
       nationSeeds.forEach((seed) => {
         seed.maxRadius = Math.max(5, Math.sqrt(seed.capacity) * 1.4);
@@ -739,9 +741,7 @@ export default function WorldMap() {
         api.reportTimezoneGeo(playerId, p.bands.length, p.bands).catch(() => {});
       }
       
-      // Calculate territory counts for each nation and sync to backend
-      setLoadingStatus('Syncing territory data...');
-      await syncTerritoryCounts(workingTerritories, nationSeeds);
+      void syncTerritoryCounts(workingTerritories, nationSeeds);
       
       // Build cluster markers anchored on the centroid of each nation's owned tiles
       for (let i = 0; i < nationSeeds.length; i++) {
