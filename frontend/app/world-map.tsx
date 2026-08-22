@@ -71,6 +71,7 @@ interface NationCluster {
   cities: CitySite[];
   color: string;
   discRadius?: number;
+  tileCount?: number;
 }
 
 // Map mode types
@@ -754,6 +755,7 @@ export default function WorldMap() {
           ),
           color: seed.primary,
           discRadius,
+          tileCount: owned.length,
         });
       }
       
@@ -1290,7 +1292,6 @@ export default function WorldMap() {
               const flagSize = Math.min(Math.max(CELL_SCALE * zoom * 4, 14), 48);
               const flagWidth = flagSize * 1.5;
               const flagHeight = flagSize;
-              const labelVisible = zoom > 0.08;
 
               return (
                 <G key={`flag-${cluster.nationId}`}>
@@ -1335,30 +1336,31 @@ export default function WorldMap() {
                     return null;
                   })()}
                   
-                  {/* Nation name label (dark background only) */}
-                  {labelVisible && (
-                    <G>
-                      <Rect
-                        x={centerX - flagWidth / 2}
-                        y={centerY + 8}
-                        width={flagWidth}
-                        height={flagSize * 0.5}
-                        fill="#0B0F14"
-                        rx={4}
-                        opacity={0.95}
-                      />
+                  {/* Paradox-style name: simple, bigger for larger nations */}
+                  {(() => {
+                    const tiles = cluster.tileCount || 1;
+                    const fontSize = Math.max(9, Math.min(36, (8 + Math.sqrt(tiles) * 0.95) * Math.max(0.7, Math.min(zoom * 1.1, 1.8))));
+                    const label = String(cluster.nationName || '')
+                      .replace(/^(the\s+)?(united\s+)?(republic|kingdom|empire|commonwealth|federation|confederation|state|states)\s+of\s+/i, '')
+                      .replace(/^the\s+/i, '')
+                      .trim() || cluster.nationName;
+                    return (
                       <SvgText
                         x={centerX}
-                        y={centerY + 8 + (flagSize * 0.35)}
-                        fontSize={Math.min(Math.max(10, 13 * zoom), 14)}
-                        fill="#F3F6FA"
+                        y={centerY + flagHeight * 0.35 + fontSize * 0.35}
+                        fontSize={fontSize}
+                        fill="#F4EBD0"
+                        stroke="#0B0F14"
+                        strokeWidth={Math.max(2, fontSize * 0.16)}
                         textAnchor="middle"
-                        fontWeight="600"
+                        fontWeight="700"
+                        letterSpacing={0.6}
+                        opacity={0.96}
                       >
-                        {cluster.nationName}
+                        {label}
                       </SvgText>
-                    </G>
-                  )}
+                    );
+                  })()}
                 </G>
               );
             })}

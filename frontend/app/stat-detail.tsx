@@ -11,10 +11,10 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useNationStore } from '../store/nationStore';
 import { api } from '../utils/api';
-import { LineChart } from 'react-native-gifted-charts';
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
-import { leaningColor, hexAlpha } from '../utils/politicalCompass';
+import { leaningColor } from '../utils/politicalCompass';
+import CompassLineChart from '../components/CompassLineChart';
 
 const { width } = Dimensions.get('window');
 
@@ -185,40 +185,7 @@ export default function StatDetail() {
         ) : (
           <View style={styles.chartCard}>
             <Text style={styles.chartTitle}>Historical Trend</Text>
-            <LineChart
-              data={chartData}
-              width={chartWidth}
-              height={250}
-              spacing={getChartSpacing()}
-              initialSpacing={10}
-              endSpacing={10}
-              color={tint}
-              thickness={2}
-              startFillColor={hexAlpha(tint, 0.28)}
-              endFillColor={hexAlpha(tint, 0.04)}
-              startOpacity={0.9}
-              endOpacity={0.2}
-              areaChart
-              curved
-              yAxisColor="rgba(255,255,255,0.08)"
-              xAxisColor="rgba(255,255,255,0.08)"
-              yAxisTextStyle={{ color: 'rgba(243,246,250,0.70)', fontSize: 10 }}
-              xAxisLabelTextStyle={{ color: 'rgba(243,246,250,0.70)', fontSize: 8 }}
-              rulesColor="rgba(255,255,255,0.08)"
-              rulesType="solid"
-              yAxisThickness={1}
-              xAxisThickness={1}
-              maxValue={maxValue * 1.1}
-              noOfSections={5}
-              showVerticalLines
-              verticalLinesColor="rgba(255,255,255,0.08)"
-              dataPointsColor={tint}
-              dataPointsRadius={chartData.length > 30 ? 2 : 4}
-              textColor="rgba(243,246,250,0.70)"
-              textFontSize={10}
-              hideDataPoints={chartData.length > 60}
-              disableScroll={true}
-            />
+            <CompassLineChart data={chartData} width={chartWidth} height={250} color={tint} />
           </View>
         )}
 
