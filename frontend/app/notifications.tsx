@@ -15,6 +15,7 @@ import { useRouter } from 'expo-router';
 import { api } from '../utils/api';
 import { useNationStore } from '../store/nationStore';
 import { getRaceTheme } from '../utils/raceColors';
+import ScreenHeader, { HeaderIcon } from '../components/ScreenHeader';
 
 export default function Notifications() {
   const router = useRouter();
@@ -138,21 +139,18 @@ export default function Notifications() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
       {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#F3F6FA" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Notifications</Text>
-        <View style={styles.headerRight}>
-          {totalNotifications > 0 && (
-            <View style={[styles.badge, { backgroundColor: themeColor }]}>
-              <Text style={styles.badgeText}>{totalNotifications}</Text>
-            </View>
-          )}
-        </View>
-      </View>
+      <ScreenHeader
+        title="Notifications"
+        subtitle="Inbox"
+        onBack={() => router.back()}
+        right={totalNotifications > 0 ? (
+          <View style={[styles.badge, { backgroundColor: themeColor }]}>
+            <Text style={styles.badgeText}>{totalNotifications}</Text>
+          </View>
+        ) : undefined}
+      />
 
       <ScrollView
         style={styles.content}

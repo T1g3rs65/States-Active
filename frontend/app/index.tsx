@@ -3,7 +3,6 @@ import {
   View,
   Text,
   StyleSheet,
-  ActivityIndicator,
   TouchableOpacity,
   TextInput,
   Alert,
@@ -16,6 +15,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNationStore } from '../store/nationStore';
 import { api } from '../utils/api';
 import { colors, typography, spacing, radii } from '../utils/theme';
+import StatusDots from '../components/StatusDots';
 
 const LOADING_NOTES = [
   'Checking saved nation...',
@@ -111,8 +111,7 @@ export default function Index() {
   if (checking) {
     return (
       <View style={styles.container}>
-        <ActivityIndicator size="large" color={colors.accent.primary} style={styles.loaderBig} />
-        <Text style={styles.loadingNote}>{LOADING_NOTES[loadingNoteIndex]}</Text>
+        <StatusDots status={LOADING_NOTES[loadingNoteIndex]} color={colors.accent.primary} />
         <View style={styles.progressTrack}>
           <Animated.View
             style={[

@@ -20,6 +20,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { getRaceTheme } from '../utils/raceColors';
 import { leaningColor } from '../utils/politicalCompass';
 import { ReputationCard } from '../components/ReputationCard';
+import ScreenHeader from '../components/ScreenHeader';
 
 export default function Profile() {
   const router = useRouter();
@@ -180,13 +181,7 @@ export default function Profile() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={themeColor} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Profile & Settings</Text>
-        <View style={{ width: 40 }} />
-      </View>
+      <ScreenHeader title="Profile" subtitle="Leader and identity" onBack={() => router.back()} />
 
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.iconContainer}>

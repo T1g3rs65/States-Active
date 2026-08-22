@@ -19,7 +19,7 @@ export default function ScreenHeader({ title, subtitle, onBack, right }: Props) 
     <View
       style={[
         styles.wrap,
-        { backgroundColor: leaningWash(nation, 0.08), borderBottomColor: tint, borderBottomWidth: 2 },
+        { backgroundColor: leaningWash(nation, 0.05), borderBottomColor: tint, borderBottomWidth: 1 },
       ]}
     >
       <View style={styles.row}>
@@ -78,11 +78,13 @@ const styles = StyleSheet.create({
   title: {
     ...typography.title,
     color: colors.text.primary,
+    letterSpacing: -0.6,
   },
   sub: {
-    ...typography.small,
+    ...typography.label,
     color: colors.text.muted,
-    marginTop: 2,
+    marginTop: 3,
+    letterSpacing: 1.4,
   },
   iconBtn: {
     width: 36,

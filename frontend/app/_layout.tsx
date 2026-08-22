@@ -1,7 +1,9 @@
 import { Slot } from 'expo-router';
 import { useEffect } from 'react';
+import { View, StyleSheet } from 'react-native';
+import Grain from '../components/Grain';
 
-export const APP_BUILD = '21j';
+export const APP_BUILD = '21k';
 
 export default function RootLayout() {
   useEffect(() => {
@@ -15,5 +17,14 @@ export default function RootLayout() {
       })
       .catch(() => {});
   }, []);
-  return <Slot />;
+  return (
+    <View style={styles.root}>
+      <Slot />
+      <Grain />
+    </View>
+  );
 }
+
+const styles = StyleSheet.create({
+  root: { flex: 1, backgroundColor: '#08090A' },
+});

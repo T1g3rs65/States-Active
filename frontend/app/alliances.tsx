@@ -19,6 +19,7 @@ import { api } from '../utils/api';
 import { useNationStore } from '../store/nationStore';
 import { getRaceTheme } from '../utils/raceColors';
 import { leaningColor } from '../utils/politicalCompass';
+import ScreenHeader, { HeaderIcon } from '../components/ScreenHeader';
 
 interface Pact {
   alliance_id: string;
@@ -338,17 +339,14 @@ export default function NonAggressionPacts() {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
       {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={themeColor} />
-        </TouchableOpacity>
-        <Text style={styles.title}>Non-Aggression Pacts</Text>
-        <TouchableOpacity onPress={onRefresh} style={styles.refreshButton}>
-          <Ionicons name="refresh" size={24} color={themeColor} />
-        </TouchableOpacity>
-      </View>
+      <ScreenHeader
+        title="Alliances"
+        subtitle="Pacts and diplomacy"
+        onBack={() => router.back()}
+        right={<HeaderIcon name="refresh" onPress={onRefresh} />}
+      />
 
       {/* Tabs */}
       <View style={styles.tabs}>

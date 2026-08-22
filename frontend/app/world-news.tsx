@@ -17,6 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { api } from '../utils/api';
 import { useNationStore } from '../store/nationStore';
+import ScreenHeader, { HeaderIcon } from '../components/ScreenHeader';
 
 interface AllyInfo {
   ally_id: string;
@@ -335,17 +336,14 @@ export default function WorldNewsScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
       {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#00E0C7" />
-        </TouchableOpacity>
-        <Text style={styles.title}>World News</Text>
-        <TouchableOpacity onPress={onRefresh} style={styles.refreshButton}>
-          <Ionicons name="refresh" size={24} color="#00E0C7" />
-        </TouchableOpacity>
-      </View>
+      <ScreenHeader
+        title="World News"
+        subtitle="The feed"
+        onBack={() => router.back()}
+        right={<HeaderIcon name="refresh" onPress={onRefresh} />}
+      />
 
       {/* Tabs */}
       <View style={styles.tabs}>

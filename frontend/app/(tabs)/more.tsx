@@ -49,7 +49,7 @@ export default function More() {
 
   return (
     <View style={[styles.container, { backgroundColor: leaningWash(nation, 0.06) }]}>
-      <ScreenHeader title="More" subtitle="Everything else, still here" />
+      <ScreenHeader title="More" subtitle="The rest" />
       <ScrollView contentContainerStyle={styles.menu}>
         {GROUPS.map((group) => (
           <View key={group.title} style={styles.group}>

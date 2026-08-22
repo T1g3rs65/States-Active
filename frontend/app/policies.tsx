@@ -16,6 +16,7 @@ import { Policy } from '../types';
 import { Ionicons } from '@expo/vector-icons';
 import { getRaceTheme } from '../utils/raceColors';
 import { leaningColor } from '../utils/politicalCompass';
+import ScreenHeader from '../components/ScreenHeader';
 
 export default function Policies() {
   const router = useRouter();
@@ -105,13 +106,7 @@ export default function Policies() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={themeColor} />
-        </TouchableOpacity>
-        <Text style={styles.title}>National Policies</Text>
-        <View style={{ width: 40 }} />
-      </View>
+      <ScreenHeader title="Policies" subtitle="Standing law" onBack={() => router.back()} />
 
       {loading ? (
         <View style={styles.centerContainer}>
