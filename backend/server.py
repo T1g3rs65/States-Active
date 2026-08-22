@@ -4271,7 +4271,7 @@ if _frontend_dist.is_dir():
             raise HTTPException(status_code=404, detail="Not found")
         if target.is_file():
             headers = {}
-            if target.suffix in {".html", ".htm"}:
+            if target.suffix in {".html", ".htm", ".js", ".json", ".css"}:
                 headers["Cache-Control"] = "no-store"
             return FileResponse(target, headers=headers)
         html = _frontend_dist / f"{full_path}.html"

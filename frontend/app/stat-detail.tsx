@@ -125,7 +125,7 @@ export default function StatDetail() {
         <TouchableOpacity style={styles.backButton} onPress={() => router.push('/(tabs)/overview')}>
           <Ionicons name="arrow-back" size={24} color={tint} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{statLabel}</Text>
+        <Text style={styles.headerTitle}>{statLabel} · 21c</Text>
         <View style={{ width: 40 }} />
       </View>
 
