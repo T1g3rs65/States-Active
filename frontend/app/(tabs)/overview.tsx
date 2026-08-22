@@ -257,7 +257,7 @@ export default function Overview() {
           style={[styles.graphTab, selectedGraph === 'government' && { backgroundColor: themeColor, borderColor: themeColor }]}
           onPress={() => setSelectedGraph('government')}
         >
-          <Text style={[styles.graphTabText, selectedGraph === 'government' && styles.graphTabTextActive]}>
+          <Text numberOfLines={1} style={[styles.graphTabText, selectedGraph === 'government' && styles.graphTabTextActive]}>
             Government
           </Text>
         </TouchableOpacity>
@@ -265,7 +265,7 @@ export default function Overview() {
           style={[styles.graphTab, selectedGraph === 'economy' && { backgroundColor: themeColor, borderColor: themeColor }]}
           onPress={() => setSelectedGraph('economy')}
         >
-          <Text style={[styles.graphTabText, selectedGraph === 'economy' && styles.graphTabTextActive]}>
+          <Text numberOfLines={1} style={[styles.graphTabText, selectedGraph === 'economy' && styles.graphTabTextActive]}>
             Economy
           </Text>
         </TouchableOpacity>
@@ -273,7 +273,7 @@ export default function Overview() {
           style={[styles.graphTab, selectedGraph === 'society' && { backgroundColor: themeColor, borderColor: themeColor }]}
           onPress={() => setSelectedGraph('society')}
         >
-          <Text style={[styles.graphTabText, selectedGraph === 'society' && styles.graphTabTextActive]}>
+          <Text numberOfLines={1} style={[styles.graphTabText, selectedGraph === 'society' && styles.graphTabTextActive]}>
             Society
           </Text>
         </TouchableOpacity>
@@ -281,7 +281,7 @@ export default function Overview() {
           style={[styles.graphTab, selectedGraph === 'territory' && { backgroundColor: themeColor, borderColor: themeColor }]}
           onPress={() => setSelectedGraph('territory')}
         >
-          <Text style={[styles.graphTabText, selectedGraph === 'territory' && styles.graphTabTextActive]}>
+          <Text numberOfLines={1} style={[styles.graphTabText, selectedGraph === 'territory' && styles.graphTabTextActive]}>
             Territory
           </Text>
         </TouchableOpacity>
@@ -825,29 +825,33 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   graphTabs: {
-    ...typography.body,
-    fontWeight: '600',
     flexDirection: 'row',
     paddingHorizontal: 16,
     marginTop: 16,
     gap: 8,
+    alignItems: 'stretch',
   },
   graphTab: {
     flex: 1,
-    paddingVertical: 12,
-    borderRadius: 8,
-    borderWidth: 2,
+    height: 36,
+    paddingHorizontal: 4,
+    borderRadius: 999,
+    borderWidth: 1,
     borderColor: colors.glass.border,
-    backgroundColor: colors.surfaceSolid,
+    backgroundColor: 'rgba(255,255,255,0.04)',
     alignItems: 'center',
+    justifyContent: 'center',
   },
   graphTabText: {
-    color: colors.text.secondary,
+    color: 'rgba(255,255,255,0.62)',
+    fontSize: 11,
+    fontWeight: '500',
+    letterSpacing: 0.2,
   },
   graphTabTextActive: {
-    ...typography.title,
-    fontWeight: 'bold',
-    color: colors.text.primary,
+    color: '#000000',
+    fontSize: 11,
+    fontWeight: '600',
   },
   graphSection: {
     paddingHorizontal: 16,
