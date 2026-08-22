@@ -4270,13 +4270,16 @@ if _frontend_dist.is_dir():
         except ValueError:
             raise HTTPException(status_code=404, detail="Not found")
         if target.is_file():
-            return FileResponse(target)
+            headers = {}
+            if target.suffix in {".html", ".htm"}:
+                headers["Cache-Control"] = "no-store"
+            return FileResponse(target, headers=headers)
         html = _frontend_dist / f"{full_path}.html"
         if html.is_file():
-            return FileResponse(html)
+            return FileResponse(html, headers={"Cache-Control": "no-store"})
         index = _frontend_dist / "index.html"
         if index.is_file():
-            return FileResponse(index)
+            return FileResponse(index, headers={"Cache-Control": "no-store"})
         raise HTTPException(status_code=404, detail="Frontend not built")
 
 

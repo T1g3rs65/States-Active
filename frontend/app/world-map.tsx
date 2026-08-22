@@ -1368,43 +1368,34 @@ export default function WorldMap() {
                 />
               );
             })}
+            {nationClusters.map((cluster) => {
+              const label =
+                String(cluster.nationName || '')
+                  .replace(/^(the\s+)?(united\s+)?(republic|kingdom|empire|commonwealth|federation|confederation|state|states)\s+of\s+/i, '')
+                  .replace(/^the\s+/i, '')
+                  .trim() || cluster.nationName || '';
+              const tiles = Math.max(1, cluster.tileCount || 1);
+              const fontSize = Math.max(13, Math.min(44, 11 + Math.sqrt(tiles) * 1.25));
+              const x = cluster.centerCol * CELL_SCALE * zoom;
+              const y = mercatorY(cluster.centerRow) * zoom;
+              return (
+                <SvgText
+                  key={`nlab-${cluster.nationId}`}
+                  x={x}
+                  y={y}
+                  fontSize={fontSize}
+                  fill="#F4EBD0"
+                  textAnchor="middle"
+                  fontWeight="800"
+                  opacity={0.98}
+                >
+                  {label}
+                </SvgText>
+              );
+            })}
               </G>
             ))}
           </Svg>
-          {nationClusters.map((cluster) => {
-            const label =
-              String(cluster.nationName || '')
-                .replace(/^(the\s+)?(united\s+)?(republic|kingdom|empire|commonwealth|federation|confederation|state|states)\s+of\s+/i, '')
-                .replace(/^the\s+/i, '')
-                .trim() || cluster.nationName;
-            const tiles = cluster.tileCount || 1;
-            const fontSize = Math.max(12, Math.min(42, 10 + Math.sqrt(tiles) * 1.2));
-            const x = cluster.centerCol * CELL_SCALE * zoom;
-            const y = mercatorY(cluster.centerRow) * zoom;
-            return [0, 1, 2].map((copy) => (
-              <Text
-                key={`nlab-${cluster.nationId}-${copy}`}
-                pointerEvents="none"
-                style={{
-                  position: 'absolute',
-                  left: copy * sliceW + x - 90,
-                  top: y - fontSize * 0.55,
-                  width: 180,
-                  textAlign: 'center',
-                  color: '#F4EBD0',
-                  fontSize,
-                  fontWeight: '800',
-                  letterSpacing: 0.7,
-                  textShadowColor: 'rgba(0,0,0,0.95)',
-                  textShadowOffset: { width: 0, height: 1 },
-                  textShadowRadius: 5,
-                  zIndex: 20,
-                }}
-              >
-                {label}
-              </Text>
-            ));
-          })}
         </View>
         </ScrollView>
       </ScrollView>
