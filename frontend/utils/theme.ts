@@ -1,19 +1,18 @@
-// States tokens — dark product chrome.
-// Teal + gold stay the identity. Surfaces are luminance steps, not heavy glass.
+// States tokens — ASME liquid-glass over aurora. Compass is the tint.
 
 import { Platform } from 'react-native';
 
 export const colors = {
-  background: '#08090A',
+  background: '#000000',
   canvas: 'transparent',
   surface: 'rgba(255,255,255,0.03)',
-  surfaceSolid: '#111317',
-  surfaceRaised: '#16181D',
+  surfaceSolid: 'rgba(255,255,255,0.04)',
+  surfaceRaised: 'rgba(255,255,255,0.06)',
   glass: {
-    base: 'rgba(255,255,255,0.035)',
+    base: 'rgba(255,255,255,0.03)',
     hover: 'rgba(255,255,255,0.06)',
-    border: 'rgba(255,255,255,0.08)',
-    shine: 'rgba(255,255,255,0.10)',
+    border: 'rgba(255,255,255,0.12)',
+    shine: 'rgba(255,255,255,0.18)',
   },
   text: {
     primary: '#F4F5F6',
@@ -64,9 +63,9 @@ export const spacing = {
 };
 
 export const radii = {
-  sm: 6,
-  md: 10,
-  lg: 14,
+  sm: 10,
+  md: 18,
+  lg: 28,
   pill: 999,
 };
 

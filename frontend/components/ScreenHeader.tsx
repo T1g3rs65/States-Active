@@ -1,10 +1,11 @@
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { ReactNode } from 'react';
 import { useRouter } from 'expo-router';
 import { colors, typography, spacing } from '../utils/theme';
 import { useNationStore } from '../store/nationStore';
-import { leaningColor, leaningWash } from '../utils/politicalCompass';
+import { leaningColor } from '../utils/politicalCompass';
+import LiquidGlass from './LiquidGlass';
 
 type Props = {
   title: string;
@@ -13,34 +14,33 @@ type Props = {
   right?: ReactNode;
 };
 
+const serif = Platform.OS === 'web' ? { fontFamily: 'Instrument Serif, Georgia, serif' } : {};
+
 export default function ScreenHeader({ title, subtitle, onBack, right }: Props) {
   const { nation } = useNationStore();
   const tint = leaningColor(nation);
   return (
-    <View
-      style={[
-        styles.wrap,
-        { backgroundColor: leaningWash(nation, 0.05), borderBottomColor: tint, borderBottomWidth: 1 },
-      ]}
-    >
-      <View style={styles.row}>
-        {onBack ? (
-          <TouchableOpacity onPress={onBack} style={[styles.iconBtn, { borderColor: tint }]} hitSlop={8}>
-            <Ionicons name="chevron-back" size={22} color={tint} />
-          </TouchableOpacity>
-        ) : null}
-        <View style={{ flex: 1 }}>
-          <Text style={styles.title} numberOfLines={1}>
-            {title}
-          </Text>
-          {subtitle ? (
-            <Text style={[styles.sub, { color: tint }]} numberOfLines={1}>
-              {subtitle}
-            </Text>
+    <View style={styles.outer}>
+      <LiquidGlass radius={999} style={styles.pill}>
+        <View style={styles.row}>
+          {onBack ? (
+            <TouchableOpacity onPress={onBack} style={styles.iconBtn} hitSlop={8}>
+              <Ionicons name="chevron-back" size={20} color={tint} />
+            </TouchableOpacity>
           ) : null}
+          <View style={{ flex: 1 }}>
+            <Text style={styles.title} numberOfLines={1}>
+              {title}
+            </Text>
+            {subtitle ? (
+              <Text style={[styles.sub, { color: tint }]} numberOfLines={1}>
+                {subtitle}
+              </Text>
+            ) : null}
+          </View>
+          {right ? <View style={styles.right}>{right}</View> : null}
         </View>
-        {right ? <View style={styles.right}>{right}</View> : null}
-      </View>
+      </LiquidGlass>
     </View>
   );
 }
@@ -57,7 +57,7 @@ export function HeaderIcon({
   const { nation } = useNationStore();
   const tint = leaningColor(nation);
   return (
-    <TouchableOpacity onPress={onPress} style={[styles.iconBtn, { borderColor: tint }]} hitSlop={8}>
+    <TouchableOpacity onPress={onPress} style={styles.iconBtn} hitSlop={8}>
       <Ionicons name={name} size={20} color={tint} />
       {!!badge && badge > 0 && (
         <View style={styles.badge}>
@@ -93,44 +93,48 @@ export function TabChrome({
 }
 
 const styles = StyleSheet.create({
-  wrap: {
-    paddingHorizontal: spacing.md,
-    paddingTop: 44,
-    paddingBottom: 12,
-    backgroundColor: colors.background,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.border,
+  outer: {
+    paddingHorizontal: 12,
+    paddingTop: 36,
+    paddingBottom: 10,
+    backgroundColor: 'transparent',
+  },
+  pill: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    zIndex: 3,
   },
   right: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
   },
   title: {
     ...typography.title,
+    ...serif,
     color: colors.text.primary,
-    letterSpacing: -0.6,
+    letterSpacing: -0.5,
+    fontWeight: '400',
+    fontSize: 22,
   },
   sub: {
     ...typography.label,
-    color: colors.text.muted,
-    marginTop: 3,
-    letterSpacing: 1.4,
+    marginTop: 2,
+    letterSpacing: 1.6,
+    fontWeight: '500',
   },
   iconBtn: {
     width: 36,
     height: 36,
-    borderRadius: 8,
+    borderRadius: 999,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.glass.base,
-    borderWidth: 1,
-    borderColor: colors.border,
+    backgroundColor: 'rgba(255,255,255,0.04)',
   },
   badge: {
     position: 'absolute',

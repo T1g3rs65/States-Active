@@ -90,7 +90,7 @@ export default function AuroraBackground() {
 
   return (
     <View pointerEvents="none" style={styles.wrap}>
-      <View style={[styles.fill, { backgroundColor: '#08090A' }]} />
+      <View style={[styles.fill, { backgroundColor: '#000000' }]} />
       <PulseBlob color={a} duration={14000} dx={width * 0.08} dy={height * 0.04} style={styles.blobA} />
       <PulseBlob color={b} duration={18000} dx={width * 0.07} dy={height * 0.05} style={styles.blobB} />
       <PulseBlob color={hexAlpha(tint, 0.1)} duration={22000} dx={width * 0.05} dy={height * 0.06} style={styles.blobC} />

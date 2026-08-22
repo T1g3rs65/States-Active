@@ -10,7 +10,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNationStore } from '../store/nationStore';
-import { leaningColor, mixIntoDark } from '../utils/politicalCompass';
+import { leaningColor, hexAlpha } from '../utils/politicalCompass';
+import LiquidGlass from './LiquidGlass';
 
 const ICONS: Record<string, { on: keyof typeof Ionicons.glyphMap; off: keyof typeof Ionicons.glyphMap }> = {
   nation: { on: 'flag', off: 'flag-outline' },
@@ -26,7 +27,7 @@ export default function CompassTabBar({ state, descriptors, navigation }: any) {
   const insets = useSafeAreaInsets();
   const { nation } = useNationStore();
   const tint = leaningColor(nation);
-  const wash = mixIntoDark(tint, 0.22);
+  const wash = hexAlpha(tint, 0.22);
   const tabs = state.routes.filter((r: any) => descriptors[r.key]?.options?.href !== null);
   const activeKey = state.routes[state.index]?.key;
   const active = Math.max(0, tabs.findIndex((r) => r.key === activeKey));
@@ -49,58 +50,60 @@ export default function CompassTabBar({ state, descriptors, navigation }: any) {
   };
 
   return (
-    <View style={[styles.wrap, { paddingBottom: Math.max(insets.bottom, 8), borderTopColor: tint }]}>
-      <View style={styles.bar} onLayout={onBarLayout}>
-        <Animated.View
-          pointerEvents="none"
-          style={[
-            styles.pill,
-            { backgroundColor: wash, borderColor: tint, left: slide, width: pillW },
-          ]}
-        />
-        {tabs.map((route, i) => {
-          const focused = i === active;
-          const { options } = descriptors[route.key];
-          const label = (options.title as string) || route.name;
-          const icons = ICONS[route.name] || { on: 'ellipse', off: 'ellipse-outline' };
-          return (
-            <Pressable
-              key={route.key}
-              style={styles.item}
-              onPress={() => {
-                const e = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
-                if (!focused && !e.defaultPrevented) navigation.navigate(route.name);
-              }}
-            >
-              <Ionicons name={focused ? icons.on : icons.off} size={18} color={focused ? tint : 'rgba(243,246,250,0.45)'} />
-              <Text style={[styles.label, { color: focused ? tint : 'rgba(243,246,250,0.45)' }]}>{label}</Text>
-            </Pressable>
-          );
-        })}
-      </View>
+    <View style={[styles.wrap, { paddingBottom: Math.max(insets.bottom, 10) }]}>
+      <LiquidGlass radius={999} style={styles.glass}>
+        <View style={styles.bar} onLayout={onBarLayout}>
+          <Animated.View
+            pointerEvents="none"
+            style={[styles.pill, { backgroundColor: wash, left: slide, width: pillW }]}
+          />
+          {tabs.map((route, i) => {
+            const focused = i === active;
+            const { options } = descriptors[route.key];
+            const label = (options.title as string) || route.name;
+            const icons = ICONS[route.name] || { on: 'ellipse', off: 'ellipse-outline' };
+            return (
+              <Pressable
+                key={route.key}
+                style={styles.item}
+                onPress={() => {
+                  const ev = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
+                  if (!focused && !ev.defaultPrevented) navigation.navigate(route.name);
+                }}
+              >
+                <Ionicons name={focused ? icons.on : icons.off} size={18} color={focused ? tint : 'rgba(255,255,255,0.45)'} />
+                <Text style={[styles.label, { color: focused ? tint : 'rgba(255,255,255,0.45)' }]}>{label}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      </LiquidGlass>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   wrap: {
-    backgroundColor: '#08090A',
-    borderTopWidth: 2,
-    paddingTop: 6,
+    backgroundColor: 'transparent',
+    paddingTop: 4,
+    paddingHorizontal: 10,
+  },
+  glass: {
+    paddingHorizontal: 4,
+    paddingVertical: 2,
   },
   bar: {
     flexDirection: 'row',
     alignItems: 'center',
     height: 52,
-    marginHorizontal: 8,
     position: 'relative',
+    zIndex: 3,
   },
   pill: {
     position: 'absolute',
     top: 4,
     height: 44,
-    borderRadius: 14,
-    borderWidth: 1,
+    borderRadius: 999,
   },
   item: {
     flex: 1,
@@ -112,7 +115,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 8,
-    fontWeight: '700',
-    letterSpacing: 0.2,
+    fontWeight: '500',
+    letterSpacing: 0.3,
   },
 });

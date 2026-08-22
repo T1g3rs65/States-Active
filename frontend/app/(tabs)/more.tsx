@@ -7,7 +7,8 @@ import FadeUp from '../../components/FadeUp';
 import PressScale from '../../components/PressScale';
 import ScreenCanvas from '../../components/ScreenCanvas';
 import { useNationStore } from '../../store/nationStore';
-import { leaningColor, leaningWash } from '../../utils/politicalCompass';
+import LiquidGlass from '../../components/LiquidGlass';
+import { leaningColor } from '../../utils/politicalCompass';
 
 interface MenuItem {
   label: string;
@@ -58,14 +59,14 @@ export default function More() {
         {GROUPS.map((group, gi) => (
           <FadeUp key={group.title} delay={gi * 70} style={styles.group}>
             <Text style={[styles.groupTitle, { color: tint }]}>{group.title}</Text>
-            <View style={[styles.card, { borderColor: tint }]}>
+            <LiquidGlass radius={28} style={styles.card}>
               {group.items.map((item, i) => (
                 <PressScale
                   key={item.route}
                   onPress={() => router.push(item.route as any)}
                   style={[styles.row, i < group.items.length - 1 && styles.rowLine]}
                 >
-                  <View style={[styles.iconWrap, { backgroundColor: leaningWash(nation, 0.12) }]}>
+                  <View style={styles.iconWrap}>
                     <Ionicons name={item.icon} size={18} color={tint} />
                   </View>
                   <View style={{ flex: 1 }}>
@@ -75,7 +76,7 @@ export default function More() {
                   <Ionicons name="chevron-forward" size={16} color={colors.text.muted} />
                 </PressScale>
               ))}
-            </View>
+            </LiquidGlass>
           </FadeUp>
         ))}
       </ScrollView>
@@ -103,10 +104,6 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   card: {
-    backgroundColor: colors.surfaceSolid,
-    borderRadius: radii.md,
-    borderWidth: 1,
-    borderColor: colors.border,
     overflow: 'hidden',
   },
   row: {
