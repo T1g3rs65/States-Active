@@ -18,7 +18,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useNationStore } from '../store/nationStore';
 import { leaningColor } from '../utils/politicalCompass';
-import StatusDots from '../components/StatusDots';
 import Svg, { Polygon, G, Text as SvgText, Rect, Circle , SvgXml } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
 import { SimplexNoise } from '../utils/noise';
@@ -1057,7 +1056,9 @@ export default function WorldMap() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <StatusDots status={loadingStatus} color={tint} />
+        <ActivityIndicator size="large" color={tint} style={styles.loaderBig} />
+        <Text style={styles.loadingText}>{loadingStatus}</Text>
+        <Text style={styles.loadingSubtext}>First load carves the world; later loads are much faster</Text>
       </View>
     );
   }
@@ -1545,16 +1546,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#0B0F14',
   },
+  loaderBig: {
+    transform: [{ scale: 1.8 }],
+  },
   loadingText: {
-    marginTop: 16,
+    marginTop: 28,
     color: '#F3F6FA',
-    fontSize: 18,
+    fontSize: 22,
     fontWeight: '600',
   },
   loadingSubtext: {
-    marginTop: 8,
+    marginTop: 10,
     color: 'rgba(243,246,250,0.70)',
-    fontSize: 14,
+    fontSize: 15,
   },
   header: {
     flexDirection: 'row',

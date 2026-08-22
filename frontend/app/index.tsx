@@ -3,6 +3,7 @@ import {
   View,
   Text,
   StyleSheet,
+  ActivityIndicator,
   TouchableOpacity,
   TextInput,
   Alert,
@@ -15,7 +16,13 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNationStore } from '../store/nationStore';
 import { api } from '../utils/api';
 import { colors, typography, spacing, radii } from '../utils/theme';
-import StatusDots from '../components/StatusDots';
+
+const LOADING_NOTES = [
+  'Checking saved nation...',
+  'Connecting to the world...',
+  'Waking the territories...',
+  'Preparing your realm...',
+];
 
 export default function Index() {
   const router = useRouter();
@@ -23,15 +30,21 @@ export default function Index() {
   const [checking, setChecking] = useState(true);
   const [showLogin, setShowLogin] = useState(false);
   const [userId, setUserId] = useState('');
-  const [bootStatus, setBootStatus] = useState('Boot');
+  const [loadingNoteIndex, setLoadingNoteIndex] = useState(0);
   const progress = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
+    const noteTimer = setInterval(() => {
+      setLoadingNoteIndex(i => (i + 1) % LOADING_NOTES.length);
+    }, 2200);
+
     Animated.timing(progress, {
       toValue: 0.9,
       duration: 8000,
       useNativeDriver: false,
     }).start();
+
+    return () => clearInterval(noteTimer);
   }, []);
 
   useEffect(() => {
@@ -49,12 +62,10 @@ export default function Index() {
   const checkForNation = async () => {
     setChecking(true);
     try {
-      setBootStatus('Saved');
       await loadNation();
       const savedUserId = await AsyncStorage.getItem('user_id');
 
       if (savedUserId) {
-        setBootStatus('Nation');
         const response = await api.getNationByUser(savedUserId);
         if (response.success && response.nation) {
           setNation(response.nation);
@@ -100,7 +111,8 @@ export default function Index() {
   if (checking) {
     return (
       <View style={styles.container}>
-        <StatusDots status={bootStatus} color={colors.accent.primary} />
+        <ActivityIndicator size="large" color={colors.accent.primary} style={styles.loaderBig} />
+        <Text style={styles.loadingNote}>{LOADING_NOTES[loadingNoteIndex]}</Text>
         <View style={styles.progressTrack}>
           <Animated.View
             style={[
@@ -315,9 +327,12 @@ const styles = StyleSheet.create({
     color: colors.accent.primary,
     fontWeight: '500',
   },
+  loaderBig: {
+    transform: [{ scale: 1.8 }],
+  },
   loadingNote: {
-    marginTop: spacing.lg,
-    ...typography.body,
+    marginTop: spacing.xl,
+    ...typography.headline,
     color: colors.text.secondary,
   },
   progressTrack: {
