@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   TextInput,
   ActivityIndicator,
-  Alert,
   Modal,
 } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -19,6 +18,7 @@ import { QuizQuestion, QuizAnswer } from '../types';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import FlagCreator from '../components/FlagCreator';
 import { Ionicons } from '@expo/vector-icons';
+import { glassAlert, glassConfirm } from '../components/GlassModal';
 
 interface Race {
   id: string;
@@ -27,7 +27,7 @@ interface Race {
   lore?: string;
 }
 
-export default function Quiz() {
+export default async function Quiz() {
   const router = useRouter();
   const { setNation, saveNation } = useNationStore();
   
@@ -61,7 +61,7 @@ export default function Quiz() {
       setLoading(false);
     } catch (error) {
       console.error('Error loading quiz:', error);
-      Alert.alert('Error', 'Failed to load quiz questions');
+      await glassAlert({ title: 'Error', message: 'Failed to load quiz questions' });
     }
   };
 
@@ -107,12 +107,12 @@ export default function Quiz() {
 
   const submitQuiz = async () => {
     if (!nationName.trim()) {
-      Alert.alert('Required', 'Please enter a nation name');
+      await glassAlert({ title: 'Required', message: 'Please enter a nation name' });
       return;
     }
 
     if (!flagBase64) {
-      Alert.alert('Flag Required', 'Please design a flag for your nation');
+      await glassAlert({ title: 'Flag Required', message: 'Please design a flag for your nation' });
       return;
     }
 
@@ -139,7 +139,7 @@ export default function Quiz() {
       router.replace('/world-map?place=1');
     } catch (error: any) {
       console.error('Error creating nation:', error);
-      Alert.alert('Error', `Failed to start founding: ${error.message || 'Unknown error'}`);
+      await glassAlert({ title: 'Error', message: `Failed to start founding: ${error.message || 'Unknown error'}` });
       setSubmitting(false);
     }
 

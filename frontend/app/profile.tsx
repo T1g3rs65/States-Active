@@ -5,7 +5,6 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Alert,
   Modal,
   TextInput,
 } from 'react-native';
@@ -26,14 +25,13 @@ import ScreenCanvas from '../components/ScreenCanvas';
 import LiquidGlass from '../components/LiquidGlass';
 import { glassAlert, glassConfirm } from '../components/GlassModal';
 
-export default function Profile() {
+export default async function Profile() {
   const router = useRouter();
   const { nation, clearNation, setNation } = useNationStore();
   const [userId, setUserId] = useState('');
   const [showFlagCreator, setShowFlagCreator] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [showCustomizationModal, setShowCustomizationModal] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
   
   // Get race-based theme color
@@ -72,10 +70,10 @@ export default function Profile() {
       }
       
       setShowFlagCreator(false);
-      Alert.alert('Success', 'Your flag has been updated! Check the Nation tab to see it.');
+      await glassAlert({ title: 'Success', message: 'Your flag has been updated! Check the Nation tab to see it.' });
     } catch (error) {
       console.error('Error updating flag:', error);
-      Alert.alert('Error', 'Failed to update flag');
+      await glassAlert({ title: 'Error', message: 'Failed to update flag' });
     }
   };
   
@@ -96,10 +94,10 @@ export default function Profile() {
       }
       
       setShowCustomizationModal(false);
-      Alert.alert('Success', 'Your nation customization has been updated!');
+      await glassAlert({ title: 'Success', message: 'Your nation customization has been updated!' });
     } catch (error) {
       console.error('Error updating customization:', error);
-      Alert.alert('Error', 'Failed to update customization');
+      await glassAlert({ title: 'Error', message: 'Failed to update customization' });
     }
   };
   
@@ -110,7 +108,7 @@ export default function Profile() {
       try {
         await Notifications.cancelAllScheduledNotificationsAsync();
         setNotificationsEnabled(false);
-        Alert.alert('Disabled', 'Daily notifications turned off');
+        await glassAlert({ title: 'Disabled', message: 'Daily notifications turned off' });
       } catch (error) {
         console.error('Error disabling notifications:', error);
       }
@@ -123,51 +121,40 @@ export default function Profile() {
         if (hasPermission) {
           await notificationService.scheduleDailyReminder(9);
           setNotificationsEnabled(true);
-          Alert.alert('Enabled', 'You will receive daily reminders at 9:00 AM');
+          await glassAlert({ title: 'Enabled', message: 'You will receive daily reminders at 9:00 AM' });
         } else {
-          Alert.alert('Permission Denied', 'Please enable notifications in system settings');
+          await glassAlert({ title: 'Permission Denied', message: 'Please enable notifications in system settings' });
         }
       } catch (error) {
         console.error('Error enabling notifications:', error);
-        Alert.alert('Error', 'Failed to enable notifications. They may not be supported on this platform.');
+        await glassAlert({ title: 'Error', message: 'Failed to enable notifications. They may not be supported on this platform.' });
       }
     }
   };
 
   const handleDeleteNation = async () => {
-    console.log('Delete button pressed');
-    console.log('Nation:', nation);
-    console.log('Nation ID:', nation?.id || nation?._id);
-    
-    // Use window.confirm for web since Alert.alert doesn't work on web
-    const confirmed = confirm('Are you sure you want to permanently delete your nation? This action cannot be undone.');
-    
-    if (!confirmed) {
-      console.log('Delete cancelled');
-      return;
-    }
-    
+    const ok = await glassConfirm({
+      title: 'Delete nation?',
+      message: 'Permanently delete your nation? This cannot be undone.',
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      destructive: true,
+    });
+    if (!ok) return;
     try {
       const nationId = nation?.id || nation?._id;
-      console.log('Attempting to delete nation:', nationId);
-      
       if (nationId) {
         const response = await api.deleteNation(nationId);
-        console.log('Delete API response:', response);
-        
         if (!response.success) {
-          alert('Failed to delete nation: ' + (response.detail || 'Unknown error'));
+          await glassAlert({ title: 'Delete failed', message: response.detail || 'Unknown error' });
           return;
         }
       }
-      
-      console.log('Clearing local nation data...');
       await clearNation();
-      console.log('Redirecting to home...');
       router.replace('/');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Delete nation error:', error);
-      alert('Failed to delete nation. Please try again.');
+      await glassAlert({ title: 'Delete failed', message: 'Failed to delete nation. Please try again.' });
     }
   };
 
@@ -275,10 +262,7 @@ export default function Profile() {
           
           <TouchableOpacity 
             style={styles.deleteButton} 
-            onPress={() => {
-              console.log('Opening delete confirmation modal');
-              setShowDeleteConfirm(true);
-            }}
+            onPress={handleDeleteNation}
             activeOpacity={0.7}
           >
             <Ionicons name="trash" size={24} color="#F3F6FA" />
@@ -344,58 +328,6 @@ export default function Profile() {
               <Text style={styles.saveButtonText}>Save Changes</Text>
             </TouchableOpacity>
           </ScrollView>
-        </View>
-      </Modal>
-
-      {/* Delete Confirmation Modal */}
-      <Modal
-        visible={showDeleteConfirm}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setShowDeleteConfirm(false)}
-      >
-        <View style={styles.deleteModalOverlay}>
-          <View style={styles.deleteModalContent}>
-            <Ionicons name="warning" size={48} color="#FF5A65" style={{ marginBottom: 16 }} />
-            <Text style={styles.deleteModalTitle}>Delete Nation?</Text>
-            <Text style={styles.deleteModalText}>
-              Are you sure you want to permanently delete your nation? This action cannot be undone.
-            </Text>
-            <View style={styles.deleteModalButtons}>
-              <TouchableOpacity 
-                style={styles.deleteModalCancelButton} 
-                onPress={() => setShowDeleteConfirm(false)}
-              >
-                <Text style={styles.deleteModalCancelText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={styles.deleteModalConfirmButton} 
-                onPress={async () => {
-                  console.log('User confirmed deletion');
-                  setDeleting(true);
-                  try {
-                    const nationId = nation?.id || nation?._id;
-                    if (nationId) {
-                      const res = await api.deleteNation(nationId);
-                      console.log('Delete result:', res);
-                    }
-                    await clearNation();
-                    setShowDeleteConfirm(false);
-                    router.replace('/');
-                  } catch (err: any) {
-                    console.error('Delete error:', err);
-                    setDeleting(false);
-                    setShowDeleteConfirm(false);
-                  }
-                }}
-                disabled={deleting}
-              >
-                <Text style={styles.deleteModalConfirmText}>
-                  {deleting ? 'Deleting...' : 'Delete'}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
         </View>
       </Modal>
     </View>

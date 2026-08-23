@@ -10,7 +10,6 @@ import {
   Modal,
   TextInput,
   ActivityIndicator,
-  Alert,
   Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -65,7 +64,7 @@ const ALLIANCE_COLORS = [
   '#00B8B8', '#00E0C7', '#F97316', '#6366F1', '#84CC16'
 ];
 
-export default function AllianceBrowserScreen() {
+export default async function AllianceBrowserScreen() {
   const router = useRouter();
   const { nation } = useNationStore();
   
@@ -171,7 +170,7 @@ export default function AllianceBrowserScreen() {
     
     // Check if this is a vassal war
     if (myActiveWar.is_vassal_war) {
-      Alert.alert('Cannot Call Allies', 'Vassal wars are 1v1 only - no allies can join.');
+      await glassAlert({ title: 'Cannot Call Allies', message: 'Vassal wars are 1v1 only - no allies can join.' });
       return;
     }
     
@@ -180,15 +179,15 @@ export default function AllianceBrowserScreen() {
     try {
       const result = await api.callToWar(nationId, targetNationId);
       if (result.success) {
-        Alert.alert('Success', result.message || `${targetName} has joined the war!`);
+        await glassAlert({ title: 'Success', message: result.message || `${targetName} has joined the war!` });
         // Refresh data
         await loadData();
       } else {
-        Alert.alert('Error', result.detail || 'Failed to call to war');
+        await glassAlert({ title: 'Error', message: result.detail || 'Failed to call to war' });
       }
     } catch (error: any) {
       console.error('Call to war error:', error);
-      Alert.alert('Error', error.message || 'Failed to call to war');
+      await glassAlert({ title: 'Error', message: error.message || 'Failed to call to war' });
     } finally {
       setCallingToWar(null);
     }
@@ -283,7 +282,7 @@ export default function AllianceBrowserScreen() {
       await loadMessages(); // Reload messages after sending
     } catch (error) {
       console.error('Error sending message:', error);
-      Alert.alert('Error', 'Failed to send message');
+      await glassAlert({ title: 'Error', message: 'Failed to send message' });
     } finally {
       setSendingMessage(false);
     }
@@ -322,16 +321,16 @@ export default function AllianceBrowserScreen() {
     try {
       const result = await api.handleJoinRequest(requestId, nationId!, accept, role);
       if (result.success) {
-        Alert.alert('Success', result.message);
+        await glassAlert({ title: 'Success', message: result.message });
         setShowRoleModal(false);
         setSelectedRequest(null);
         // Reload alliance data to refresh members and pending requests
         await loadData();
       } else {
-        Alert.alert('Error', result.detail || 'Failed to process request');
+        await glassAlert({ title: 'Error', message: result.detail || 'Failed to process request' });
       }
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to process request');
+      await glassAlert({ title: 'Error', message: error.message || 'Failed to process request' });
     } finally {
       setProcessingRequestId(null);
     }
@@ -339,18 +338,7 @@ export default function AllianceBrowserScreen() {
 
   // Handle rejecting a join request
   const handleRejectRequest = async (requestId: string) => {
-    Alert.alert(
-      'Reject Request',
-      'Are you sure you want to reject this join request?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Reject',
-          style: 'destructive',
-          onPress: () => processJoinRequest(requestId, false)
-        }
-      ]
-    );
+    await glassAlert({ title: 'Reject Request', message: 'Are you sure you want to reject this join request?' });
   };
 
   // Format population for display
@@ -391,12 +379,12 @@ export default function AllianceBrowserScreen() {
 
   const handleCreateAlliance = async () => {
     if (!allianceName.trim() || !allianceTag.trim()) {
-      Alert.alert('Error', 'Name and tag are required');
+      await glassAlert({ title: 'Error', message: 'Name and tag are required' });
       return;
     }
     
     if (allianceTag.length < 2 || allianceTag.length > 6) {
-      Alert.alert('Error', 'Tag must be 2-6 characters');
+      await glassAlert({ title: 'Error', message: 'Tag must be 2-6 characters' });
       return;
     }
     
@@ -417,15 +405,15 @@ export default function AllianceBrowserScreen() {
       });
       
       if (result.success) {
-        Alert.alert('Success', `Alliance "${allianceName}" created!`);
+        await glassAlert({ title: 'Success', message: `Alliance "${allianceName}" created!` });
         setShowCreateModal(false);
         resetCreateForm();
         loadData();
       } else {
-        Alert.alert('Error', result.detail || 'Failed to create alliance');
+        await glassAlert({ title: 'Error', message: result.detail || 'Failed to create alliance' });
       }
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to create alliance');
+      await glassAlert({ title: 'Error', message: error.message || 'Failed to create alliance' });
     } finally {
       setCreating(false);
     }
@@ -455,15 +443,15 @@ export default function AllianceBrowserScreen() {
       );
       
       if (result.success) {
-        Alert.alert('Success', result.message);
+        await glassAlert({ title: 'Success', message: result.message });
         setShowJoinModal(false);
         setJoinMessage('');
         loadData();
       } else {
-        Alert.alert('Error', result.detail || 'Failed to join alliance');
+        await glassAlert({ title: 'Error', message: result.detail || 'Failed to join alliance' });
       }
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to join alliance');
+      await glassAlert({ title: 'Error', message: error.message || 'Failed to join alliance' });
     } finally {
       setJoining(false);
     }
@@ -474,13 +462,13 @@ export default function AllianceBrowserScreen() {
       const result = await api.respondToAllianceInvite(inviteId, accept);
       
       if (result.success) {
-        Alert.alert('Success', result.message);
+        await glassAlert({ title: 'Success', message: result.message });
         loadData();
       } else {
-        Alert.alert('Error', result.detail || 'Failed to respond');
+        await glassAlert({ title: 'Error', message: result.detail || 'Failed to respond' });
       }
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to respond');
+      await glassAlert({ title: 'Error', message: error.message || 'Failed to respond' });
     }
   };
 
@@ -492,7 +480,7 @@ export default function AllianceBrowserScreen() {
     if (!myAlliance) {
       console.log('myAlliance is null, returning');
       if (Platform.OS === 'web') {
-        window.alert('Error: No faction data found');
+        await glassAlert({ title: 'Notice', message: String('Error: No faction data found') });
       }
       return;
     }
@@ -500,7 +488,7 @@ export default function AllianceBrowserScreen() {
     if (!nationId) {
       console.log('nationId is null, returning');
       if (Platform.OS === 'web') {
-        window.alert('Error: No nation ID found');
+        await glassAlert({ title: 'Notice', message: String('Error: No nation ID found') });
       }
       return;
     }
@@ -508,18 +496,9 @@ export default function AllianceBrowserScreen() {
     // Simple confirm for web
     let confirmed = false;
     if (Platform.OS === 'web') {
-      confirmed = window.confirm(`Are you sure you want to leave ${myAlliance.name}?`);
+      confirmed = await glassConfirm({ title: 'Confirm', message: `Are you sure you want to leave ${myAlliance.name}?`, confirmText: 'OK', cancelText: 'Cancel' });
     } else {
-      // For native, use Alert.alert with a promise wrapper
-      confirmed = await new Promise<boolean>((resolve) => {
-        Alert.alert(
-          'Leave Faction',
-          `Are you sure you want to leave ${myAlliance.name}?`,
-          [
-            { text: 'Cancel', onPress: () => resolve(false), style: 'cancel' },
-            { text: 'Leave', onPress: () => resolve(true), style: 'destructive' }
-          ]
-        );
+      confirmed = await glassConfirm({ title: 'Leave faction?', message: `Are you sure you want to leave ${myAlliance.name}?`, confirmText: 'Leave', cancelText: 'Cancel', destructive: true });
       });
     }
     
@@ -536,9 +515,9 @@ export default function AllianceBrowserScreen() {
       
       if (result.success) {
         if (Platform.OS === 'web') {
-          window.alert(result.message || 'Successfully left the faction');
+          await glassAlert({ title: 'Notice', message: String(result.message || 'Successfully left the faction') });
         } else {
-          Alert.alert('Success', result.message);
+          await glassAlert({ title: 'Success', message: result.message });
         }
         setMyAlliance(null);
         setActiveTab('browse');
@@ -547,18 +526,18 @@ export default function AllianceBrowserScreen() {
         const errorMsg = result.detail || result.message || 'Failed to leave';
         console.log('API error:', errorMsg);
         if (Platform.OS === 'web') {
-          window.alert(errorMsg);
+          await glassAlert({ title: 'Notice', message: String(errorMsg) });
         } else {
-          Alert.alert('Error', errorMsg);
+          await glassAlert({ title: 'Error', message: errorMsg });
         }
       }
     } catch (error: any) {
       console.log('Exception:', error);
       const errorMsg = error.message || 'Failed to leave';
       if (Platform.OS === 'web') {
-        window.alert(errorMsg);
+        await glassAlert({ title: 'Notice', message: String(errorMsg) });
       } else {
-        Alert.alert('Error', errorMsg);
+        await glassAlert({ title: 'Error', message: errorMsg });
       }
     }
   };

@@ -9,7 +9,6 @@ import {
   Modal,
   TextInput,
   ActivityIndicator,
-  Alert,
   Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -18,6 +17,7 @@ import { useRouter } from 'expo-router';
 import { api } from '../utils/api';
 import { useNationStore } from '../store/nationStore';
 import ScreenHeader, { HeaderIcon } from '../components/ScreenHeader';
+import { glassAlert, glassConfirm } from '../components/GlassModal';
 
 interface AllyInfo {
   ally_id: string;
@@ -51,7 +51,7 @@ interface InternationalVote {
   time_remaining_hours?: number;
 }
 
-export default function WorldNewsScreen() {
+export default async function WorldNewsScreen() {
   const router = useRouter();
   const { nation } = useNationStore();
   const [activeVotes, setActiveVotes] = useState<InternationalVote[]>([]);
@@ -143,21 +143,21 @@ export default function WorldNewsScreen() {
     return vote.source_nation_id === nationId;
   };
 
-  const openVoteModal = (vote: InternationalVote) => {
+  const openVoteModal = async (vote: InternationalVote) => {
     if (hasVoted(vote)) {
       if (Platform.OS === 'web') {
-        window.alert('You have already voted on this issue');
+        await glassAlert({ title: 'Notice', message: String('You have already voted on this issue') });
       } else {
-        Alert.alert('Already Voted', 'You have already cast your vote on this issue');
+        await glassAlert({ title: 'Already Voted', message: 'You have already cast your vote on this issue' });
       }
       return;
     }
     
     if (isOwnVote(vote)) {
       if (Platform.OS === 'web') {
-        window.alert('You cannot vote on your own decision');
+        await glassAlert({ title: 'Notice', message: String('You cannot vote on your own decision') });
       } else {
-        Alert.alert('Cannot Vote', 'You cannot vote on your own decision');
+        await glassAlert({ title: 'Cannot Vote', message: 'You cannot vote on your own decision' });
       }
       return;
     }
@@ -177,9 +177,9 @@ export default function WorldNewsScreen() {
     
     if (needsStatement && !sponsorStatement.trim()) {
       if (Platform.OS === 'web') {
-        window.alert('As the first to ' + selectedVoteType + ', please write a statement for others to support');
+        await glassAlert({ title: 'Notice', message: String('As the first to ' + selectedVoteType + ', please write a statement for others to support') });
       } else {
-        Alert.alert('Statement Required', `As the first to ${selectedVoteType}, please write a statement for others to support`);
+        await glassAlert({ title: String('Statement Required'), message: `As the first to ${selectedVoteType}, please write a statement for others to support` });
       }
       return;
     }
@@ -200,9 +200,9 @@ export default function WorldNewsScreen() {
           : 'Your vote has been cast!';
         
         if (Platform.OS === 'web') {
-          window.alert(message);
+          await glassAlert({ title: 'Notice', message: String(message) });
         } else {
-          Alert.alert('Vote Cast!', message);
+          await glassAlert({ title: 'Vote Cast!', message: message });
         }
         
         setShowVoteModal(false);
@@ -213,9 +213,9 @@ export default function WorldNewsScreen() {
     } catch (error: any) {
       console.error('Error casting vote:', error);
       if (Platform.OS === 'web') {
-        window.alert(error.message || 'Failed to cast vote');
+        await glassAlert({ title: 'Notice', message: String(error.message || 'Failed to cast vote') });
       } else {
-        Alert.alert('Error', error.message || 'Failed to cast vote');
+        await glassAlert({ title: 'Error', message: error.message || 'Failed to cast vote' });
       }
     } finally {
       setVoting(false);
@@ -487,9 +487,9 @@ export default function WorldNewsScreen() {
                 onPress={() => {
                   if (selectedVote && selectedVote.is_active && isAlly(selectedVote.source_nation_id)) {
                     if (Platform.OS === 'web') {
-                      window.alert('You cannot condemn an ally!');
+                      await glassAlert({ title: 'Notice', message: String('You cannot condemn an ally!') });
                     } else {
-                      Alert.alert('Alliance Loyalty', 'You cannot condemn an ally!');
+                      await glassAlert({ title: 'Alliance Loyalty', message: 'You cannot condemn an ally!' });
                     }
                     return;
                   }

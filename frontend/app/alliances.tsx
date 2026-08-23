@@ -9,7 +9,6 @@ import {
   Modal,
   TextInput,
   ActivityIndicator,
-  Alert,
   Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -20,6 +19,7 @@ import { useNationStore } from '../store/nationStore';
 import { getRaceTheme } from '../utils/raceColors';
 import { leaningColor } from '../utils/politicalCompass';
 import ScreenHeader, { HeaderIcon } from '../components/ScreenHeader';
+import { glassAlert, glassConfirm } from '../components/GlassModal';
 
 interface Pact {
   alliance_id: string;
@@ -46,7 +46,7 @@ interface OtherNation {
   government_type: string;
 }
 
-export default function NonAggressionPacts() {
+export default async function NonAggressionPacts() {
   const router = useRouter();
   const { nation } = useNationStore();
   
@@ -174,9 +174,9 @@ export default function NonAggressionPacts() {
       
       if (response.success) {
         if (Platform.OS === 'web') {
-          window.alert(`Pact request sent to ${selectedNation.name}!`);
+          await glassAlert({ title: 'Notice', message: String(`Pact request sent to ${selectedNation.name}!`) });
         } else {
-          Alert.alert('Request Sent', `Pact request sent to ${selectedNation.name}!`);
+          await glassAlert({ title: 'Request Sent', message: `Pact request sent to ${selectedNation.name}!` });
         }
         setShowRequestModal(false);
         setSelectedNation(null);
@@ -187,9 +187,9 @@ export default function NonAggressionPacts() {
       }
     } catch (error: any) {
       if (Platform.OS === 'web') {
-        window.alert(error.message || 'Failed to send request');
+        await glassAlert({ title: 'Notice', message: String(error.message || 'Failed to send request') });
       } else {
-        Alert.alert('Error', error.message || 'Failed to send request');
+        await glassAlert({ title: 'Error', message: error.message || 'Failed to send request' });
       }
     } finally {
       setSending(false);
@@ -206,9 +206,9 @@ export default function NonAggressionPacts() {
           : 'Request rejected';
         
         if (Platform.OS === 'web') {
-          window.alert(message);
+          await glassAlert({ title: 'Notice', message: String(message) });
         } else {
-          Alert.alert(accept ? 'Pact Formed!' : 'Rejected', message);
+          await glassAlert({ title: accept ? 'Pact Formed!' : 'Rejected', message });
         }
         loadData();
       }
@@ -219,16 +219,9 @@ export default function NonAggressionPacts() {
 
   const breakPact = async (pactId: string, nationName: string) => {
     const confirm = Platform.OS === 'web' 
-      ? window.confirm(`Are you sure you want to break your Non-Aggression Pact with ${nationName}?`)
+      ? await glassConfirm({ title: 'Confirm', message: `Are you sure you want to break your Non-Aggression Pact with ${nationName}?`, confirmText: 'OK', cancelText: 'Cancel' })
       : await new Promise<boolean>(resolve => {
-          Alert.alert(
-            'Break Pact',
-            `Are you sure you want to break your Non-Aggression Pact with ${nationName}?`,
-            [
-              { text: 'Cancel', onPress: () => resolve(false) },
-              { text: 'Break Pact', onPress: () => resolve(true), style: 'destructive' }
-            ]
-          );
+          await glassAlert({ title: 'Break Pact', message: `Are you sure you want to break your Non-Aggression Pact with ${nationName}?` });
         });
     
     if (!confirm) return;
@@ -237,9 +230,9 @@ export default function NonAggressionPacts() {
       const response = await api.breakAlliance(pactId, nationId);
       if (response.success) {
         if (Platform.OS === 'web') {
-          window.alert('Pact broken');
+          await glassAlert({ title: 'Notice', message: String('Pact broken') });
         } else {
-          Alert.alert('Pact Broken', `You are no longer in a Non-Aggression Pact with ${nationName}`);
+          await glassAlert({ title: 'Pact Broken', message: `You are no longer in a Non-Aggression Pact with ${nationName}` });
         }
         loadData();
       }

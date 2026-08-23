@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   ScrollView,
   TextInput,
-  Alert,
   ActivityIndicator,
   Switch,
   Modal,
@@ -18,6 +17,7 @@ import { api } from '../utils/api';
 import { useNationStore } from '../store/nationStore';
 import { getRaceTheme } from '../utils/raceColors';
 import { leaningColor } from '../utils/politicalCompass';
+import { glassAlert, glassConfirm } from '../components/GlassModal';
 
 const ALLIANCE_COLORS = [
   '#00E0C7', '#FF5A65', '#27D17A', '#F2C94C', '#00E0C7', 
@@ -49,7 +49,7 @@ const IDEOLOGY_QUADRANTS = [
   { id: 'minarchist', name: 'Minarchist', color: '#EAB308', description: 'Free Market Capitalist' },
 ];
 
-export default function FactionSettingsScreen() {
+export default async function FactionSettingsScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const allianceId = params.id as string;
@@ -127,7 +127,7 @@ export default function FactionSettingsScreen() {
       }
     } catch (error) {
       console.error('Error loading alliance:', error);
-      Alert.alert('Error', 'Failed to load faction settings');
+      await glassAlert({ title: 'Error', message: 'Failed to load faction settings' });
     } finally {
       setLoading(false);
     }
@@ -135,7 +135,7 @@ export default function FactionSettingsScreen() {
 
   const handleSave = async () => {
     if (!name.trim()) {
-      Alert.alert('Error', 'Faction name is required');
+      await glassAlert({ title: 'Error', message: 'Faction name is required' });
       return;
     }
     
@@ -158,13 +158,13 @@ export default function FactionSettingsScreen() {
       });
       
       if (result.success) {
-        Alert.alert('Success', 'Faction settings updated');
+        await glassAlert({ title: 'Success', message: 'Faction settings updated' });
         router.back();
       } else {
-        Alert.alert('Error', result.detail || 'Failed to update settings');
+        await glassAlert({ title: 'Error', message: result.detail || 'Failed to update settings' });
       }
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to update settings');
+      await glassAlert({ title: 'Error', message: error.message || 'Failed to update settings' });
     } finally {
       setSaving(false);
     }
@@ -190,42 +190,19 @@ export default function FactionSettingsScreen() {
     try {
       const result = await api.promoteMember(allianceId, nationId!, memberId, newRole);
       if (result.success) {
-        Alert.alert('Success', result.message);
+        await glassAlert({ title: 'Success', message: result.message });
         loadAlliance();
         setShowPromoteModal(false);
       } else {
-        Alert.alert('Error', result.detail || 'Failed to promote member');
+        await glassAlert({ title: 'Error', message: result.detail || 'Failed to promote member' });
       }
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to promote member');
+      await glassAlert({ title: 'Error', message: error.message || 'Failed to promote member' });
     }
   };
 
   const handleTransferLeadership = async (newFounderId: string) => {
-    Alert.alert(
-      'Transfer Leadership',
-      'Are you sure you want to transfer founder status? This cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Transfer',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              const result = await api.transferLeadership(allianceId, nationId!, newFounderId);
-              if (result.success) {
-                Alert.alert('Success', 'Leadership transferred');
-                router.back();
-              } else {
-                Alert.alert('Error', result.detail || 'Failed to transfer leadership');
-              }
-            } catch (error: any) {
-              Alert.alert('Error', error.message || 'Failed to transfer leadership');
-            }
-          }
-        }
-      ]
-    );
+    await glassAlert({ title: 'Transfer Leadership', message: 'Are you sure you want to transfer founder status? This cannot be undone.' });
   };
 
   // Handle accepting a join request with role selection
@@ -247,15 +224,15 @@ export default function FactionSettingsScreen() {
     try {
       const result = await api.handleJoinRequest(requestId, nationId!, accept, role);
       if (result.success) {
-        Alert.alert('Success', result.message);
+        await glassAlert({ title: 'Success', message: result.message });
         setShowRoleModal(false);
         setSelectedRequest(null);
         loadAlliance(); // Reload to update member list and pending requests
       } else {
-        Alert.alert('Error', result.detail || 'Failed to process request');
+        await glassAlert({ title: 'Error', message: result.detail || 'Failed to process request' });
       }
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to process request');
+      await glassAlert({ title: 'Error', message: error.message || 'Failed to process request' });
     } finally {
       setProcessingRequestId(null);
     }
@@ -263,18 +240,7 @@ export default function FactionSettingsScreen() {
 
   // Handle rejecting a join request
   const handleRejectRequest = async (requestId: string) => {
-    Alert.alert(
-      'Reject Request',
-      'Are you sure you want to reject this join request?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Reject',
-          style: 'destructive',
-          onPress: () => processJoinRequest(requestId, false)
-        }
-      ]
-    );
+    await glassAlert({ title: 'Reject Request', message: 'Are you sure you want to reject this join request?' });
   };
 
   // Format population for display

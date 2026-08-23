@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
   RefreshControl,
   Modal,
 } from 'react-native';
@@ -22,8 +21,9 @@ import { TabChrome } from '../../components/ScreenHeader';
 import ScreenCanvas from '../../components/ScreenCanvas';
 import LiquidGlass from '../../components/LiquidGlass';
 import FadeUp from '../../components/FadeUp';
+import { glassAlert, glassConfirm } from '../../components/GlassModal';
 
-export default function Issues() {
+export default async function Issues() {
   const router = useRouter();
   const { nation, setNation, recoverNation, issues, setIssues } = useNationStore();
   const [loading, setLoading] = useState(true);
@@ -115,7 +115,7 @@ export default function Issues() {
       }
     } catch (error) {
       console.error('Error loading issues:', error);
-      if (!silent) Alert.alert('Error', 'Failed to load issues');
+      if (!silent) await glassAlert({ title: 'Error', message: 'Failed to load issues' });
     } finally {
       if (!silent) {
         setLoading(false);
@@ -161,7 +161,7 @@ export default function Issues() {
       }
     } catch (error) {
       console.error('Error submitting decision:', error);
-      Alert.alert('Error', 'Failed to submit decision. Please try again.');
+      await glassAlert({ title: 'Error', message: 'Failed to submit decision. Please try again.' });
     } finally {
       setSubmitting(false);
     }

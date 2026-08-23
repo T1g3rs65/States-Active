@@ -25,7 +25,7 @@ const LOADING_NOTES = [
   'Preparing your realm...',
 ];
 
-export default function Index() {
+export default async function Index() {
   const router = useRouter();
   const { nation, setNation, loadNation, saveNation } = useNationStore();
   const [checking, setChecking] = useState(true);

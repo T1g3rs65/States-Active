@@ -7,7 +7,6 @@ import {
   ScrollView,
   TextInput,
   ActivityIndicator,
-  Alert,
   Modal,
   Switch,
   Image,
@@ -20,6 +19,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { api } from '../utils/api';
 import { DEFAULT_TERRAIN, TerrainSettings } from '../utils/worldNoise';
 import { rasterizeWorldPreview } from '../utils/worldPreview';
+import { glassAlert, glassConfirm } from '../components/GlassModal';
 
 interface World {
   id: string;
@@ -74,7 +74,7 @@ function Knob({
   );
 }
 
-export default function ServerSelectScreen() {
+export default async function ServerSelectScreen() {
   const router = useRouter();
   const [worlds, setWorlds] = useState<World[]>([]);
   const [loading, setLoading] = useState(true);
@@ -122,7 +122,7 @@ export default function ServerSelectScreen() {
       }
     } catch (error) {
       console.error('Error loading worlds:', error);
-      Alert.alert('Error', 'Failed to load worlds. Please try again.');
+      await glassAlert({ title: 'Error', message: 'Failed to load worlds. Please try again.' });
     } finally {
       setLoading(false);
     }
@@ -130,7 +130,7 @@ export default function ServerSelectScreen() {
 
   const handleCreateWorld = async () => {
     if (!newWorldName.trim()) {
-      Alert.alert('Error', 'Please enter a world name');
+      await glassAlert({ title: 'Error', message: 'Please enter a world name' });
       return;
     }
 
@@ -139,7 +139,7 @@ export default function ServerSelectScreen() {
       .map(([race]) => race);
 
     if (enabledRacesList.length === 0) {
-      Alert.alert('Error', 'Please enable at least one race');
+      await glassAlert({ title: 'Error', message: 'Please enable at least one race' });
       return;
     }
 
@@ -156,7 +156,7 @@ export default function ServerSelectScreen() {
       });
 
       if (response.success) {
-        Alert.alert('Success', `World "${newWorldName}" created!`);
+        await glassAlert({ title: 'Success', message: `World "${newWorldName}" created!` });
         setShowCreateModal(false);
         resetForm();
         await loadWorlds();
@@ -165,11 +165,11 @@ export default function ServerSelectScreen() {
           setSelectedWorld(response.world.id);
         }
       } else {
-        Alert.alert('Error', response.detail || 'Failed to create world');
+        await glassAlert({ title: 'Error', message: response.detail || 'Failed to create world' });
       }
     } catch (error: any) {
       console.error('Error creating world:', error);
-      Alert.alert('Error', error.message || 'Failed to create world');
+      await glassAlert({ title: 'Error', message: error.message || 'Failed to create world' });
     } finally {
       setCreating(false);
     }
@@ -187,7 +187,7 @@ export default function ServerSelectScreen() {
 
   const handleContinue = async () => {
     if (!selectedWorld) {
-      Alert.alert('Error', 'Please select a world');
+      await glassAlert({ title: 'Error', message: 'Please select a world' });
       return;
     }
 

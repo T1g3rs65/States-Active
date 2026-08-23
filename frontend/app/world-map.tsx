@@ -12,7 +12,6 @@ import {
   Image,
   GestureResponderEvent,
   LayoutChangeEvent,
-  Alert,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -51,6 +50,7 @@ import {
   contiguousOccupiedBands,
   mercatorY,
 } from '../utils/mapConstants';
+import { glassAlert, glassConfirm } from '../components/GlassModal';
 
 const WORLD_SEED = 123456;
 const MAP_CACHE_KEY = `world_map_terrain_v17_bigpole_${WORLD_SEED}`;
@@ -122,7 +122,7 @@ function goldStarPoints(cx: number, cy: number, r: number): string {
   return pts.join(' ');
 }
 
-export default function WorldMap() {
+export default async function WorldMap() {
   const router = useRouter();
   const { nation, saveNation } = useNationStore();
   const tint = leaningColor(nation);
@@ -953,31 +953,11 @@ export default function WorldMap() {
       slots - have
     );
     if (err) {
-      Alert.alert('Cannot found here', err);
+      await glassAlert({ title: 'Cannot found here', message: err });
       return;
     }
     placingBusy.current = true;
-    Alert.alert(
-      'Found a city here?',
-      `${territory.biome.replace(/_/g, ' ')} — it will pull nearby land toward you.`,
-      [
-        { text: 'Cancel', style: 'cancel', onPress: () => { placingBusy.current = false; } },
-        {
-          text: 'Found city',
-          onPress: async () => {
-            try {
-              await api.addCity(playerId, Math.round(territory.col), Math.round(territory.row));
-              setFoundingCity(false);
-              placingBusy.current = false;
-              await loadMap();
-            } catch (e: any) {
-              placingBusy.current = false;
-              Alert.alert('Could not found here', e?.message || 'Try another tile.');
-            }
-          },
-        },
-      ]
-    );
+    await glassAlert({ title: String('Found a city here?'), message: `${territory.biome.replace(/_/g, ' ')} — it will pull nearby land toward you.` });
   };
 
   const confirmCapital = async (territory: Territory) => {

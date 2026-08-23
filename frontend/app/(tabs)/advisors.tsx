@@ -9,7 +9,6 @@ import {
   Dimensions,
   Modal,
   TextInput,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   FlatList,
@@ -25,6 +24,7 @@ import PressScale from '../../components/PressScale';
 import FadeUp from '../../components/FadeUp';
 import { TabChrome } from '../../components/ScreenHeader';
 import ScreenCanvas from '../../components/ScreenCanvas';
+import { glassAlert, glassConfirm } from '../../components/GlassModal';
 
 const { width } = Dimensions.get('window');
 
@@ -107,7 +107,7 @@ function utcTaskUsed(advisors?: any[]) {
   });
 }
 
-export default function Advisors() {
+export default async function Advisors() {
   const { nation, setNation, recoverNation } = useNationStore();
   const router = useRouter();
   const [visit, setVisit] = useState(0);
@@ -286,7 +286,7 @@ export default function Advisors() {
       setShowDeclareWarModal(true);
     } catch (error) {
       console.error('Failed to fetch nations:', error);
-      Alert.alert('Error', 'Failed to load nations list');
+      await glassAlert({ title: 'Error', message: 'Failed to load nations list' });
     }
   };
   
@@ -386,9 +386,9 @@ export default function Advisors() {
     return nation.policies && nation.policies.length > 0;
   };
 
-  const handleOpenTaskModal = (advisor: any) => {
+  const handleOpenTaskModal = async (advisor: any) => {
     if (!canSendTaskToday()) {
-      Alert.alert('Daily Limit Reached', 'You can only send one task per day to any advisor.');
+      await glassAlert({ title: 'Daily Limit Reached', message: 'You can only send one task per day to any advisor.' });
       return;
     }
     setSelectedAdvisor(advisor);
@@ -398,7 +398,7 @@ export default function Advisors() {
 
   const handleSendTask = async () => {
     if (!taskDescription.trim()) {
-      Alert.alert('Error', 'Please enter a task description');
+      await glassAlert({ title: 'Error', message: 'Please enter a task description' });
       return;
     }
 
@@ -408,7 +408,7 @@ export default function Advisors() {
       const response = await api.sendAdvisorTask(nationId, selectedAdvisor.slot, taskDescription);
       
       if (response.success) {
-        Alert.alert('Success', 'Task sent! Check the Issues tab for the advisor response.');
+        await glassAlert({ title: 'Success', message: 'Task sent! Check the Issues tab for the advisor response.' });
         setShowTaskModal(false);
         setTaskDescription('');
         setTaskUsedToday(true);
@@ -417,20 +417,20 @@ export default function Advisors() {
       }
     } catch (error) {
       console.error('Error sending task:', error);
-      Alert.alert('Error', 'Failed to send task');
+      await glassAlert({ title: 'Error', message: 'Failed to send task' });
     } finally {
       setSendingTask(false);
     }
   };
 
-  const handleOpenReformModal = (advisor: any) => {
+  const handleOpenReformModal = async (advisor: any) => {
     if (!canSendReform()) {
       const daysRemaining = getDaysUntilReformAvailable();
-      Alert.alert('Reform Cooldown', `Your nation needs ${daysRemaining} more days before another policy can be reformed.`);
+      await glassAlert({ title: 'Reform Cooldown', message: `Your nation needs ${daysRemaining} more days before another policy can be reformed.` });
       return;
     }
     if (!hasActivePolicies()) {
-      Alert.alert('No Policies', 'You need at least one policy before you can reform it.');
+      await glassAlert({ title: 'No Policies', message: 'You need at least one policy before you can reform it.' });
       return;
     }
     setSelectedAdvisor(advisor);
@@ -441,12 +441,12 @@ export default function Advisors() {
 
   const handleSendReform = async () => {
     if (!selectedPolicy) {
-      Alert.alert('Error', 'Please select a policy to reform');
+      await glassAlert({ title: 'Error', message: 'Please select a policy to reform' });
       return;
     }
     
     if (!reformInstructions.trim()) {
-      Alert.alert('Instructions Required', 'Please describe how you want the policy changed. Be specific about what you want your advisor to do.');
+      await glassAlert({ title: 'Instructions Required', message: 'Please describe how you want the policy changed. Be specific about what you want your advisor to do.' });
       return;
     }
 
@@ -496,17 +496,17 @@ export default function Advisors() {
           alertMessage += `\n\nEffects: ${effects}`;
         }
         
-        Alert.alert(alertTitle, alertMessage);
+        await glassAlert({ title: alertTitle, message: alertMessage });
         setShowReformModal(false);
         setSelectedPolicy(null);
         setReformInstructions('');
         fetchNation();
       } else {
-        Alert.alert('❌ Error', response.detail || 'Failed to reform policy');
+        await glassAlert({ title: '❌ Error', message: response.detail || 'Failed to reform policy' });
       }
     } catch (error: any) {
       console.error('Error reforming policy:', error);
-      Alert.alert('❌ Error', error.message || 'Failed to reform policy');
+      await glassAlert({ title: '❌ Error', message: error.message || 'Failed to reform policy' });
     } finally {
       setSendingReform(false);
     }
@@ -678,7 +678,7 @@ export default function Advisors() {
                   disabled={!canSendTaskToday()}
                   onPress={() => {
                     if (!canSendTaskToday()) {
-                      Alert.alert('Daily Limit Reached', "Probing trust uses today's advisor task.");
+                      await glassAlert({ title: 'Daily Limit Reached', message: "Probing trust uses today's advisor task." });
                       return;
                     }
                     setShowProbeModal(true);
@@ -752,10 +752,8 @@ export default function Advisors() {
                   const nationId = nation.id || nation._id;
                   const response = await api.probeAdvisorTrust(nationId, a.slot);
                   if (response.success) {
-                    Alert.alert(
-                      a.name,
-                      `Trust ${response.trust_known}/100 today.\n${response.note || ''}`
-                    );
+                    await glassAlert({ title: a.name, message: `Trust ${response.trust_known}/100 today.
+${response.note || ''}` });
                     setTaskUsedToday(true);
                     setNation({
                       ...nation,
@@ -765,10 +763,10 @@ export default function Advisors() {
                     setShowProbeModal(false);
                     fetchNation();
                   } else {
-                    Alert.alert('Failed', response.detail || 'Could not probe');
+                    await glassAlert({ title: 'Failed', message: response.detail || 'Could not probe' });
                   }
                 } catch (e) {
-                  Alert.alert('Error', 'Probe failed');
+                  await glassAlert({ title: 'Error', message: 'Probe failed' });
                 } finally {
                   setProbing(false);
                 }

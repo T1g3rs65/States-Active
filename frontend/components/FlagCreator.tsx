@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Image } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import Svg, { Polygon, Rect, Defs, ClipPath } from 'react-native-svg';
+import { glassAlert, glassConfirm } from './GlassModal';
 
 const COLORS = [
   '#FF5A65', '#F2C94C', '#27D17A', '#00E0C7', '#6366F1', '#00E0C7',
@@ -32,7 +33,7 @@ const getHexagonPoints = (width: number, height: number) => {
   return `${w*0.25},0 ${w*0.75},0 ${w},${h*0.5} ${w*0.75},${h} ${w*0.25},${h} 0,${h*0.5}`;
 };
 
-export default function FlagCreator({ onFlagCreated, race = 'human' }: FlagCreatorProps) {
+export default async function FlagCreator({ onFlagCreated, race = 'human' }: FlagCreatorProps) {
   const [color1, setColor1] = useState('#00E0C7');
   const [color2, setColor2] = useState('#F3F6FA');
   const [color3, setColor3] = useState('#FF5A65');
@@ -44,7 +45,7 @@ export default function FlagCreator({ onFlagCreated, race = 'human' }: FlagCreat
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     
     if (status !== 'granted') {
-      Alert.alert('Permission needed', 'Please grant permission to access photos');
+      await glassAlert({ title: 'Permission needed', message: 'Please grant permission to access photos' });
       return;
     }
 

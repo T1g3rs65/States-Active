@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
-  Alert,
   RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -16,8 +15,9 @@ import { api } from '../utils/api';
 import { useNationStore } from '../store/nationStore';
 import { getRaceTheme } from '../utils/raceColors';
 import ScreenHeader, { HeaderIcon } from '../components/ScreenHeader';
+import { glassAlert, glassConfirm } from '../components/GlassModal';
 
-export default function Notifications() {
+export default async function Notifications() {
   const router = useRouter();
   const { nation } = useNationStore();
   const [warJoinRequests, setWarJoinRequests] = useState<any[]>([]);
@@ -80,13 +80,13 @@ export default function Notifications() {
     try {
       const result = await api.respondToWarJoinRequest(requestId, nationId!, accept);
       if (result.success) {
-        Alert.alert(accept ? 'Joined War!' : 'Declined', result.message);
+        await glassAlert({ title: accept ? 'Joined War!' : 'Declined', message: result.message });
         loadNotifications();
       } else {
-        Alert.alert('Error', result.detail || 'Failed to respond');
+        await glassAlert({ title: 'Error', message: result.detail || 'Failed to respond' });
       }
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to respond');
+      await glassAlert({ title: 'Error', message: error.message || 'Failed to respond' });
     } finally {
       setRespondingTo(null);
     }
@@ -97,16 +97,13 @@ export default function Notifications() {
     try {
       const result = await api.respondToAlliance(requestId, accept);
       if (result.success) {
-        Alert.alert(
-          accept ? 'Pact Formed!' : 'Declined',
-          accept ? `Non-Aggression Pact formed with ${fromName}!` : 'Request declined.'
-        );
+        await glassAlert({ title: accept ? 'Pact Formed!' : 'Declined', message: accept ? `Non-Aggression Pact formed with ${fromName}!` : 'Request declined.' });
         loadNotifications();
       } else {
-        Alert.alert('Error', result.detail || 'Failed to respond');
+        await glassAlert({ title: 'Error', message: result.detail || 'Failed to respond' });
       }
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to respond');
+      await glassAlert({ title: 'Error', message: error.message || 'Failed to respond' });
     } finally {
       setRespondingTo(null);
     }

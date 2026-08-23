@@ -9,7 +9,6 @@ import {
   TextInput,
   Modal,
   ActivityIndicator,
-  Alert,
   Switch,
   Image,
 } from 'react-native';
@@ -26,6 +25,7 @@ import ScreenHeader from '../components/ScreenHeader';
 import LiquidGlass from '../components/LiquidGlass';
 import GradientBorder from '../components/GradientBorder';
 import { leaningColor } from '../utils/politicalCompass';
+import { glassAlert, glassConfirm } from '../components/GlassModal';
 
 interface World {
   id: string;
@@ -80,7 +80,7 @@ function Knob({
   );
 }
 
-export default function WorldBrowserScreen() {
+export default async function WorldBrowserScreen() {
   const router = useRouter();
   const { nation, refreshNation } = useNationStore();
   const nationId = nation?.id || nation?._id;
@@ -128,7 +128,7 @@ export default function WorldBrowserScreen() {
       }
     } catch (error) {
       console.error('Error loading worlds:', error);
-      Alert.alert('Error', 'Failed to load worlds. Please try again.');
+      await glassAlert({ title: 'Error', message: 'Failed to load worlds. Please try again.' });
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -142,7 +142,7 @@ export default function WorldBrowserScreen() {
 
   const handleCreateWorld = async () => {
     if (!newWorldName.trim()) {
-      Alert.alert('Error', 'Please enter a world name');
+      await glassAlert({ title: 'Error', message: 'Please enter a world name' });
       return;
     }
 
@@ -151,7 +151,7 @@ export default function WorldBrowserScreen() {
       .map(([race]) => race);
 
     if (enabledRacesList.length === 0) {
-      Alert.alert('Error', 'Please enable at least one race');
+      await glassAlert({ title: 'Error', message: 'Please enable at least one race' });
       return;
     }
 
@@ -170,16 +170,16 @@ export default function WorldBrowserScreen() {
       });
 
       if (response.success) {
-        Alert.alert('Success', `World "${newWorldName}" created!`);
+        await glassAlert({ title: 'Success', message: `World "${newWorldName}" created!` });
         setShowCreateModal(false);
         resetForm();
         await loadWorlds();
       } else {
-        Alert.alert('Error', response.detail || 'Failed to create world');
+        await glassAlert({ title: 'Error', message: response.detail || 'Failed to create world' });
       }
     } catch (error: any) {
       console.error('Error creating world:', error);
-      Alert.alert('Error', error.message || 'Failed to create world');
+      await glassAlert({ title: 'Error', message: error.message || 'Failed to create world' });
     } finally {
       setCreating(false);
     }
@@ -201,35 +201,36 @@ export default function WorldBrowserScreen() {
     
     // Check if this is the current world
     if (worldId === currentWorldId) {
-      Alert.alert('Info', 'You are already in this world');
+      await glassAlert({ title: 'Already here', message: 'You are already in this world.' });
       return;
     }
     
     // Check if migration is allowed
     if (!world.allows_migration) {
-      Alert.alert('Migration Disabled', 'This world does not allow migration from other worlds.');
+      await glassAlert({ title: 'Migration disabled', message: 'This world does not allow migration from other worlds.' });
       return;
     }
     
     // Check if world is full
     if (world.nation_count >= world.max_players) {
-      Alert.alert('World Full', 'This world has reached its maximum player count.');
+      await glassAlert({ title: 'World full', message: 'This world has reached its maximum player count.' });
       return;
     }
     
     // Check if race is allowed
     const nationRace = nation?.race || 'human';
     if (!world.enabled_races.includes(nationRace)) {
-      Alert.alert('Race Not Allowed', `Your race (${RACE_INFO[nationRace]?.name || nationRace}) is not allowed in this world.`);
+      await glassAlert({ title: 'Race not allowed', message: `Your race (${RACE_INFO[nationRace]?.name || nationRace}) is not allowed in this world.` });
       return;
     }
     
-    const ok =
-      typeof window !== 'undefined'
-        ? window.confirm(
-            `Migrate "${nation?.name}" to "${world.name}"?\n\nYou will lose all territories and pick a new capital.`
-          )
-        : true;
+    const ok = await glassConfirm({
+      title: 'Migrate world?',
+      message: `Migrate "${nation?.name}" to "${world.name}"?\n\nYou will lose all territories and pick a new capital.`,
+      confirmText: 'Migrate',
+      cancelText: 'Cancel',
+      destructive: true,
+    });
     if (!ok) return;
 
     setMigrating(true);
@@ -241,14 +242,10 @@ export default function WorldBrowserScreen() {
         router.replace('/world-map?place=migrate');
         return;
       }
-      const msg = response.detail || 'Migration failed';
-      if (typeof window !== 'undefined') window.alert(msg);
-      else Alert.alert('Error', msg);
+      await glassAlert({ title: 'Migration failed', message: response.detail || 'Migration failed' });
     } catch (error: any) {
       console.error('Error migrating:', error);
-      const msg = error.message || 'Failed to migrate';
-      if (typeof window !== 'undefined') window.alert(msg);
-      else Alert.alert('Error', msg);
+      await glassAlert({ title: 'Migration failed', message: error.message || 'Failed to migrate' });
     } finally {
       setMigrating(false);
     }

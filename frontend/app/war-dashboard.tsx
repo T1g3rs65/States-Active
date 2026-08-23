@@ -5,13 +5,14 @@ import { api } from '../utils/api';
 import ScreenHeader from '../components/ScreenHeader';
 import GradientBorder from '../components/GradientBorder';
 import ScreenCanvas from '../components/ScreenCanvas';
+import { glassAlert, glassConfirm } from '../components/GlassModal';
 
 function leaveWarRoom() {
   if (router.canGoBack()) router.back();
   else router.replace('/(tabs)/advisors');
 }
 
-export default function WarDashboard() {
+export default async function WarDashboard() {
   const { warId, nationId } = useLocalSearchParams();
   const [war, setWar] = useState<any>(null);
   const [participants, setParticipants] = useState<any>(null);
@@ -53,27 +54,8 @@ export default function WarDashboard() {
     }
   };
 
-  const handleSurrender = () => {
-    Alert.alert(
-      'Surrender?',
-      'Are you sure you want to surrender? This will end the war with devastating consequences.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Surrender',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await api.surrenderWar(warId as string, nationId as string);
-              Alert.alert('War Ended', 'You have surrendered.');
-              router.back();
-            } catch (error) {
-              Alert.alert('Error', 'Failed to surrender');
-            }
-          },
-        },
-      ]
-    );
+  const handleSurrender = async () => {
+    await glassAlert({ title: 'Surrender?', message: 'Are you sure you want to surrender? This will end the war with devastating consequences.' });
   };
 
   if (loading) {

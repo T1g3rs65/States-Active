@@ -8,7 +8,6 @@ import {
   ActivityIndicator,
   RefreshControl,
   Image,
-  Alert,
 } from 'react-native';
 import { useRouter , useFocusEffect } from 'expo-router';
 import { api } from '../../utils/api';
@@ -23,6 +22,7 @@ import { TabChrome } from '../../components/ScreenHeader';
 import ScreenCanvas from '../../components/ScreenCanvas';
 import LiquidGlass from '../../components/LiquidGlass';
 import FadeUp from '../../components/FadeUp';
+import { glassAlert, glassConfirm } from '../../components/GlassModal';
 
 interface AllyInfo {
   ally_id: string;
@@ -56,7 +56,7 @@ const EXTREME_CATEGORIES = [
   { key: 'highest_taxes', label: 'Highest Taxes' },
 ];
 
-export default function Rankings() {
+export default async function Rankings() {
   const router = useRouter();
   const { nation } = useNationStore();
   const [selectedCategory, setSelectedCategory] = useState('gdp');
@@ -183,29 +183,11 @@ export default function Rankings() {
     return entry.faction_id === myFactionId;
   };
 
-  const handleDeclareWar = (defenderId: string, defenderName: string) => {
+  const handleDeclareWar = async (defenderId: string, defenderName: string) => {
     console.log('War button clicked!', defenderId, defenderName);
     
     // Direct confirmation without complex alert
-    Alert.alert(
-      '⚔️ Declare War?',
-      `Attack ${defenderName}? Choose reason:`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Ideological',
-          onPress: () => confirmWar(defenderId, defenderName, 'ideological_conflict'),
-        },
-        {
-          text: 'Resources',
-          onPress: () => confirmWar(defenderId, defenderName, 'resource_competition'),
-        },
-        {
-          text: 'Expansion',
-          onPress: () => confirmWar(defenderId, defenderName, 'aggressive_expansion'),
-        },
-      ]
-    );
+    await glassAlert({ title: '⚔️ Declare War?', message: `Attack ${defenderName}? Choose reason:` });
   };
 
   const confirmWar = async (defenderId: string, defenderName: string, casusBelli: string) => {
@@ -213,22 +195,12 @@ export default function Rankings() {
       const response = await api.declareWar(nationId, defenderId, casusBelli);
       
       if (response.success) {
-        Alert.alert(
-          'War Declared!',
-          `You are now at war with ${defenderName}. Check your war dashboard for updates.`,
-          [
-            {
-              text: 'View War Dashboard',
-              onPress: () => router.push(`/war-dashboard?warId=${response.war._id}&nationId=${nationId}`),
-            },
-            { text: 'OK' },
-          ]
-        );
+        await glassAlert({ title: 'War Declared!', message: `You are now at war with ${defenderName}. Check your war dashboard for updates.` });
       } else {
-        Alert.alert('Cannot Declare War', response.message || 'An error occurred');
+        await glassAlert({ title: 'Cannot Declare War', message: response.message || 'An error occurred' });
       }
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to declare war');
+      await glassAlert({ title: 'Error', message: error.message || 'Failed to declare war' });
     }
   };
 
