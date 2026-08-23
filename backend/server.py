@@ -4148,6 +4148,69 @@ async def join_world(world_id: str, request: dict):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@api_router.post("/nations/{nation_id}/relocate-capital")
+async def relocate_capital(nation_id: str, request: dict):
+    """Place a capital after migrating into a world."""
+    from bson import ObjectId
+    try:
+        col = request.get("col")
+        row = request.get("row")
+        if col is None or row is None:
+            raise HTTPException(status_code=400, detail="col and row are required")
+
+        nation = await db.nations.find_one({"_id": ObjectId(nation_id)})
+        if not nation:
+            raise HTTPException(status_code=404, detail="Nation not found")
+        if not nation.get("needs_capital"):
+            raise HTTPException(status_code=400, detail="This nation already has a capital")
+
+        world_id = nation.get("world_id")
+        world = await db.worlds.find_one({"_id": ObjectId(world_id)}) if world_id else None
+        if not world:
+            raise HTTPException(status_code=404, detail="World not found")
+
+        others = []
+        async for n in db.nations.find(
+            {"world_id": world_id, "_id": {"$ne": ObjectId(nation_id)}},
+            {"territory_center_col": 1, "territory_center_row": 1, "stats.population": 1},
+        ):
+            if n.get("territory_center_col") is None:
+                continue
+            others.append((
+                n.get("territory_center_col"),
+                n.get("territory_center_row"),
+                (n.get("stats") or {}).get("population", 50),
+            ))
+
+        err, territory_col, territory_row = validate_capital_site(
+            col, row, world.get("seed", 123456), others
+        )
+        if err:
+            raise HTTPException(status_code=400, detail=err)
+
+        await db.nations.update_one(
+            {"_id": ObjectId(nation_id)},
+            {
+                "$set": {
+                    "territory_center_col": territory_col,
+                    "territory_center_row": territory_row,
+                    "needs_capital": False,
+                    "total_territories": 1,
+                }
+            },
+        )
+        return {
+            "success": True,
+            "col": territory_col,
+            "row": territory_row,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error relocating capital: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @api_router.post("/worlds/{world_id}/migrate")
 async def migrate_to_world(world_id: str, request: dict):
     """Migrate an existing nation to a different world."""
@@ -4202,25 +4265,22 @@ async def migrate_to_world(world_id: str, request: dict):
             row = n.get("territory_center_row", 100)
             existing_positions.add((col, row))
         
-        # Find new position
-        new_col, new_row = find_land_position(
-            existing_positions=existing_positions,
-            seed=world_seed,
-            min_distance=25
-        )
-        
-        # Update nation's world and position
+        # Hold nation in this world with no capital until the player places one
         await db.nations.update_one(
             {"_id": ObjectId(nation_id)},
             {
                 "$set": {
                     "world_id": world_id,
-                    "territory_center_col": new_col,
-                    "territory_center_row": new_row,
-                    "territory_counts": {},  # Reset territory (they'll need to reclaim)
-                    "total_territories": 0
-                }
-            }
+                    "needs_capital": True,
+                    "territory_counts": {},
+                    "total_territories": 0,
+                    "cities": [],
+                },
+                "$unset": {
+                    "territory_center_col": "",
+                    "territory_center_row": "",
+                },
+            },
         )
         
         # Update old world's count (decrease)
@@ -4242,9 +4302,10 @@ async def migrate_to_world(world_id: str, request: dict):
         logger.info(f"Nation {nation_id} ({nation['name']}) migrated from world {old_world_id} to {world_id}")
         
         return {
-            "success": True, 
-            "message": f"Successfully migrated to {target_world['name']}",
-            "new_position": {"col": new_col, "row": new_row}
+            "success": True,
+            "message": f"Successfully migrated to {target_world['name']}. Place your capital.",
+            "needs_capital": True,
+            "world_id": world_id,
         }
     except HTTPException:
         raise

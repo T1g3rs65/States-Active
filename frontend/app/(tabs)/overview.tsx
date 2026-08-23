@@ -21,6 +21,7 @@ import { getRaceTheme } from '../../utils/raceColors';
 import { govTitle } from '../../utils/govCopy';
 import { TabChrome } from '../../components/ScreenHeader';
 import ScreenCanvas from '../../components/ScreenCanvas';
+import GradientBorder from '../../components/GradientBorder';
 
 export default function Overview() {
   const router = useRouter();
@@ -208,12 +209,7 @@ export default function Overview() {
           <RefreshControl refreshing={refreshing} onRefresh={refreshNation} tintColor={themeColor} />
         }
       >
-      <View
-        style={[
-          styles.headerCard,
-          { backgroundColor: leaningWash(nation, 0.10), borderColor: themeColor, borderWidth: 1 },
-        ]}
-      >
+      <GradientBorder tone="compass" speed={5} radius={28} style={styles.headerCard}>
         <View style={styles.headerTop}>
           {nation.flag_base64 && (() => {
             const isSvg = nation.flag_base64.includes('svg');
@@ -250,7 +246,7 @@ export default function Overview() {
           <Text style={[styles.politicalName, { color: politicalTheme.color }]}>{politicalTheme.name}</Text>
           <Text style={styles.politicalDesc}>{politicalTheme.description}</Text>
         </View>
-      </View>
+      </GradientBorder>
 
       <View style={styles.graphTabs}>
         <TouchableOpacity 

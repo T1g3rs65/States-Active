@@ -17,6 +17,8 @@ import { leaningColor } from '../utils/politicalCompass';
 import CompassLineChart, { ChartView } from '../components/CompassLineChart';
 import ScreenHeader from '../components/ScreenHeader';
 import ScreenCanvas from '../components/ScreenCanvas';
+import LiquidGlass from '../components/LiquidGlass';
+import GradientBorder from '../components/GradientBorder';
 
 const { width } = Dimensions.get('window');
 
@@ -129,7 +131,7 @@ export default function StatDetail() {
       <ScreenHeader title={statLabel} subtitle="History" onBack={() => router.push('/(tabs)/overview')} />
 
       <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.currentValueCard}>
+        <GradientBorder tone="compass" speed={6} radius={28} style={styles.currentValueCard}>
           <Text style={styles.currentLabel}>Current Value</Text>
           <View style={styles.currentRow}>
             <Text style={[styles.currentValue, { color: tint }]}>{isGDP ? currentValue : Number(currentValue).toFixed(1)}</Text>
@@ -146,7 +148,7 @@ export default function StatDetail() {
               </View>
             )}
           </View>
-        </View>
+        </GradientBorder>
 
         <View style={styles.periodSelector}>
           {[7, 30, 90, 365].map((days) => (
@@ -182,32 +184,36 @@ export default function StatDetail() {
             <Text style={styles.emptySubtext}>Make more decisions to see trends</Text>
           </View>
         ) : (
-          <View
+          <LiquidGlass
+            radius={24}
             style={styles.chartCard}
-            onLayout={(e) => {
-              const inner = e.nativeEvent.layout.width - 40;
-              if (inner > 80) setChartW(inner);
-            }}
           >
-            <View style={styles.chartHead}>
-              <Text style={styles.chartTitle}>Historical Trend</Text>
-              <View style={styles.viewToggle}>
-                <TouchableOpacity
-                  style={[styles.viewBtn, chartView === 'line' && { backgroundColor: tint }]}
-                  onPress={() => setChartView('line')}
-                >
-                  <Ionicons name="analytics-outline" size={16} color={chartView === 'line' ? '#08090A' : tint} />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.viewBtn, chartView === 'bar' && { backgroundColor: tint }]}
-                  onPress={() => setChartView('bar')}
-                >
-                  <Ionicons name="bar-chart-outline" size={16} color={chartView === 'bar' ? '#08090A' : tint} />
-                </TouchableOpacity>
+            <View
+              onLayout={(e) => {
+                const inner = e.nativeEvent.layout.width - 40;
+                if (inner > 80) setChartW(inner);
+              }}
+            >
+              <View style={styles.chartHead}>
+                <Text style={styles.chartTitle}>Historical Trend</Text>
+                <View style={styles.viewToggle}>
+                  <TouchableOpacity
+                    style={[styles.viewBtn, chartView === 'line' && { backgroundColor: tint }]}
+                    onPress={() => setChartView('line')}
+                  >
+                    <Ionicons name="analytics-outline" size={16} color={chartView === 'line' ? '#08090A' : tint} />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.viewBtn, chartView === 'bar' && { backgroundColor: tint }]}
+                    onPress={() => setChartView('bar')}
+                  >
+                    <Ionicons name="bar-chart-outline" size={16} color={chartView === 'bar' ? '#08090A' : tint} />
+                  </TouchableOpacity>
+                </View>
               </View>
+              <CompassLineChart data={chartData} width={chartW} height={250} color={tint} view={chartView} />
             </View>
-            <CompassLineChart data={chartData} width={chartW} height={250} color={tint} view={chartView} />
-          </View>
+          </LiquidGlass>
         )}
 
         <View style={styles.statsInfo}>
@@ -226,7 +232,7 @@ export default function StatDetail() {
           <View style={styles.statInfoItem}>
             <Text style={styles.statInfoLabel}>Average</Text>
             <Text style={[styles.statInfoValue, { color: tint }]}>
-              {isGDP 
+              {isGDP
                 ? formatGDPValue(historyData.reduce((sum, d) => sum + d.value, 0) / historyData.length || 0)
                 : (historyData.reduce((sum, d) => sum + d.value, 0) / historyData.length || 0).toFixed(1)
               }
@@ -286,12 +292,12 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   currentValueCard: {
-    backgroundColor: '#11171F',
     padding: 24,
-    borderRadius: 16,
     marginBottom: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+  },
+  chartCard: {
+    padding: 20,
+    marginBottom: 16,
   },
   currentLabel: {
     fontSize: 14,
@@ -351,14 +357,6 @@ const styles = StyleSheet.create({
   periodButtonTextActive: {
     color: '#F3F6FA',
   },
-  chartCard: {
-    backgroundColor: '#11171F',
-    padding: 20,
-    borderRadius: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-  },
   chartTitle: {
     fontSize: 18,
     fontWeight: '600',
@@ -391,11 +389,9 @@ const styles = StyleSheet.create({
   },
   statsInfo: {
     flexDirection: 'row',
-    backgroundColor: '#11171F',
+    backgroundColor: 'rgba(255,255,255,0.04)',
     padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 22,
   },
   statInfoItem: {
     flex: 1,

@@ -60,6 +60,55 @@ html, body, #root {
   font-weight: 400;
   letter-spacing: -0.03em;
 }
+
+@property --gradient-angle {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+
+@keyframes gradient-rotate {
+  to { --gradient-angle: 360deg; }
+}
+
+.gradient-border {
+  --gradient-primary: #584827;
+  --gradient-secondary: #c7a03c;
+  --gradient-accent: #f9de90;
+  --bg-color: rgba(0, 0, 0, 0.55);
+  --border-width: 2px;
+  --border-radius: 24px;
+  --animation-duration: 5s;
+  border: var(--border-width) solid transparent;
+  border-radius: var(--border-radius);
+  background-image:
+    linear-gradient(var(--bg-color), var(--bg-color)),
+    conic-gradient(
+      from var(--gradient-angle, 0deg),
+      var(--gradient-primary) 0%,
+      var(--gradient-secondary) 27%,
+      var(--gradient-accent) 30%,
+      var(--gradient-secondary) 33%,
+      var(--gradient-primary) 40%,
+      var(--gradient-primary) 50%,
+      var(--gradient-secondary) 77%,
+      var(--gradient-accent) 80%,
+      var(--gradient-secondary) 83%,
+      var(--gradient-primary) 90%
+    );
+  background-origin: padding-box, border-box;
+  background-clip: padding-box, border-box;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.gradient-border-auto {
+  animation: gradient-rotate var(--animation-duration) linear infinite;
+}
+
+.gradient-border-fast {
+  animation: gradient-rotate 0.8s linear infinite;
+}
 `;
 
 export function hexToRgbTriplet(hex: string): string {

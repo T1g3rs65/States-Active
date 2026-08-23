@@ -388,6 +388,15 @@ export const api = {
     });
     return response.json();
   },
+
+  relocateCapital: async (nationId: string, col: number, row: number) => {
+    const response = await fetch(`${API_URL}/api/nations/${nationId}/relocate-capital`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ col, row }),
+    });
+    return response.json();
+  },
   
   // ============== Nation Migration APIs ==============
   

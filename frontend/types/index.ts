@@ -54,6 +54,7 @@ export interface Nation {
   description: string;
   race?: string;
   world_id?: string;  // Which world this nation belongs to
+  needs_capital?: boolean;
   stats: NationStats;
   stats_history: Array<{
     timestamp: string;

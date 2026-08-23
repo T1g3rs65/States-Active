@@ -14,13 +14,18 @@ import {
   Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { api } from '../utils/api';
 import { useNationStore } from '../store/nationStore';
 import { DEFAULT_TERRAIN, TerrainSettings } from '../utils/worldNoise';
 import { rasterizeWorldPreview } from '../utils/worldPreview';
+import ScreenCanvas from '../components/ScreenCanvas';
+import ScreenHeader from '../components/ScreenHeader';
+import LiquidGlass from '../components/LiquidGlass';
+import GradientBorder from '../components/GradientBorder';
+import { leaningColor } from '../utils/politicalCompass';
 
 interface World {
   id: string;
@@ -232,13 +237,12 @@ export default function WorldBrowserScreen() {
             try {
               const response = await api.migrateToWorld(worldId, nationId);
               if (response.success) {
-                Alert.alert('Success', response.message || 'Migration successful!');
-                // Refresh nation data
+                await AsyncStorage.setItem('selected_world_id', worldId);
                 await refreshNation();
-                await loadWorlds();
-              } else {
-                Alert.alert('Error', response.detail || 'Migration failed');
+                router.replace('/world-map?place=migrate');
+                return;
               }
+              Alert.alert('Error', response.detail || 'Migration failed');
             } catch (error: any) {
               console.error('Error migrating:', error);
               Alert.alert('Error', error.message || 'Failed to migrate');
@@ -265,28 +269,28 @@ export default function WorldBrowserScreen() {
 
   if (loading) {
     return (
-      <LinearGradient colors={['#0B0F14', '#11171F', 'rgba(255,255,255,0.08)']} style={styles.container}>
+      <ScreenCanvas>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#00E0C7" />
+          <ActivityIndicator size="large" color="#F3F6FA" />
           <Text style={styles.loadingText}>Loading worlds...</Text>
         </View>
-      </LinearGradient>
+      </ScreenCanvas>
     );
   }
 
   return (
-    <LinearGradient colors={['#0B0F14', '#11171F', 'rgba(255,255,255,0.08)']} style={styles.container}>
-      <SafeAreaView style={styles.safeArea}>
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color="#00E0C7" />
-          </TouchableOpacity>
-          <Text style={styles.title}>🌍 World Browser</Text>
-          <TouchableOpacity onPress={() => setShowCreateModal(true)} style={styles.createButton}>
-            <Ionicons name="add-circle" size={28} color="#27D17A" />
-          </TouchableOpacity>
-        </View>
+    <ScreenCanvas>
+      <View style={styles.container}>
+        <ScreenHeader
+          title="Worlds"
+          subtitle="Servers"
+          onBack={handleBack}
+          right={
+            <TouchableOpacity onPress={() => setShowCreateModal(true)} style={{ padding: 6 }}>
+              <Ionicons name="add" size={22} color="#F3F6FA" />
+            </TouchableOpacity>
+          }
+        />
 
         {/* Current World Badge */}
         {currentWorld && (
@@ -586,8 +590,8 @@ export default function WorldBrowserScreen() {
             </View>
           </View>
         </Modal>
-      </SafeAreaView>
-    </LinearGradient>
+      </View>
+    </ScreenCanvas>
   );
 }
 
@@ -672,14 +676,13 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   worldCard: {
-    backgroundColor: '#11171F',
-    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderRadius: 22,
     padding: 16,
     marginBottom: 12,
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 2,
-    borderColor: 'transparent',
+    borderWidth: 0,
   },
   worldCardCurrent: {
     borderColor: '#27D17A',

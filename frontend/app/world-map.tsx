@@ -146,6 +146,7 @@ export default function WorldMap() {
     AsyncStorage.getItem('pending_nation').then((raw) => {
       if (raw) setPlacing(true);
     });
+    if (params.place === 'migrate' || params.place === 'relo') setPlacing(true);
   }, []);
 
   // Direct URL /world-map.html is not the game — send them home.
@@ -989,13 +990,25 @@ export default function WorldMap() {
     placingBusy.current = true;
     try {
       const raw = await AsyncStorage.getItem('pending_nation');
-      if (!raw) {
+      const relocating = !raw && (params.place === 'migrate' || params.place === 'relo' || nation?.needs_capital);
+      if (!raw && !relocating) {
         setPlaceError('Go back and finish founding first.');
         placingBusy.current = false;
         return;
       }
-      const pending = JSON.parse(raw);
       setLoading(true);
+      if (relocating) {
+        setLoadingStatus('Planting your capital...');
+        const nid = nation?.id || nation?._id;
+        if (!nid) throw new Error('No nation to relocate');
+        const response = await api.relocateCapital(nid, Math.round(territory.col), Math.round(territory.row));
+        if (!response.success) throw new Error(response.detail || 'Could not plant capital');
+        await saveNation({ ...nation, needs_capital: false, territory_center_col: response.col, territory_center_row: response.row });
+        setPlaceConfirm(null);
+        router.replace('/(tabs)/nation');
+        return;
+      }
+      const pending = JSON.parse(raw as string);
       setLoadingStatus('Founding your nation...');
       const response = await api.createNation(
         pending.userId,

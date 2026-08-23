@@ -3,6 +3,8 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator
 import { router, useLocalSearchParams } from 'expo-router';
 import { api } from '../utils/api';
 import ScreenHeader from '../components/ScreenHeader';
+import GradientBorder from '../components/GradientBorder';
+import ScreenCanvas from '../components/ScreenCanvas';
 
 function leaveWarRoom() {
   if (router.canGoBack()) router.back();
@@ -119,14 +121,13 @@ export default function WarDashboard() {
       />
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-        {/* War Overview */}
-        <View style={styles.card}>
+        <GradientBorder tone="war" speed={0.8} radius={24} style={styles.card}>
           <Text style={styles.cardTitle}>
             {war.attacker_name} vs {war.defender_name}
           </Text>
           <Text style={styles.dayText}>Day {war.day} of War</Text>
           <Text style={styles.caususBelli}>{war.casus_belli.replace(/_/g, ' ').toUpperCase()}</Text>
-        </View>
+        </GradientBorder>
 
         {/* War Score */}
         <View style={styles.card}>

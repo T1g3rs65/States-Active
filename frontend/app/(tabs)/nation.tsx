@@ -24,6 +24,7 @@ import NewsFeed from '../../components/NewsFeed';
 import CollapsibleSection from '../../components/CollapsibleSection';
 import { TabChrome } from '../../components/ScreenHeader';
 import ScreenCanvas from '../../components/ScreenCanvas';
+import GradientBorder from '../../components/GradientBorder';
 
 // Race descriptions
 const RACE_DESCRIPTIONS: Record<string, { description: string; lore: string }> = {
@@ -403,12 +404,7 @@ export default function Nation() {
           <RefreshControl refreshing={refreshing} onRefresh={refreshNation} tintColor={themeColor} />
         }
       >
-      <View
-        style={[
-          styles.headerCard,
-          { backgroundColor: leaningWash(nation, 0.10), borderColor: themeColor, borderWidth: 1 },
-        ]}
-      >
+      <GradientBorder tone="compass" speed={5} radius={28} style={styles.headerCard}>
         {renderFlag()}
         <Text style={styles.nationName}>{nation.name}</Text>
         <TouchableOpacity onPress={showRaceInfo} style={styles.raceRow} activeOpacity={0.7}>
@@ -423,7 +419,7 @@ export default function Nation() {
         {nation.motto && (
           <Text style={styles.motto}>{'\u201c'}{nation.motto}{'\u201d'}</Text>
         )}
-      </View>
+      </GradientBorder>
 
       <View style={styles.actionButtons}>
         <TouchableOpacity
@@ -487,7 +483,9 @@ export default function Nation() {
       </CollapsibleSection>
 
       <CollapsibleSection title="Global News Feed">
-        <NewsFeed themeColor={themeColor} />
+        <GradientBorder tone="compass" speed={6} radius={22}>
+          <NewsFeed themeColor={themeColor} />
+        </GradientBorder>
       </CollapsibleSection>
 
       <Text style={styles.footerText}>SovereignHex v1.0.0</Text>
