@@ -19,6 +19,7 @@ import { getRaceTheme } from '../../utils/raceColors';
 import { leaningColor } from '../../utils/politicalCompass';
 import { TabChrome } from '../../components/ScreenHeader';
 import ScreenCanvas from '../../components/ScreenCanvas';
+import FadeUp from '../../components/FadeUp';
 import {
   RESOURCES,
   RESOURCE_BY_ID,
@@ -31,13 +32,19 @@ import {
 
 export default function Industry() {
   const router = useRouter();
-  const { nation, setNation } = useNationStore();
+  const { nation, setNation, recoverNation } = useNationStore();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [industryStats, setIndustryStats] = useState<NationIndustryStats | null>(null);
   const [selectedTab, setSelectedTab] = useState<'overview' | 'resources' | 'leaderboard'>('overview');
   const [leaderboardData, setLeaderboardData] = useState<any[]>([]);
   const [notificationCount, setNotificationCount] = useState(0);
+  const [visit, setVisit] = useState(0);
+  useFocusEffect(
+    useCallback(() => {
+      setVisit((v) => v + 1);
+    }, [])
+  );
 
   // Get race-based theme color
   const raceTheme = getRaceTheme(nation?.race);
@@ -415,6 +422,7 @@ export default function Industry() {
     <View style={styles.container}>
       <TabChrome title="Industry" subtitle="Output" badge={notificationCount} />
 
+      <FadeUp key={`industry-${visit}`}>
       {/* Tab Selector */}
       <View style={styles.tabContainer}>
         <TouchableOpacity
@@ -475,6 +483,7 @@ export default function Industry() {
 
         <View style={{ height: 100 }} />
       </ScrollView>
+      </FadeUp>
     </View>
     </ScreenCanvas>
   );

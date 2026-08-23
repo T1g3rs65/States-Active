@@ -237,7 +237,7 @@ const getLeaderTitle = (race: string | undefined, governmentType: string, leader
 
 export default function Nation() {
   const router = useRouter();
-  const { nation, setNation } = useNationStore();
+  const { nation, setNation, recoverNation } = useNationStore();
   const [showFullDescription, setShowFullDescription] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [regeneratingDescription, setRegeneratingDescription] = useState(false);

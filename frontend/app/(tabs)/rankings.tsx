@@ -22,6 +22,7 @@ import { govTitle } from '../../utils/govCopy';
 import { TabChrome } from '../../components/ScreenHeader';
 import ScreenCanvas from '../../components/ScreenCanvas';
 import LiquidGlass from '../../components/LiquidGlass';
+import FadeUp from '../../components/FadeUp';
 
 interface AllyInfo {
   ally_id: string;
@@ -66,6 +67,12 @@ export default function Rankings() {
   const [refreshing, setRefreshing] = useState(false);
   const [viewMode, setViewMode] = useState<'standard' | 'extreme'>('standard');
   const [notificationCount, setNotificationCount] = useState(0);
+  const [visit, setVisit] = useState(0);
+  useFocusEffect(
+    useCallback(() => {
+      setVisit((v) => v + 1);
+    }, [])
+  );
   
   // Get dynamic theme color
   // Get race-based theme color for own nation
@@ -251,6 +258,7 @@ export default function Rankings() {
     <View style={styles.container}>
       <TabChrome title="Rankings" subtitle="Who is on top" badge={notificationCount} />
 
+      <FadeUp key={`ranks-${visit}`}>
       <View style={styles.categoryHeader}>
         <LiquidGlass radius={999} style={styles.modeSelector}>
           <TouchableOpacity
@@ -375,7 +383,7 @@ export default function Rankings() {
             </View>
           )}
         </ScrollView>
-      )}
+      )}</FadeUp>
     </View>
     </ScreenCanvas>
   );

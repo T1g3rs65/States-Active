@@ -1,0 +1,32 @@
+GH-90: reload "No nation found" — Zera lead
+
+Status: review (reviewer:critic / Parez)
+
+Date: 2026-08-23
+
+Changes:
+- frontend/store/nationStore.ts: setNation now persists every write to AsyncStorage. Added recoverNation() that tries local 'nation' cache then user_id from AsyncStorage → GET /api/nations/user/{user_id} and hydrates store.
+- frontend/app/index.tsx: checkForNation now does explicit user_id API + recoverNation() recovery before showing landing or looping. Handles cached nation + API miss gracefully.
+- Tab screens (nation, overview, issues, advisors, industry, rankings): destructure recoverNation; added useEffect on mount: if (!nation?.id && !nation?._id) useNationStore.getState().recoverNation?.();
+- frontend/app/_layout.tsx: APP_BUILD = '22b'
+- frontend/dist/build.json: {"id":"22b"} (kept in sync to prevent stale-bundle reload loop on hard refresh)
+
+AC met:
+- Hard refresh restores nation on any main tab (persist + rehydrate + deep route guards)
+- build bump + matching dist/build.json
+- No @react-navigation/native import
+- progress-writer --issue 90 ticked
+- review requested to critic
+
+Verification:
+- Source grep confirmed recover paths and persist comment.
+- dist/build.json present and matches APP_BUILD.
+- Card comments + lead ack posted.
+- review_requested event recorded.
+
+Deliverables:
+- All code changes
+- dist/build.json (22b)
+- This evidence file
+
+Task handed to Parez critic per packet. CoS will monitor.

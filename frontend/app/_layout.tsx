@@ -2,8 +2,9 @@ import { Slot } from 'expo-router';
 import { useEffect } from 'react';
 import { View, StyleSheet } from 'react-native';
 import Grain from '../components/Grain';
+import { GlassModalHost } from '../components/GlassModal';
 
-export const APP_BUILD = '22a';
+export const APP_BUILD = '22c';
 
 export default function RootLayout() {
   useEffect(() => {
@@ -32,6 +33,7 @@ export default function RootLayout() {
     <View style={styles.root}>
       <Slot />
       <Grain />
+      <GlassModalHost />
     </View>
   );
 }

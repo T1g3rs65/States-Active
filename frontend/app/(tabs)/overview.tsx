@@ -22,13 +22,20 @@ import { govTitle } from '../../utils/govCopy';
 import { TabChrome } from '../../components/ScreenHeader';
 import ScreenCanvas from '../../components/ScreenCanvas';
 import GradientBorder from '../../components/GradientBorder';
+import FadeUp from '../../components/FadeUp';
 
 export default function Overview() {
   const router = useRouter();
-  const { nation, setNation } = useNationStore();
+  const { nation, setNation, recoverNation } = useNationStore();
   const [refreshing, setRefreshing] = useState(false);
   const [selectedGraph, setSelectedGraph] = useState('government');
   const [notificationCount, setNotificationCount] = useState(0);
+  const [visit, setVisit] = useState(0);
+  useFocusEffect(
+    useCallback(() => {
+      setVisit((v) => v + 1);
+    }, [])
+  );
   
   // Get race-based theme color for UI
   const raceTheme = getRaceTheme(nation?.race);
@@ -209,6 +216,7 @@ export default function Overview() {
           <RefreshControl refreshing={refreshing} onRefresh={refreshNation} tintColor={themeColor} />
         }
       >
+      <FadeUp key={`stats-${visit}`}>
       <GradientBorder tone="compass" speed={5} radius={28} style={styles.headerCard}>
         <View style={styles.headerTop}>
           {nation.flag_base64 && (() => {
@@ -578,6 +586,7 @@ export default function Overview() {
           }
         </View>
       </View>
+      </FadeUp>
     </ScrollView>
     </View>
     </ScreenCanvas>

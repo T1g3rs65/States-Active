@@ -108,7 +108,7 @@ function utcTaskUsed(advisors?: any[]) {
 }
 
 export default function Advisors() {
-  const { nation, setNation } = useNationStore();
+  const { nation, setNation, recoverNation } = useNationStore();
   const router = useRouter();
   const [visit, setVisit] = useState(0);
   useFocusEffect(

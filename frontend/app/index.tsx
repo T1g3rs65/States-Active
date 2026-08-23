@@ -93,7 +93,22 @@ export default function Index() {
     try {
       await loadNation();
       const savedUserId = await AsyncStorage.getItem('user_id');
-      const cached = useNationStore.getState().nation;
+      let cached = useNationStore.getState().nation;
+
+      // GH-90: recover nation on hard refresh / deep link when store starts empty
+      if ((!cached?.id && !cached?._id) && savedUserId) {
+        try {
+          const r = await api.getNationByUser(savedUserId);
+          if (r.success && r.nation) {
+            await enterNation(r.nation);
+            return;
+          }
+        } catch (_) {}
+      }
+      if (!cached?.id && !cached?._id) {
+        const recovered = await useNationStore.getState().recoverNation?.();
+        if (recovered) cached = useNationStore.getState().nation;
+      }
 
       if (savedUserId) {
         const response = await api.getNationByUser(savedUserId);

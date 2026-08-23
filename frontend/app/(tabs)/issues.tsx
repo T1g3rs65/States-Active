@@ -21,10 +21,11 @@ import { colors, typography, spacing, radii } from '../../utils/theme';
 import { TabChrome } from '../../components/ScreenHeader';
 import ScreenCanvas from '../../components/ScreenCanvas';
 import LiquidGlass from '../../components/LiquidGlass';
+import FadeUp from '../../components/FadeUp';
 
 export default function Issues() {
   const router = useRouter();
-  const { nation, setNation, issues, setIssues } = useNationStore();
+  const { nation, setNation, recoverNation, issues, setIssues } = useNationStore();
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null);
@@ -37,6 +38,12 @@ export default function Issues() {
   const [atCap, setAtCap] = useState(false);
   const [notificationCount, setNotificationCount] = useState(0);
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [visit, setVisit] = useState(0);
+  useFocusEffect(
+    useCallback(() => {
+      setVisit((v) => v + 1);
+    }, [])
+  );
 
   // Get race-based theme color
   const raceTheme = getRaceTheme(nation?.race);
@@ -231,6 +238,7 @@ export default function Issues() {
     <ScreenCanvas>
     <View style={styles.container}>
       {renderHeader()}
+      <FadeUp key={`issues-${visit}`}>
       {renderContent()}
       
       {!loading && issues.length > 0 && (
@@ -267,6 +275,7 @@ export default function Issues() {
         ))}
       </ScrollView>
       )}
+      </FadeUp>
       
       {selectedIssue && (
       <Modal visible={!!selectedIssue} animationType="slide" onRequestClose={() => setSelectedIssue(null)}>
