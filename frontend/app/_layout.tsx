@@ -4,7 +4,7 @@ import { View, StyleSheet } from 'react-native';
 import Grain from '../components/Grain';
 import { GlassModalHost } from '../components/GlassModal';
 
-export const APP_BUILD = '22c';
+export const APP_BUILD = '22d';
 
 export default function RootLayout() {
   useEffect(() => {

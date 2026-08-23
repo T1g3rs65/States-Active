@@ -5,17 +5,18 @@ import {
   StyleSheet,
   TouchableOpacity,
   TextInput,
-  Alert,
   Animated,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNationStore } from '../store/nationStore';
 import { api } from '../utils/api';
 import { colors, typography, spacing, radii } from '../utils/theme';
 import StatusDots from '../components/StatusDots';
+import ScreenCanvas from '../components/ScreenCanvas';
+import LiquidGlass from '../components/LiquidGlass';
+import { glassAlert } from '../components/GlassModal';
 
 const LOADING_NOTES = [
   'Checking saved nation...',
@@ -144,7 +145,7 @@ export default function Index() {
 
   const handleLogin = async () => {
     if (!userId.trim()) {
-      Alert.alert('Error', 'Please enter a User ID');
+      await glassAlert({ title: 'User ID needed', message: 'Enter your User ID to continue.' });
       return;
     }
 
@@ -155,92 +156,102 @@ export default function Index() {
         await AsyncStorage.setItem('user_id', userId.trim());
         await enterNation(response.nation);
       } else {
-        Alert.alert('Not Found', 'No nation found with this User ID');
+        await glassAlert({ title: 'Not found', message: 'No nation found with this User ID.' });
         setChecking(false);
       }
     } catch (error) {
       console.error('Error logging in:', error);
-      Alert.alert('Error', 'Failed to login. Please try again.');
+      await glassAlert({ title: 'Login failed', message: 'Could not reach the server. Try again.' });
       setChecking(false);
     }
   };
 
   if (checking) {
     return (
-      <View style={styles.container}>
-        <StatusDots status={LOADING_NOTES[loadingNoteIndex]} color={colors.accent.primary} />
-        <View style={styles.progressTrack}>
-          <Animated.View
-            style={[
-              styles.progressFill,
-              {
-                width: progress.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: ['0%', '100%'],
-                }),
-              },
-            ]}
-          />
+      <ScreenCanvas>
+        <View style={styles.container}>
+          <StatusDots status={LOADING_NOTES[loadingNoteIndex]} color={colors.accent.primary} />
+          <View style={styles.progressTrack}>
+            <Animated.View
+              style={[
+                styles.progressFill,
+                {
+                  width: progress.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: ['0%', '100%'],
+                  }),
+                },
+              ]}
+            />
+          </View>
         </View>
-      </View>
+      </ScreenCanvas>
     );
   }
 
   if (showLogin) {
     return (
-      <LinearGradient colors={landingGradient} style={styles.container}>
-        <View style={styles.content}>
-          <Text style={styles.title}>Welcome Back</Text>
-          <Text style={styles.subtitle}>Login to Your Nation</Text>
+      <ScreenCanvas>
+        <View style={styles.container}>
+          <LiquidGlass radius={28} style={styles.panel}>
+            <Text style={styles.title}>Welcome back</Text>
+            <Text style={styles.subtitle}>Sign in with your User ID</Text>
 
-          <View style={styles.loginForm}>
             <Text style={styles.label}>User ID</Text>
             <TextInput
               style={styles.input}
               value={userId}
               onChangeText={setUserId}
               placeholder="Enter your User ID"
-              placeholderTextColor={colors.text.muted}
+              placeholderTextColor="rgba(243,246,250,0.35)"
               autoCapitalize="none"
             />
 
-            <TouchableOpacity style={styles.button} onPress={handleLogin}>
+            <TouchableOpacity style={styles.button} onPress={handleLogin} activeOpacity={0.88}>
               <Text style={styles.buttonText}>Login</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.backButton} onPress={() => setShowLogin(false)}>
-              <Text style={styles.backButtonText}>Back</Text>
+            <TouchableOpacity style={styles.secondaryButton} onPress={() => setShowLogin(false)}>
+              <Text style={styles.secondaryButtonText}>Back</Text>
             </TouchableOpacity>
-          </View>
+          </LiquidGlass>
         </View>
-      </LinearGradient>
+      </ScreenCanvas>
     );
   }
 
   return (
-    <LinearGradient colors={landingGradient} style={styles.container}>
-      <View style={styles.content}>
-        <WorldPreview />
+    <ScreenCanvas>
+      <View style={styles.container}>
+        <LiquidGlass radius={32} style={styles.panel}>
+          <WorldPreview />
 
-        <Text style={styles.title}>A World Awaits</Text>
-        <Text style={styles.subtitle}>Claim your nation. Shape its fate.</Text>
+          <Text
+            // @ts-expect-error web
+            className="asme-title"
+            style={styles.title}
+          >
+            A World Awaits
+          </Text>
+          <Text style={styles.subtitle}>Claim your nation. Shape its fate.</Text>
 
-        <View style={styles.featuresContainer}>
-          <FeatureItem icon="earth" text="Create a unique nation" />
-          <FeatureItem icon="flame" text="Face daily dilemmas" />
-          <FeatureItem icon="stats-chart" text="Track national power" />
-          <FeatureItem icon="trophy" text="Rise in global rankings" />
-        </View>
+          <View style={styles.featuresContainer}>
+            <FeatureItem icon="earth" text="Create a unique nation" />
+            <FeatureItem icon="flame" text="Face daily dilemmas" />
+            <FeatureItem icon="stats-chart" text="Track national power" />
+            <FeatureItem icon="trophy" text="Rise in global rankings" />
+          </View>
 
-        <TouchableOpacity style={styles.button} onPress={startQuiz}>
-          <Text style={styles.buttonText}>Begin Your Legacy</Text>
-        </TouchableOpacity>
+          <TouchableOpacity style={styles.button} onPress={startQuiz} activeOpacity={0.88}>
+            <Text style={styles.buttonText}>Begin Your Legacy</Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity style={styles.secondaryButton} onPress={() => setShowLogin(true)}>
-          <Text style={styles.secondaryButtonText}>Login to Existing Nation</Text>
-        </TouchableOpacity>
+          <TouchableOpacity style={styles.secondaryButton} onPress={() => setShowLogin(true)}>
+            <Text style={styles.secondaryButtonText}>Login to Existing Nation</Text>
+          </TouchableOpacity>
+        </LiquidGlass>
       </View>
-    </LinearGradient>
+    </ScreenCanvas>
   );
 }
 
@@ -260,30 +271,31 @@ function WorldPreview() {
 function FeatureItem({ icon, text }: { icon: keyof typeof Ionicons.glyphMap; text: string }) {
   return (
     <View style={styles.featureItem}>
-      <Ionicons name={icon} size={22} color={colors.accent.primary} style={styles.featureIcon} />
+      <Ionicons name={icon} size={18} color="rgba(243,246,250,0.85)" style={styles.featureIcon} />
       <Text style={styles.featureText}>{text}</Text>
     </View>
   );
 }
-
-const landingGradient: readonly [string, string] = [colors.background, colors.background];
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: colors.background,
+    backgroundColor: 'transparent',
+    paddingHorizontal: 20,
   },
-  content: {
-    width: '88%',
-    maxWidth: 360,
+  panel: {
+    width: '100%',
+    maxWidth: 400,
+    paddingVertical: 28,
+    paddingHorizontal: 24,
     alignItems: 'center',
   },
   previewWrap: {
     width: 160,
     height: 100,
-    marginBottom: spacing.xl,
+    marginBottom: spacing.lg,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -291,7 +303,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     borderRadius: radii.pill,
     borderWidth: 1,
-    borderColor: colors.glass.border,
+    borderColor: 'rgba(255,255,255,0.12)',
   },
   previewOrbLeft: {
     width: 56,
@@ -306,7 +318,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 1,
-    opacity: 0.9,
+    opacity: 0.95,
   },
   previewOrbRight: {
     width: 56,
@@ -321,111 +333,101 @@ const styles = StyleSheet.create({
     height: 30,
     bottom: -8,
     borderRadius: radii.pill,
-    backgroundColor: colors.accent.glow,
-    opacity: 0.25,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    opacity: 0.35,
     zIndex: 0,
   },
   title: {
-    ...typography.display,
-    color: colors.text.primary,
+    fontSize: 32,
+    fontWeight: '500',
+    color: '#F3F6FA',
     marginBottom: spacing.sm,
     textAlign: 'center',
+    letterSpacing: -0.6,
   },
   subtitle: {
-    ...typography.body,
-    color: colors.text.muted,
-    marginBottom: spacing.xl,
+    fontSize: 15,
+    color: 'rgba(243,246,250,0.65)',
+    marginBottom: spacing.lg,
     textAlign: 'center',
+    lineHeight: 22,
   },
   featuresContainer: {
     width: '100%',
+    gap: 10,
     marginBottom: spacing.xl,
-    gap: spacing.md,
   },
   featureItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    backgroundColor: colors.glass.base,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderRadius: 14,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
     borderWidth: 1,
-    borderColor: colors.glass.border,
-    borderRadius: radii.md,
+    borderColor: 'rgba(255,255,255,0.06)',
   },
   featureIcon: {
-    marginRight: spacing.md,
+    marginRight: 10,
   },
   featureText: {
-    ...typography.body,
-    color: colors.text.primary,
-  },
-  button: {
-    backgroundColor: colors.accent.primary,
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.md,
-    borderRadius: radii.md,
-    width: '100%',
-    alignItems: 'center',
-  },
-  buttonText: {
-    ...typography.headline,
-    color: colors.background,
-    letterSpacing: 0.3,
-  },
-  secondaryButton: {
-    marginTop: spacing.md,
-    paddingVertical: spacing.md,
-    width: '100%',
-    alignItems: 'center',
-  },
-  secondaryButtonText: {
-    ...typography.body,
-    color: colors.accent.primary,
+    color: 'rgba(243,246,250,0.88)',
+    fontSize: 14,
     fontWeight: '500',
   },
-  loaderBig: {
-    transform: [{ scale: 1.8 }],
+  label: {
+    alignSelf: 'flex-start',
+    color: 'rgba(243,246,250,0.7)',
+    fontSize: 13,
+    marginBottom: 8,
+    fontWeight: '600',
   },
-  loadingNote: {
-    marginTop: spacing.xl,
-    ...typography.headline,
-    color: colors.text.secondary,
+  input: {
+    width: '100%',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    color: '#F3F6FA',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginBottom: 16,
+    fontSize: 15,
+  },
+  button: {
+    width: '100%',
+    borderRadius: 999,
+    backgroundColor: '#F3F6FA',
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  buttonText: {
+    color: '#000',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  secondaryButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+  },
+  secondaryButtonText: {
+    color: 'rgba(243,246,250,0.72)',
+    fontSize: 14,
+    fontWeight: '500',
   },
   progressTrack: {
-    width: 200,
+    width: '70%',
+    maxWidth: 280,
     height: 4,
-    marginTop: spacing.md,
-    backgroundColor: colors.glass.base,
-    borderRadius: radii.pill,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    marginTop: 28,
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
-    backgroundColor: colors.accent.primary,
-  },
-  loginForm: {
-    width: '100%',
-    gap: spacing.md,
-  },
-  label: {
-    ...typography.label,
-    color: colors.text.secondary,
-  },
-  input: {
-    backgroundColor: colors.surfaceSolid,
-    borderWidth: 1,
-    borderColor: colors.glass.border,
-    borderRadius: radii.md,
-    padding: spacing.md,
-    ...typography.body,
-    color: colors.text.primary,
-  },
-  backButton: {
-    paddingVertical: spacing.sm,
-    alignItems: 'center',
-  },
-  backButtonText: {
-    ...typography.body,
-    color: colors.text.muted,
+    backgroundColor: 'rgba(243,246,250,0.7)',
+    borderRadius: 999,
   },
 });

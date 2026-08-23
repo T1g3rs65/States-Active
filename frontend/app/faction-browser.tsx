@@ -20,6 +20,8 @@ import { api } from '../utils/api';
 import { useNationStore } from '../store/nationStore';
 import { getRaceTheme } from '../utils/raceColors';
 import { leaningColor } from '../utils/politicalCompass';
+import EmptyNation from '../components/EmptyNation';
+import { glassAlert, glassConfirm } from '../components/GlassModal';
 
 interface AllianceMember {
   nation_id: string;
@@ -599,11 +601,7 @@ export default function AllianceBrowserScreen() {
   };
 
   if (!nation) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <Text style={styles.errorText}>No nation found</Text>
-      </SafeAreaView>
-    );
+    return <EmptyNation />;
   }
 
   return (

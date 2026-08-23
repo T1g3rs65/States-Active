@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   Modal,
   View,
@@ -8,6 +8,7 @@ import {
   Dimensions,
   Platform,
   KeyboardAvoidingView,
+  Pressable,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import LiquidGlass from './LiquidGlass';
@@ -15,7 +16,7 @@ import { leaningColor } from '../utils/politicalCompass';
 import { useNationStore } from '../store/nationStore';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
-const IS_WIDE = SCREEN_WIDTH > 768;
+const IS_WIDE = SCREEN_WIDTH > 720;
 
 type GlassModalProps = {
   open: boolean;
@@ -24,7 +25,6 @@ type GlassModalProps = {
   description?: string;
   children?: React.ReactNode;
   footer?: React.ReactNode;
-  /** If true, shows destructive (red) accent on confirm action area */
   destructive?: boolean;
 };
 
@@ -40,7 +40,6 @@ export function GlassModal({
   const insets = useSafeAreaInsets();
   const nation = useNationStore((s) => s.nation);
   const tint = leaningColor(nation);
-
   const isBottomSheet = !IS_WIDE;
 
   const handleClose = useCallback(() => {
@@ -57,62 +56,53 @@ export function GlassModal({
     >
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={styles.overlay}
+        style={[styles.overlay, isBottomSheet && styles.overlayBottom]}
       >
-        {/* Dim backdrop */}
-        <TouchableOpacity
-          style={styles.backdrop}
-          activeOpacity={1}
-          onPress={handleClose}
-        />
+        <Pressable style={styles.backdrop} onPress={handleClose} />
 
         <View
           style={[
             styles.contentWrap,
             isBottomSheet
               ? {
-                  paddingBottom: Math.max(insets.bottom, 12),
+                  paddingBottom: Math.max(insets.bottom, 16),
                   maxHeight: SCREEN_HEIGHT * 0.82,
+                  width: '100%',
                 }
               : { maxWidth: 420, width: '92%', alignSelf: 'center' },
           ]}
+          pointerEvents="box-none"
         >
           <LiquidGlass
-            radius={isBottomSheet ? 20 : 18}
+            radius={isBottomSheet ? 28 : 24}
             style={[
               styles.glass,
               isBottomSheet ? styles.bottomSheet : styles.centered,
-              { borderColor: tint + '55' },
             ]}
             padded={false}
           >
-            {/* Drag handle (mobile only) */}
+            {/* Compass accent line */}
+            <View style={[styles.accent, { backgroundColor: destructive ? '#FF5A65' : tint }]} />
+
             {isBottomSheet && <View style={styles.dragHandle} />}
 
-            {/* Header */}
             {(title || description) && (
               <View style={styles.header}>
-                {title && (
+                {title ? (
                   <Text
-                    style={[
-                      styles.title,
-                      { color: destructive ? '#FF5A65' : '#F3F6FA' },
-                    ]}
+                    // @ts-expect-error web className
+                    className="asme-title"
+                    style={[styles.title, destructive && { color: '#FF8A92' }]}
                   >
                     {title}
                   </Text>
-                )}
-                {description && (
-                  <Text style={styles.description}>{description}</Text>
-                )}
+                ) : null}
+                {description ? <Text style={styles.description}>{description}</Text> : null}
               </View>
             )}
 
-            {/* Body */}
-            {children && <View style={styles.body}>{children}</View>}
-
-            {/* Footer / Actions */}
-            {footer && <View style={styles.footer}>{footer}</View>}
+            {children ? <View style={styles.body}>{children}</View> : null}
+            {footer ? <View style={styles.footer}>{footer}</View> : null}
           </LiquidGlass>
         </View>
       </KeyboardAvoidingView>
@@ -120,7 +110,6 @@ export function GlassModal({
   );
 }
 
-// Imperative API state holder (singleton)
 type ConfirmOptions = {
   title: string;
   message: string;
@@ -136,58 +125,58 @@ type AlertOptions = {
 
 let confirmResolver: ((value: boolean) => void) | null = null;
 let alertResolver: (() => void) | null = null;
+let hostReady = false;
+const pending: Array<() => void> = [];
+
+function emit(name: string, detail: unknown) {
+  const run = () => {
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent(name, { detail }));
+    }
+  };
+  if (hostReady) run();
+  else pending.push(run);
+}
 
 export function glassConfirm(opts: ConfirmOptions): Promise<boolean> {
   return new Promise((resolve) => {
     confirmResolver = resolve;
-    // Dispatch to host via global event (host listens)
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(
-        new CustomEvent('glass:confirm', { detail: opts })
-      );
-    } else {
-      // Native: fall back to RN Alert if host not mounted (should never happen in prod)
-      // eslint-disable-next-line no-alert
-      const ok = confirm(opts.message); // web only path actually
-      resolve(ok);
-    }
+    emit('glass:confirm', opts);
   });
 }
 
 export function glassAlert(opts: AlertOptions): Promise<void> {
   return new Promise((resolve) => {
     alertResolver = resolve;
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('glass:alert', { detail: opts }));
-    } else {
-      // eslint-disable-next-line no-alert
-      alert(opts.message);
-      resolve();
-    }
+    emit('glass:alert', opts);
   });
 }
 
-// Host component — mount once near root
 export function GlassModalHost() {
   const [confirmState, setConfirmState] = useState<ConfirmOptions | null>(null);
   const [alertState, setAlertState] = useState<AlertOptions | null>(null);
+  const nation = useNationStore((s) => s.nation);
+  const tint = leaningColor(nation);
 
-  React.useEffect(() => {
+  useEffect(() => {
+    hostReady = true;
+    while (pending.length) pending.shift()?.();
     const onConfirm = (e: Event) => {
-      const detail = (e as CustomEvent).detail as ConfirmOptions;
-      setConfirmState(detail);
+      setConfirmState((e as CustomEvent).detail as ConfirmOptions);
     };
     const onAlert = (e: Event) => {
-      const detail = (e as CustomEvent).detail as AlertOptions;
-      setAlertState(detail);
+      setAlertState((e as CustomEvent).detail as AlertOptions);
     };
-
-    window.addEventListener('glass:confirm', onConfirm);
-    window.addEventListener('glass:alert', onAlert);
-
+    if (typeof window !== 'undefined') {
+      window.addEventListener('glass:confirm', onConfirm);
+      window.addEventListener('glass:alert', onAlert);
+    }
     return () => {
-      window.removeEventListener('glass:confirm', onConfirm);
-      window.removeEventListener('glass:alert', onAlert);
+      hostReady = false;
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('glass:confirm', onConfirm);
+        window.removeEventListener('glass:alert', onAlert);
+      }
     };
   }, []);
 
@@ -219,23 +208,22 @@ export function GlassModalHost() {
           <View style={styles.actionsRow}>
             <TouchableOpacity
               onPress={() => closeConfirm(false)}
-              style={styles.actionBtn}
+              style={styles.ghostBtn}
+              activeOpacity={0.85}
             >
-              <Text style={styles.cancelText}>
-                {confirmState?.cancelText || 'Cancel'}
-              </Text>
+              <Text style={styles.ghostText}>{confirmState?.cancelText || 'Cancel'}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => closeConfirm(true)}
               style={[
-                styles.actionBtn,
-                styles.confirmBtn,
-                confirmState?.destructive && { backgroundColor: '#FF5A65' },
+                styles.solidBtn,
+                {
+                  backgroundColor: confirmState?.destructive ? '#FF5A65' : tint,
+                },
               ]}
+              activeOpacity={0.88}
             >
-              <Text style={styles.confirmText}>
-                {confirmState?.confirmText || 'Confirm'}
-              </Text>
+              <Text style={styles.solidText}>{confirmState?.confirmText || 'Confirm'}</Text>
             </TouchableOpacity>
           </View>
         }
@@ -249,9 +237,10 @@ export function GlassModalHost() {
         footer={
           <TouchableOpacity
             onPress={closeAlert}
-            style={[styles.actionBtn, styles.singleBtn]}
+            style={[styles.solidBtn, styles.singleBtn, { backgroundColor: tint }]}
+            activeOpacity={0.88}
           >
-            <Text style={styles.confirmText}>OK</Text>
+            <Text style={styles.solidText}>OK</Text>
           </TouchableOpacity>
         }
       />
@@ -263,86 +252,107 @@ const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     justifyContent: 'center',
-    backgroundColor: 'rgba(0,0,0,0.55)',
+    backgroundColor: 'rgba(0,0,0,0.62)',
+  },
+  overlayBottom: {
+    justifyContent: 'flex-end',
   },
   backdrop: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
+    ...(Platform.OS === 'web' ? ({ backdropFilter: 'blur(6px)' } as object) : null),
   },
   contentWrap: {
     paddingHorizontal: 16,
-    paddingTop: 40,
+    zIndex: 2,
   },
   glass: {
     overflow: 'hidden',
   },
   centered: {
-    padding: 20,
+    padding: 22,
+    paddingTop: 20,
   },
   bottomSheet: {
-    paddingTop: 8,
-    paddingHorizontal: 16,
-    paddingBottom: 16,
+    paddingTop: 10,
+    paddingHorizontal: 18,
+    paddingBottom: 18,
     borderBottomLeftRadius: 0,
     borderBottomRightRadius: 0,
   },
+  accent: {
+    position: 'absolute',
+    top: 0,
+    left: 28,
+    right: 28,
+    height: 2,
+    borderRadius: 2,
+    opacity: 0.9,
+  },
   dragHandle: {
-    width: 36,
+    width: 40,
     height: 4,
-    backgroundColor: 'rgba(255,255,255,0.25)',
+    backgroundColor: 'rgba(255,255,255,0.28)',
     borderRadius: 2,
     alignSelf: 'center',
-    marginBottom: 12,
+    marginBottom: 14,
+    marginTop: 4,
   },
   header: {
-    marginBottom: 12,
+    marginBottom: 8,
   },
   title: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 4,
-    letterSpacing: -0.2,
+    fontSize: 22,
+    fontWeight: '500',
+    color: '#F3F6FA',
+    marginBottom: 8,
+    letterSpacing: -0.4,
   },
   description: {
     fontSize: 14,
-    color: 'rgba(243,246,250,0.75)',
-    lineHeight: 20,
+    color: 'rgba(243,246,250,0.72)',
+    lineHeight: 21,
   },
   body: {
-    marginVertical: 8,
+    marginVertical: 10,
   },
   footer: {
-    marginTop: 16,
+    marginTop: 18,
+    paddingTop: 14,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: 'rgba(255,255,255,0.08)',
-    paddingTop: 12,
+    borderTopColor: 'rgba(255,255,255,0.1)',
   },
   actionsRow: {
     flexDirection: 'row',
     gap: 10,
     justifyContent: 'flex-end',
+    alignItems: 'center',
   },
-  actionBtn: {
-    paddingVertical: 10,
+  ghostBtn: {
+    paddingVertical: 12,
     paddingHorizontal: 18,
     borderRadius: 999,
     backgroundColor: 'rgba(255,255,255,0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  ghostText: {
+    color: 'rgba(243,246,250,0.88)',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  solidBtn: {
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 999,
+    minWidth: 108,
+    alignItems: 'center',
   },
   singleBtn: {
     alignSelf: 'flex-end',
-    minWidth: 92,
-    alignItems: 'center',
   },
-  confirmBtn: {
-    backgroundColor: '#27D17A',
-  },
-  cancelText: {
-    color: 'rgba(243,246,250,0.8)',
-    fontSize: 15,
-    fontWeight: '500',
-  },
-  confirmText: {
+  solidText: {
     color: '#000',
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: '700',
   },
 });

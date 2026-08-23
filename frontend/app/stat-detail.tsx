@@ -19,6 +19,7 @@ import ScreenHeader from '../components/ScreenHeader';
 import ScreenCanvas from '../components/ScreenCanvas';
 import LiquidGlass from '../components/LiquidGlass';
 import GradientBorder from '../components/GradientBorder';
+import EmptyNation from '../components/EmptyNation';
 
 const { width } = Dimensions.get('window');
 
@@ -62,11 +63,7 @@ export default function StatDetail() {
   };
 
   if (!nation) {
-    return (
-      <View style={styles.container}>
-        <Text style={styles.errorText}>No nation found</Text>
-      </View>
-    );
+    return <EmptyNation />;
   }
 
   const currentValue = statName === 'gdp' ? nation.gdp_display : nation.stats[statName as keyof typeof nation.stats];

@@ -21,6 +21,10 @@ import { getRaceTheme } from '../utils/raceColors';
 import { leaningColor } from '../utils/politicalCompass';
 import { ReputationCard } from '../components/ReputationCard';
 import ScreenHeader from '../components/ScreenHeader';
+import EmptyNation from '../components/EmptyNation';
+import ScreenCanvas from '../components/ScreenCanvas';
+import LiquidGlass from '../components/LiquidGlass';
+import { glassAlert, glassConfirm } from '../components/GlassModal';
 
 export default function Profile() {
   const router = useRouter();
@@ -167,20 +171,17 @@ export default function Profile() {
     }
   };
 
-  const copyUserId = () => {
-    Alert.alert('Your User ID', userId, [{ text: 'OK' }]);
+  const copyUserId = async () => {
+    await glassAlert({ title: 'Your User ID', message: userId || 'Not available' });
   };
 
   if (!nation) {
-    return (
-      <View style={styles.container}>
-        <Text style={styles.errorText}>No nation found</Text>
-      </View>
-    );
+    return <EmptyNation />;
   }
 
   return (
-    <View style={styles.container}>
+    <ScreenCanvas>
+    <View style={[styles.container, { backgroundColor: 'transparent' }]}>
       <ScreenHeader title="Profile" subtitle="Leader and identity" onBack={() => router.back()} />
 
       <ScrollView contentContainerStyle={styles.content}>
@@ -190,14 +191,14 @@ export default function Profile() {
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>User ID</Text>
-          <View style={styles.userIdCard}>
+          <LiquidGlass radius={22} style={styles.userIdCard}>
             <Text style={styles.userIdLabel}>Your User ID:</Text>
             <Text style={styles.userId}>{userId || 'Not available'}</Text>
             <Text style={styles.userIdNote}>Save this to login from other devices</Text>
-            <TouchableOpacity style={styles.copyButton} onPress={copyUserId}>
-              <Text style={styles.copyButtonText}>View ID</Text>
+            <TouchableOpacity style={[styles.copyButton, { backgroundColor: themeColor }]} onPress={copyUserId}>
+              <Text style={[styles.copyButtonText, { color: '#000' }]}>View ID</Text>
             </TouchableOpacity>
-          </View>
+          </LiquidGlass>
         </View>
 
         {/* Reputation Section */}
@@ -398,6 +399,7 @@ export default function Profile() {
         </View>
       </Modal>
     </View>
+    </ScreenCanvas>
   );
 }
 

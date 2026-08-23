@@ -20,6 +20,7 @@ import { leaningColor } from '../../utils/politicalCompass';
 import { TabChrome } from '../../components/ScreenHeader';
 import ScreenCanvas from '../../components/ScreenCanvas';
 import FadeUp from '../../components/FadeUp';
+import EmptyNation from '../../components/EmptyNation';
 import {
   RESOURCES,
   RESOURCE_BY_ID,
@@ -395,15 +396,7 @@ export default function Industry() {
   };
 
   if (!nation) {
-    return (
-      <View style={styles.container}>
-        <View style={styles.emptyState}>
-          <Ionicons name="business-outline" size={64} color="rgba(243,246,250,0.48)" />
-          <Text style={styles.emptyStateText}>No nation found</Text>
-          <Text style={styles.emptyStateSubtext}>Create a nation to view industry stats</Text>
-        </View>
-      </View>
-    );
+    return <EmptyNation />;
   }
 
   if (loading) {

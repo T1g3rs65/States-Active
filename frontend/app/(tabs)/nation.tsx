@@ -26,6 +26,7 @@ import { TabChrome } from '../../components/ScreenHeader';
 import ScreenCanvas from '../../components/ScreenCanvas';
 import GradientBorder from '../../components/GradientBorder';
 import FadeUp from '../../components/FadeUp';
+import EmptyNation from '../../components/EmptyNation';
 
 // Race descriptions
 const RACE_DESCRIPTIONS: Record<string, { description: string; lore: string }> = {
@@ -356,16 +357,7 @@ export default function Nation() {
   );
 
   if (!nation) {
-    return (
-      <ScreenCanvas>
-        <View style={styles.container}>
-          <Text style={styles.errorText}>No nation found</Text>
-          <TouchableOpacity onPress={() => router.replace('/')} style={{ marginTop: 16, padding: 12 }}>
-            <Text style={{ color: themeColor }}>Back to start</Text>
-          </TouchableOpacity>
-        </View>
-      </ScreenCanvas>
-    );
+    return <EmptyNation />;
   }
 
   // Guard partial payloads so boot never white-screens mid-load

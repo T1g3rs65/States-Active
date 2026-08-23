@@ -17,6 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { getRaceTheme } from '../utils/raceColors';
 import { leaningColor } from '../utils/politicalCompass';
 import ScreenHeader from '../components/ScreenHeader';
+import EmptyNation from '../components/EmptyNation';
 
 export default function Policies() {
   const router = useRouter();
@@ -97,11 +98,7 @@ export default function Policies() {
   };
 
   if (!nation) {
-    return (
-      <View style={styles.container}>
-        <Text style={styles.errorText}>No nation found</Text>
-      </View>
-    );
+    return <EmptyNation />;
   }
 
   return (

@@ -23,6 +23,7 @@ import { TabChrome } from '../../components/ScreenHeader';
 import ScreenCanvas from '../../components/ScreenCanvas';
 import GradientBorder from '../../components/GradientBorder';
 import FadeUp from '../../components/FadeUp';
+import EmptyNation from '../../components/EmptyNation';
 
 export default function Overview() {
   const router = useRouter();
@@ -98,11 +99,7 @@ export default function Overview() {
   };
 
   if (!nation) {
-    return (
-      <View style={styles.container}>
-        <Text style={styles.errorText}>No nation found</Text>
-      </View>
-    );
+    return <EmptyNation />;
   }
 
   const stats = nation.stats;
