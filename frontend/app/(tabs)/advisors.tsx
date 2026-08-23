@@ -21,7 +21,6 @@ import { api } from '../../utils/api';
 import { getRaceTheme } from '../../utils/raceColors';
 import { leaningColor } from '../../utils/politicalCompass';
 import { useRouter , useFocusEffect } from 'expo-router';
-import { useIsFocused } from '@react-navigation/native';
 import PressScale from '../../components/PressScale';
 import FadeUp from '../../components/FadeUp';
 import { TabChrome } from '../../components/ScreenHeader';
@@ -111,7 +110,12 @@ function utcTaskUsed(advisors?: any[]) {
 export default function Advisors() {
   const { nation, setNation } = useNationStore();
   const router = useRouter();
-  const focused = useIsFocused();
+  const [visit, setVisit] = useState(0);
+  useFocusEffect(
+    useCallback(() => {
+      setVisit((v) => v + 1);
+    }, [])
+  );
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showTaskModal, setShowTaskModal] = useState(false);
@@ -590,7 +594,7 @@ export default function Advisors() {
 
       <View style={styles.advisorsGrid}>
         {nation.advisors.filter(isFeatureComplete).map((advisor, i) => (
-          <FadeUp key={`${advisor.slot}-${focused ? 'on' : 'off'}`} delay={i * 45} style={styles.advisorCard}>
+          <FadeUp key={`${advisor.slot}-${visit}`} delay={i * 45} style={styles.advisorCard}>
             <View style={[styles.portrait, { borderColor: themeColor }]}>
               <Image 
                 source={getAdvisorPortrait(nation.race, advisor.slot, advisor.name)}

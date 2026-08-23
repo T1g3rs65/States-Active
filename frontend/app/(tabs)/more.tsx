@@ -4,7 +4,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors, typography, spacing, radii } from '../../utils/theme';
 import { TabChrome } from '../../components/ScreenHeader';
 import FadeUp from '../../components/FadeUp';
-import { useIsFocused } from '@react-navigation/native';
+import { useFocusEffect } from 'expo-router';
+import { useCallback, useState } from 'react';
 import PressScale from '../../components/PressScale';
 import ScreenCanvas from '../../components/ScreenCanvas';
 import { useNationStore } from '../../store/nationStore';
@@ -51,7 +52,12 @@ export default function More() {
   const router = useRouter();
   const { nation } = useNationStore();
   const tint = leaningColor(nation);
-  const focused = useIsFocused();
+  const [visit, setVisit] = useState(0);
+  useFocusEffect(
+    useCallback(() => {
+      setVisit((v) => v + 1);
+    }, [])
+  );
 
   return (
     <ScreenCanvas>
@@ -59,7 +65,7 @@ export default function More() {
       <TabChrome title="More" subtitle="The rest" />
       <ScrollView contentContainerStyle={styles.menu}>
         {GROUPS.map((group, gi) => (
-          <FadeUp key={`${group.title}-${focused ? 'on' : 'off'}`} delay={gi * 70} style={styles.group}>
+          <FadeUp key={`${group.title}-${visit}`} delay={gi * 70} style={styles.group}>
             <Text style={[styles.groupTitle, { color: tint }]}>{group.title}</Text>
             <LiquidGlass radius={28} style={styles.card}>
               {group.items.map((item, i) => (

@@ -1,4 +1,3 @@
-import { useIsFocused } from '@react-navigation/native';
 import type { ReactNode } from 'react';
 import { useEffect, useRef } from 'react';
 import { Animated, ViewStyle } from 'react-native';
@@ -12,14 +11,8 @@ type Props = {
 export default function FadeUp({ children, delay = 0, style }: Props) {
   const y = useRef(new Animated.Value(16)).current;
   const o = useRef(new Animated.Value(0)).current;
-  const focused = useIsFocused();
 
   useEffect(() => {
-    if (!focused) {
-      y.setValue(16);
-      o.setValue(0);
-      return;
-    }
     y.setValue(16);
     o.setValue(0);
     const anim = Animated.parallel([
@@ -28,7 +21,7 @@ export default function FadeUp({ children, delay = 0, style }: Props) {
     ]);
     anim.start();
     return () => anim.stop();
-  }, [focused, delay, o, y]);
+  }, [delay, o, y]);
 
   return (
     <Animated.View style={[style, { opacity: o, transform: [{ translateY: y }] }]}>
