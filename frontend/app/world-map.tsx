@@ -22,6 +22,7 @@ import StatusDots from '../components/StatusDots';
 import ScreenCanvas from '../components/ScreenCanvas';
 import ScreenHeader from '../components/ScreenHeader';
 import LiquidGlass from '../components/LiquidGlass';
+import GradientBorder from '../components/GradientBorder';
 import Svg, { Polygon, G, Text as SvgText, Rect, Circle , SvgXml } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
 import { SimplexNoise } from '../utils/noise';
@@ -205,42 +206,47 @@ export default function WorldMap() {
   // Function to zoom and center on player's nation
   const zoomToMyNation = async () => {
     if (!nation) return;
-    
-    // Fetch fresh nation data to ensure we have the latest coordinates
+
     const nationId = nation.id || nation._id;
-    let centerCol = nation.territory_center_col || 100;
-    let centerRow = nation.territory_center_row || 100;
-    
-    try {
-      const response = await api.getNation(nationId);
-      if (response.success && response.nation) {
-        centerCol = response.nation.territory_center_col || 100;
-        centerRow = response.nation.territory_center_row || 100;
-        console.log(`Zooming to ${response.nation.name}: (${centerCol}, ${centerRow})`);
-      }
-    } catch (error) {
-      console.log(`Using cached position for ${nation.name}: (${centerCol}, ${centerRow})`);
+    const cluster = nationClusters.find((c) => c.nationId === nationId);
+
+    // Prefer capital from loaded cluster; fall back to nation fields
+    let centerCol: number | undefined =
+      cluster?.capitalCol ?? nation.territory_center_col;
+    let centerRow: number | undefined =
+      cluster?.capitalRow ?? nation.territory_center_row;
+
+    if ((centerCol == null || centerRow == null) && nationId) {
+      try {
+        const response = await api.getNation(nationId);
+        if (response.success && response.nation) {
+          centerCol = response.nation.territory_center_col ?? centerCol;
+          centerRow = response.nation.territory_center_row ?? centerRow;
+        }
+      } catch (_) {}
     }
-    
-    // Set zoom level to see the nation clearly
+
+    if (centerCol == null || centerRow == null || nation.needs_capital) {
+      console.log('Locate: no capital yet');
+      return;
+    }
+
     const targetZoom = Math.max(0.8, fitZoom * 2.2);
     userHasZoomed.current = true;
     setZoom(targetZoom);
-    
-    // Calculate the pixel position of the nation's center
+
     const nationX = centerCol * CELL_SCALE * targetZoom;
-    const nationY = centerRow * CELL_SCALE * targetZoom;
-    
-    // Calculate scroll offset to center the nation on screen
+    const nationY = mercatorY(centerRow) * targetZoom;
+    const worldW = MAP_WIDTH * targetZoom;
     const screenWidth = viewport.w || Dimensions.get('window').width;
     const screenHeight = viewport.h || Dimensions.get('window').height - 150;
-    
-    const scrollX = Math.max(0, nationX + MAP_WIDTH * targetZoom - screenWidth / 2);
+
+    // Map is drawn as three horizontal copies; land the camera on the middle one
+    const scrollX = worldW + nationX - screenWidth / 2;
     const scrollY = Math.max(0, nationY - screenHeight / 2);
-    
-    // Delay scroll to allow zoom to apply first
+
     setTimeout(() => {
-      horizontalScrollRef.current?.scrollTo({ x: scrollX, animated: true });
+      horizontalScrollRef.current?.scrollTo({ x: Math.max(0, scrollX), animated: true });
       verticalScrollRef.current?.scrollTo({ y: scrollY, animated: true });
     }, 100);
   };
@@ -1475,60 +1481,63 @@ export default function WorldMap() {
       )}
 
       {selectedTerritory && !placing && (
-        <View style={styles.infoPanel}>
-          <View style={styles.infoPanelHeader}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.infoTitle}>
-                {selectedTerritory.ownerName || selectedTerritory.biome.replace(/_/g, ' ').toUpperCase()}
-                {nationClusters.some((c) =>
-                  c.nationId === selectedTerritory.ownerId &&
-                  Math.hypot(wrapDx(selectedTerritory.col - c.capitalCol), selectedTerritory.row - c.capitalRow) < 2.4
-                ) ? '  ★ Capital' : nationClusters.some((c) =>
-                  c.nationId === selectedTerritory.ownerId &&
-                  (c.cities || []).some((city) => Math.hypot(wrapDx(selectedTerritory.col - city.col), selectedTerritory.row - city.row) < 2.2)
-                ) ? '  ✦ City' : ''}
-              </Text>
-              <Text style={styles.infoCoords}>
-                ({selectedTerritory.col}, {selectedTerritory.row})
-              </Text>
+        <View style={styles.infoPanelWrap} pointerEvents="box-none">
+          <LiquidGlass radius={28} style={styles.infoPanel}>
+            <View style={[styles.infoAccent, { backgroundColor: tint }]} />
+            <View style={styles.infoPanelHeader}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.infoTitle}>
+                  {selectedTerritory.ownerName || selectedTerritory.biome.replace(/_/g, ' ').toUpperCase()}
+                  {nationClusters.some((c) =>
+                    c.nationId === selectedTerritory.ownerId &&
+                    Math.hypot(wrapDx(selectedTerritory.col - c.capitalCol), selectedTerritory.row - c.capitalRow) < 2.4
+                  ) ? '  ★ Capital' : nationClusters.some((c) =>
+                    c.nationId === selectedTerritory.ownerId &&
+                    (c.cities || []).some((city) => Math.hypot(wrapDx(selectedTerritory.col - city.col), selectedTerritory.row - city.row) < 2.2)
+                  ) ? '  ✦ City' : ''}
+                </Text>
+                <Text style={styles.infoCoords}>
+                  ({selectedTerritory.col}, {selectedTerritory.row})
+                </Text>
+              </View>
+              <TouchableOpacity onPress={() => setSelectedTerritory(null)} hitSlop={12}>
+                <Ionicons name="close-circle" size={28} color="rgba(243,246,250,0.48)" />
+              </TouchableOpacity>
             </View>
-            <TouchableOpacity onPress={() => setSelectedTerritory(null)}>
-              <Ionicons name="close-circle" size={28} color="rgba(243,246,250,0.48)" />
-            </TouchableOpacity>
-          </View>
-          
-          <View style={styles.infoContent}>
-            <View style={[styles.biomeSwatch, { backgroundColor: terrainColors.get(selectedTerritory.id) || selectedTerritory.color }]} />
-            <View style={styles.infoDetails}>
-              <Text style={styles.infoText}>Biome: {selectedTerritory.biome.replace(/_/g, ' ')}</Text>
-              <Text style={styles.infoText}>
-                {selectedTerritory.ownerId ? `Owned by ${selectedTerritory.ownerName}` : 'Unclaimed'}
-              </Text>
-              <Text style={styles.infoText}>
-                {(() => {
-                  const owner = selectedTerritory.ownerId;
-                  if (owner) {
-                    const p = tzPolicyRef.current.get(owner);
-                    if (p && p.bands.length) {
-                      return officialTimezoneLabel(selectedTerritory.col, p.bands, p.count);
+
+            <View style={styles.infoContent}>
+              <View style={[styles.biomeSwatch, { backgroundColor: terrainColors.get(selectedTerritory.id) || selectedTerritory.color, borderColor: tint }]} />
+              <View style={styles.infoDetails}>
+                <Text style={styles.infoText}>Biome: {selectedTerritory.biome.replace(/_/g, ' ')}</Text>
+                <Text style={styles.infoText}>
+                  {selectedTerritory.ownerId ? `Owned by ${selectedTerritory.ownerName}` : 'Unclaimed'}
+                </Text>
+                <Text style={styles.infoText}>
+                  {(() => {
+                    const owner = selectedTerritory.ownerId;
+                    if (owner) {
+                      const p = tzPolicyRef.current.get(owner);
+                      if (p && p.bands.length) {
+                        return officialTimezoneLabel(selectedTerritory.col, p.bands, p.count);
+                      }
                     }
-                  }
-                  return timezoneLabel(selectedTerritory.col);
-                })()}
-              </Text>
-              {selectedTerritory.resourceId && (
-                <View style={styles.resourceInfo}>
-                  <View style={[styles.resourceDot, { backgroundColor: RESOURCE_BY_ID.get(selectedTerritory.resourceId)?.color || '#F3F6FA' }]} />
-                  <Text style={styles.resourceText}>
-                    {RESOURCE_BY_ID.get(selectedTerritory.resourceId)?.name || selectedTerritory.resourceId}
-                    <Text style={[styles.resourceTier, { color: TIER_COLORS[RESOURCE_BY_ID.get(selectedTerritory.resourceId)?.tier || 'common'] }]}>
-                      {' '}({RESOURCE_BY_ID.get(selectedTerritory.resourceId)?.tier || 'common'})
+                    return timezoneLabel(selectedTerritory.col);
+                  })()}
+                </Text>
+                {selectedTerritory.resourceId && (
+                  <View style={styles.resourceInfo}>
+                    <View style={[styles.resourceDot, { backgroundColor: RESOURCE_BY_ID.get(selectedTerritory.resourceId)?.color || '#F3F6FA' }]} />
+                    <Text style={styles.resourceText}>
+                      {RESOURCE_BY_ID.get(selectedTerritory.resourceId)?.name || selectedTerritory.resourceId}
+                      <Text style={[styles.resourceTier, { color: TIER_COLORS[RESOURCE_BY_ID.get(selectedTerritory.resourceId)?.tier || 'common'] }]}>
+                        {' '}({RESOURCE_BY_ID.get(selectedTerritory.resourceId)?.tier || 'common'})
+                      </Text>
                     </Text>
-                  </Text>
-                </View>
-              )}
+                  </View>
+                )}
+              </View>
             </View>
-          </View>
+          </LiquidGlass>
         </View>
       )}
     </View>
@@ -1650,15 +1659,26 @@ const styles = StyleSheet.create({
     color: 'rgba(243,246,250,0.70)',
     paddingVertical: 2,
   },
-  infoPanel: {
+  infoPanelWrap: {
     position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: '#11171F',
+    bottom: 12,
+    left: 12,
+    right: 12,
+    zIndex: 20,
+  },
+  infoPanel: {
     padding: 16,
-    borderTopWidth: 3,
-    borderTopColor: '#00E0C7',
+    paddingTop: 14,
+    overflow: 'hidden',
+  },
+  infoAccent: {
+    position: 'absolute',
+    top: 0,
+    left: 24,
+    right: 24,
+    height: 2,
+    borderRadius: 2,
+    opacity: 0.85,
   },
   infoPanelHeader: {
     flexDirection: 'row',
@@ -1671,6 +1691,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#F3F6FA',
     marginBottom: 4,
+    letterSpacing: -0.2,
   },
   infoCoords: {
     fontSize: 11,
@@ -1683,9 +1704,9 @@ const styles = StyleSheet.create({
   biomeSwatch: {
     width: 50,
     height: 50,
-    borderRadius: 6,
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.12)',
   },
   infoDetails: {
     flex: 1,
@@ -1693,7 +1714,7 @@ const styles = StyleSheet.create({
   },
   infoText: {
     fontSize: 13,
-    color: 'rgba(243,246,250,0.70)',
+    color: 'rgba(243,246,250,0.78)',
     marginBottom: 4,
   },
   resourceInfo: {

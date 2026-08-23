@@ -25,6 +25,7 @@ import CollapsibleSection from '../../components/CollapsibleSection';
 import { TabChrome } from '../../components/ScreenHeader';
 import ScreenCanvas from '../../components/ScreenCanvas';
 import GradientBorder from '../../components/GradientBorder';
+import FadeUp from '../../components/FadeUp';
 
 // Race descriptions
 const RACE_DESCRIPTIONS: Record<string, { description: string; lore: string }> = {
@@ -241,6 +242,12 @@ export default function Nation() {
   const [refreshing, setRefreshing] = useState(false);
   const [regeneratingDescription, setRegeneratingDescription] = useState(false);
   const [notificationCount, setNotificationCount] = useState(0);
+  const [visit, setVisit] = useState(0);
+  useFocusEffect(
+    useCallback(() => {
+      setVisit((v) => v + 1);
+    }, [])
+  );
   const [descriptionTimer, setDescriptionTimer] = useState<string>('');
   
   // Modal state for info popups
@@ -350,14 +357,20 @@ export default function Nation() {
 
   if (!nation) {
     return (
-      <View style={styles.container}>
-        <Text style={styles.errorText}>No nation found</Text>
-      </View>
+      <ScreenCanvas>
+        <View style={styles.container}>
+          <Text style={styles.errorText}>No nation found</Text>
+          <TouchableOpacity onPress={() => router.replace('/')} style={{ marginTop: 16, padding: 12 }}>
+            <Text style={{ color: themeColor }}>Back to start</Text>
+          </TouchableOpacity>
+        </View>
+      </ScreenCanvas>
     );
   }
 
-  const stats = nation.stats;
-  const createdDate = new Date(nation.created_at);
+  // Guard partial payloads so boot never white-screens mid-load
+  const stats = nation.stats || ({} as any);
+  const createdDate = nation.created_at ? new Date(nation.created_at) : new Date();
   const daysOld = Math.floor((new Date().getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24));
 
   const centerCol = nation.territory_center_col || 100;
@@ -404,6 +417,7 @@ export default function Nation() {
           <RefreshControl refreshing={refreshing} onRefresh={refreshNation} tintColor={themeColor} />
         }
       >
+      <FadeUp key={`nation-${visit}`} delay={0}>
       <GradientBorder tone="compass" speed={5} radius={28} style={styles.headerCard}>
         {renderFlag()}
         <Text style={styles.nationName}>{nation.name}</Text>
@@ -420,6 +434,7 @@ export default function Nation() {
           <Text style={styles.motto}>{'\u201c'}{nation.motto}{'\u201d'}</Text>
         )}
       </GradientBorder>
+      </FadeUp>
 
       <View style={styles.actionButtons}>
         <TouchableOpacity

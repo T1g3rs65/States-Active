@@ -3,20 +3,31 @@ import { useEffect } from 'react';
 import { View, StyleSheet } from 'react-native';
 import Grain from '../components/Grain';
 
-export const APP_BUILD = '21y';
+export const APP_BUILD = '22a';
 
 export default function RootLayout() {
   useEffect(() => {
     if (typeof fetch === 'undefined') return;
+    // One-shot stale-bundle check. Never loop: mark attempt in sessionStorage.
+    try {
+      if (typeof sessionStorage !== 'undefined') {
+        if (sessionStorage.getItem('sh_build_reload') === APP_BUILD) return;
+      }
+    } catch (_) {}
+
     fetch(`/build.json?t=${Date.now()}`, { cache: 'no-store' })
       .then((r) => r.json())
       .then((j) => {
         if (j?.id && j.id !== APP_BUILD && typeof location !== 'undefined') {
+          try {
+            sessionStorage.setItem('sh_build_reload', j.id);
+          } catch (_) {}
           location.reload();
         }
       })
       .catch(() => {});
   }, []);
+
   return (
     <View style={styles.root}>
       <Slot />

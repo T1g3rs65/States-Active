@@ -26,12 +26,13 @@ const LOADING_NOTES = [
 
 export default function Index() {
   const router = useRouter();
-  const { nation, setNation, loadNation } = useNationStore();
+  const { nation, setNation, loadNation, saveNation } = useNationStore();
   const [checking, setChecking] = useState(true);
   const [showLogin, setShowLogin] = useState(false);
   const [userId, setUserId] = useState('');
   const [loadingNoteIndex, setLoadingNoteIndex] = useState(0);
   const progress = useRef(new Animated.Value(0)).current;
+  const booted = useRef(false);
 
   useEffect(() => {
     const noteTimer = setInterval(() => {
@@ -44,7 +45,18 @@ export default function Index() {
       useNativeDriver: false,
     }).start();
 
-    return () => clearInterval(noteTimer);
+    // Hard stop: never leave the user spinning forever
+    const hang = setTimeout(() => {
+      if (!booted.current) {
+        console.warn('Boot hang timeout — showing landing');
+        finishLoading();
+      }
+    }, 12000);
+
+    return () => {
+      clearInterval(noteTimer);
+      clearTimeout(hang);
+    };
   }, []);
 
   useEffect(() => {
@@ -52,6 +64,7 @@ export default function Index() {
   }, []);
 
   const finishLoading = () => {
+    booted.current = true;
     Animated.timing(progress, {
       toValue: 1,
       duration: 250,
@@ -59,23 +72,53 @@ export default function Index() {
     }).start(() => setChecking(false));
   };
 
+  const enterNation = async (n: any) => {
+    booted.current = true;
+    try {
+      await saveNation(n);
+    } catch {
+      setNation(n);
+    }
+    // Migrated / founding without capital → place first
+    if (n?.needs_capital) {
+      router.replace('/world-map?place=migrate');
+      return;
+    }
+    router.replace('/(tabs)/nation');
+  };
+
   const checkForNation = async () => {
+    if (booted.current) return;
     setChecking(true);
     try {
       await loadNation();
       const savedUserId = await AsyncStorage.getItem('user_id');
+      const cached = useNationStore.getState().nation;
 
       if (savedUserId) {
         const response = await api.getNationByUser(savedUserId);
         if (response.success && response.nation) {
-          setNation(response.nation);
-          router.replace('/(tabs)/nation');
+          await enterNation(response.nation);
           return;
         }
+        // API miss but we have a local cache — still enter so we don't loop
+        if (cached?.id || cached?._id) {
+          await enterNation(cached);
+          return;
+        }
+      } else if (cached?.id || cached?._id) {
+        await enterNation(cached);
+        return;
       }
       finishLoading();
     } catch (error) {
       console.error('Error checking for nation:', error);
+      // Prefer cached nation over infinite loader
+      const cached = useNationStore.getState().nation;
+      if (cached?.id || cached?._id) {
+        await enterNation(cached);
+        return;
+      }
       finishLoading();
     }
   };
@@ -95,15 +138,14 @@ export default function Index() {
       const response = await api.getNationByUser(userId.trim());
       if (response.success && response.nation) {
         await AsyncStorage.setItem('user_id', userId.trim());
-        setNation(response.nation);
-        router.replace('/(tabs)/nation');
+        await enterNation(response.nation);
       } else {
         Alert.alert('Not Found', 'No nation found with this User ID');
+        setChecking(false);
       }
     } catch (error) {
       console.error('Error logging in:', error);
       Alert.alert('Error', 'Failed to login. Please try again.');
-    } finally {
       setChecking(false);
     }
   };
