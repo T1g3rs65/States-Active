@@ -19,6 +19,9 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useNationStore } from '../store/nationStore';
 import { leaningColor } from '../utils/politicalCompass';
 import StatusDots from '../components/StatusDots';
+import ScreenCanvas from '../components/ScreenCanvas';
+import ScreenHeader from '../components/ScreenHeader';
+import LiquidGlass from '../components/LiquidGlass';
 import Svg, { Polygon, G, Text as SvgText, Rect, Circle , SvgXml } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
 import { SimplexNoise } from '../utils/noise';
@@ -1062,9 +1065,11 @@ export default function WorldMap() {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <StatusDots status={loadingStatus} color={tint} />
-      </View>
+      <ScreenCanvas>
+        <View style={styles.loadingContainer}>
+          <StatusDots status={loadingStatus} color={tint} />
+        </View>
+      </ScreenCanvas>
     );
   }
 
@@ -1073,21 +1078,20 @@ export default function WorldMap() {
   const sliceW = Math.round(mapWidth * zoom);
 
   return (
+    <ScreenCanvas>
     <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.replace(placing ? '/quiz' : '/(tabs)/nation')} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={tint} />
-        </TouchableOpacity>
-        <View style={styles.headerCenter}>
-          <Text style={styles.title}>{placing ? 'Place Capital' : foundingCity ? 'Found a City' : 'World Map'}</Text>
-          <Text style={styles.subtitle}>{placing ? 'Tap unclaimed land' : foundingCity ? 'Tap your connected land' : `seed ${worldSeed}`}</Text>
-        </View>
-        {!placing && (
-        <TouchableOpacity onPress={zoomToMyNation} style={styles.myNationButton}>
-        <Ionicons name="locate" size={18} color={tint} />
-        </TouchableOpacity>
-        )}
-      </View>
+      <ScreenHeader
+        title={placing ? 'Place Capital' : foundingCity ? 'Found a City' : 'World Map'}
+        subtitle={placing ? 'Tap unclaimed land' : foundingCity ? 'Tap your connected land' : `seed ${worldSeed}`}
+        onBack={() => router.replace(placing ? '/quiz' : '/(tabs)/nation')}
+        right={
+          !placing ? (
+            <TouchableOpacity onPress={zoomToMyNation} style={{ padding: 6 }}>
+              <Ionicons name="locate" size={20} color={tint} />
+            </TouchableOpacity>
+          ) : null
+        }
+      />
 
       {/* Map Mode Selector */}
       <View style={styles.mapModeBar}>
@@ -1528,6 +1532,7 @@ export default function WorldMap() {
         </View>
       )}
     </View>
+    </ScreenCanvas>
   );
 }
 
@@ -1543,13 +1548,13 @@ function LegendItem({ color, label }: { color: string; label: string }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0B0F14',
+    backgroundColor: 'transparent',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#0B0F14',
+    backgroundColor: 'transparent',
   },
   loaderBig: {
     transform: [{ scale: 1.8 }],
@@ -1719,9 +1724,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 12,
     paddingVertical: 8,
-    backgroundColor: '#11171F',
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: 'rgba(255,255,255,0.03)',
     gap: 12,
   },
   cityBar: {
@@ -1730,9 +1733,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 12,
     paddingVertical: 8,
-    backgroundColor: '#0E141C',
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(242,201,76,0.18)',
+    backgroundColor: 'rgba(255,255,255,0.03)',
     gap: 10,
   },
   cityBarText: {
@@ -1810,10 +1811,10 @@ const styles = StyleSheet.create({
   mapModeSelector: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: 'rgba(255,255,255,0.06)',
     paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: 8,
+    borderRadius: 999,
     gap: 8,
   },
   mapModeSelectorText: {
