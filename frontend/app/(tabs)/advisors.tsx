@@ -676,7 +676,7 @@ export default async function Advisors() {
               {isSpymaster(advisor) && (
                 <PressScale
                   disabled={!canSendTaskToday()}
-                  onPress={() => {
+                  onPress={async () => {
                     if (!canSendTaskToday()) {
                       await glassAlert({ title: 'Daily Limit Reached', message: "Probing trust uses today's advisor task." });
                       return;
@@ -860,7 +860,7 @@ ${response.note || ''}` });
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
           <View style={styles.modalHeader}>
-            <TouchableOpacity onPress={() => {
+            <TouchableOpacity onPress={async () => {
               setShowReformModal(false);
               setSelectedPolicy(null);
               setReformInstructions('');

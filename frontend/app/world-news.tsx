@@ -484,7 +484,7 @@ export default async function WorldNewsScreen() {
                   selectedVoteType === 'condemn' && styles.selectedOption,
                   selectedVote && selectedVote.is_active && isAlly(selectedVote.source_nation_id) && styles.disabledVoteOption
                 ]}
-                onPress={() => {
+                onPress={async () => {
                   if (selectedVote && selectedVote.is_active && isAlly(selectedVote.source_nation_id)) {
                     if (Platform.OS === 'web') {
                       await glassAlert({ title: 'Notice', message: String('You cannot condemn an ally!') });

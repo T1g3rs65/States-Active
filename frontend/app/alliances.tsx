@@ -219,10 +219,8 @@ export default async function NonAggressionPacts() {
 
   const breakPact = async (pactId: string, nationName: string) => {
     const confirm = Platform.OS === 'web' 
-      ? await glassConfirm({ title: 'Confirm', message: `Are you sure you want to break your Non-Aggression Pact with ${nationName}?`, confirmText: 'OK', cancelText: 'Cancel' })
-      : await new Promise<boolean>(resolve => {
-          await glassAlert({ title: 'Break Pact', message: `Are you sure you want to break your Non-Aggression Pact with ${nationName}?` });
-        });
+      ? await glassConfirm({ title: 'Break pact?', message: `Are you sure you want to break your Non-Aggression Pact with ${nationName}?`, confirmText: 'Break', cancelText: 'Cancel', destructive: true })
+      : true;
     
     if (!confirm) return;
     
@@ -310,7 +308,7 @@ export default async function NonAggressionPacts() {
       <TouchableOpacity
         key={otherNation.id}
         style={[styles.nationCard, hasPending && styles.nationCardDisabled]}
-        onPress={() => {
+        onPress={async () => {
           if (!hasPending) {
             setSelectedNation(otherNation);
             setShowRequestModal(true);
@@ -510,7 +508,7 @@ export default async function NonAggressionPacts() {
             <View style={styles.modalButtons}>
               <TouchableOpacity
                 style={styles.cancelButton}
-                onPress={() => {
+                onPress={async () => {
                   setShowRequestModal(false);
                   setSelectedNation(null);
                   setRequestMessage('');

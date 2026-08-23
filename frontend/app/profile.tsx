@@ -206,7 +206,7 @@ export default async function Profile() {
             <Ionicons name="chevron-forward" size={20} color="rgba(243,246,250,0.48)" />
           </TouchableOpacity>
           
-          <TouchableOpacity style={styles.settingButton} onPress={() => {
+          <TouchableOpacity style={styles.settingButton} onPress={async () => {
             setEditCurrency(nation.currency || 'Credits');
             setEditAnimal(nation.national_animal || 'Eagle');
             setShowCustomizationModal(true);

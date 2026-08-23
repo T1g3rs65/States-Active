@@ -560,7 +560,7 @@ export default async function WorldBrowserScreen() {
               <View style={styles.modalFooter}>
                 <TouchableOpacity 
                   style={styles.cancelButton}
-                  onPress={() => {
+                  onPress={async () => {
                     setShowCreateModal(false);
                     resetForm();
                   }}

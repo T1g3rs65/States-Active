@@ -499,7 +499,6 @@ export default async function AllianceBrowserScreen() {
       confirmed = await glassConfirm({ title: 'Confirm', message: `Are you sure you want to leave ${myAlliance.name}?`, confirmText: 'OK', cancelText: 'Cancel' });
     } else {
       confirmed = await glassConfirm({ title: 'Leave faction?', message: `Are you sure you want to leave ${myAlliance.name}?`, confirmText: 'Leave', cancelText: 'Cancel', destructive: true });
-      });
     }
     
     console.log('User confirmed:', confirmed);
@@ -683,7 +682,7 @@ export default async function AllianceBrowserScreen() {
                     <TouchableOpacity
                       key={alliance.id}
                       style={[styles.allianceCard, { borderLeftColor: alliance.color }]}
-                      onPress={() => {
+                      onPress={async () => {
                         if (!myAlliance) {
                           setSelectedAlliance(alliance);
                           setShowJoinModal(true);
@@ -705,7 +704,7 @@ export default async function AllianceBrowserScreen() {
                         {!myAlliance && (
                           <TouchableOpacity
                             style={[styles.joinButton, { borderColor: alliance.color }]}
-                            onPress={() => {
+                            onPress={async () => {
                               setSelectedAlliance(alliance);
                               setShowJoinModal(true);
                             }}
@@ -798,7 +797,7 @@ export default async function AllianceBrowserScreen() {
                             styles.callToWarButton,
                             pressed && { opacity: 0.7 }
                           ]}
-                          onPress={() => {
+                          onPress={async () => {
                             console.log('Call to war button pressed for:', member.nation_name);
                             handleCallToWar(member.nation_id, member.nation_name);
                           }}
@@ -971,7 +970,7 @@ export default async function AllianceBrowserScreen() {
                   {!isVassal && (
                     <TouchableOpacity
                       style={styles.leaveButton}
-                      onPress={() => {
+                      onPress={async () => {
                         console.log('Leave button pressed');
                         handleLeaveAlliance();
                       }}
@@ -1206,7 +1205,7 @@ export default async function AllianceBrowserScreen() {
               <Text style={styles.roleModalTitle}>Choose Role</Text>
               <TouchableOpacity 
                 style={styles.roleModalCloseButton}
-                onPress={() => {
+                onPress={async () => {
                   setShowRoleModal(false);
                   setSelectedRequest(null);
                 }}
@@ -1284,7 +1283,7 @@ export default async function AllianceBrowserScreen() {
             
             <TouchableOpacity
               style={styles.roleModalCancelButton}
-              onPress={() => {
+              onPress={async () => {
                 setShowRoleModal(false);
                 setSelectedRequest(null);
               }}

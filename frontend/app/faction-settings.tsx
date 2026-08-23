@@ -555,7 +555,7 @@ export default async function FactionSettingsScreen() {
               <Text style={styles.modalTitle}>Choose Role</Text>
               <TouchableOpacity 
                 style={styles.modalCloseButton}
-                onPress={() => {
+                onPress={async () => {
                   setShowRoleModal(false);
                   setSelectedRequest(null);
                 }}
@@ -620,7 +620,7 @@ export default async function FactionSettingsScreen() {
             
             <TouchableOpacity
               style={styles.modalCancelButton}
-              onPress={() => {
+              onPress={async () => {
                 setShowRoleModal(false);
                 setSelectedRequest(null);
               }}

@@ -481,7 +481,7 @@ export default async function ServerSelectScreen() {
               <View style={styles.modalFooter}>
                 <TouchableOpacity 
                   style={styles.cancelButton}
-                  onPress={() => {
+                  onPress={async () => {
                     setShowCreateModal(false);
                     resetForm();
                   }}

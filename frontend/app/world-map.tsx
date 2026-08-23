@@ -1167,7 +1167,7 @@ export default async function WorldMap() {
                   styles.dropdownItem,
                   mapMode === mode.key && styles.dropdownItemActive
                 ]}
-                onPress={() => {
+                onPress={async () => {
                   setMapMode(mode.key);
                   setShowModeDropdown(false);
                 }}
@@ -1444,7 +1444,7 @@ export default async function WorldMap() {
               <View style={styles.placeRow}>
                 <TouchableOpacity
                   style={styles.placeCancel}
-                  onPress={() => { setPlaceConfirm(null); setPlaceError(null); }}
+                  onPress={async () => { setPlaceConfirm(null); setPlaceError(null); }}
                 >
                   <Text style={styles.placeCancelText}>Cancel</Text>
                 </TouchableOpacity>
