@@ -4,12 +4,11 @@ import CompassTabBar from '../../components/CompassTabBar';
 export default function TabLayout() {
   return (
     <Tabs
-      detachInactiveScreens
       tabBar={(props) => <CompassTabBar {...props} />}
       screenOptions={{
         headerShown: false,
-        freezeOnBlur: true,
-        sceneStyle: { backgroundColor: '#08090A', flex: 1 },
+        freezeOnBlur: false,
+        sceneStyle: { backgroundColor: '#000000', flex: 1 },
       }}
     >
       <Tabs.Screen name="nation" options={{ title: 'Nation' }} />

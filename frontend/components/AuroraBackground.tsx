@@ -17,15 +17,19 @@ function PulseBlob({
   duration,
   dx,
   dy,
+  active,
 }: {
   color: string;
   style: object;
   duration: number;
   dx: number;
   dy: number;
+  active: boolean;
 }) {
   const t = useRef(new Animated.Value(0)).current;
   useEffect(() => {
+    if (!active) return;
+    t.setValue(0);
     const loop = Animated.loop(
       Animated.sequence([
         Animated.timing(t, { toValue: 1, duration, useNativeDriver: true }),
@@ -34,7 +38,7 @@ function PulseBlob({
     );
     loop.start();
     return () => loop.stop();
-  }, [duration, t]);
+  }, [active, duration, t]);
   const translateX = t.interpolate({ inputRange: [0, 1], outputRange: [-dx, dx] });
   const translateY = t.interpolate({ inputRange: [0, 1], outputRange: [-dy, dy] });
   const scale = t.interpolate({ inputRange: [0, 1], outputRange: [1, 1.18] });
@@ -50,9 +54,11 @@ function PulseBlob({
   );
 }
 
-function Star({ left, top, size, delay, dur }: (typeof STARS)[number]) {
+function Star({ left, top, size, delay, dur, active }: (typeof STARS)[number] & { active: boolean }) {
   const o = useRef(new Animated.Value(0.08)).current;
   useEffect(() => {
+    if (!active) return;
+    o.setValue(0.08);
     const loop = Animated.loop(
       Animated.sequence([
         Animated.delay(delay),
@@ -62,7 +68,7 @@ function Star({ left, top, size, delay, dur }: (typeof STARS)[number]) {
     );
     loop.start();
     return () => loop.stop();
-  }, [delay, dur, o]);
+  }, [active, delay, dur, o]);
   return (
     <Animated.View
       pointerEvents="none"
@@ -80,8 +86,9 @@ function Star({ left, top, size, delay, dur }: (typeof STARS)[number]) {
   );
 }
 
-/** Dark aurora + stars. Compass-tinted. Does not steal taps. */
+/** Dark aurora + stars. Compass-tinted. Restarts when the screen is focused. */
 export default function AuroraBackground() {
+  const focused = true;
   const nation = useNationStore((s) => s.nation);
   const tint = leaningColor(nation);
   const a = useMemo(() => hexAlpha(tint, 0.22), [tint]);
@@ -91,11 +98,11 @@ export default function AuroraBackground() {
   return (
     <View pointerEvents="none" style={styles.wrap}>
       <View style={[styles.fill, { backgroundColor: '#000000' }]} />
-      <PulseBlob color={a} duration={14000} dx={width * 0.08} dy={height * 0.04} style={styles.blobA} />
-      <PulseBlob color={b} duration={18000} dx={width * 0.07} dy={height * 0.05} style={styles.blobB} />
-      <PulseBlob color={hexAlpha(tint, 0.1)} duration={22000} dx={width * 0.05} dy={height * 0.06} style={styles.blobC} />
+      <PulseBlob active={focused} color={a} duration={14000} dx={width * 0.08} dy={height * 0.04} style={styles.blobA} />
+      <PulseBlob active={focused} color={b} duration={18000} dx={width * 0.07} dy={height * 0.05} style={styles.blobB} />
+      <PulseBlob active={focused} color={hexAlpha(tint, 0.1)} duration={22000} dx={width * 0.05} dy={height * 0.06} style={styles.blobC} />
       {STARS.map((s, i) => (
-        <Star key={i} {...s} />
+        <Star key={i} {...s} active={focused} />
       ))}
     </View>
   );

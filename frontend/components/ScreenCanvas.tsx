@@ -3,13 +3,12 @@ import { StyleSheet, View } from 'react-native';
 import AuroraBackground from './AuroraBackground';
 import LiquidGlass from './LiquidGlass';
 
-/** Solid canvas so stacked routes cannot show through, plus local aurora. */
+/** Solid canvas + aurora. Covers stacked routes; loops stay running. */
 export default function ScreenCanvas({ children }: { children: ReactNode }) {
   return (
     <View style={styles.base}>
       <AuroraBackground />
       <View style={styles.fg}>{children}</View>
-      {/* mount once so --glass-tint + CSS inject */}
       <View style={styles.hidden} pointerEvents="none">
         <LiquidGlass radius={0} />
       </View>

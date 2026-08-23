@@ -3,7 +3,7 @@ import { useEffect } from 'react';
 import { View, StyleSheet } from 'react-native';
 import Grain from '../components/Grain';
 
-export const APP_BUILD = '21w';
+export const APP_BUILD = '21x';
 
 export default function RootLayout() {
   useEffect(() => {
@@ -26,5 +26,5 @@ export default function RootLayout() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#08090A' },
+  root: { flex: 1, backgroundColor: '#000000' },
 });

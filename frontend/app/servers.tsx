@@ -224,35 +224,34 @@ export default function WorldBrowserScreen() {
       return;
     }
     
-    Alert.alert(
-      'Migrate to World',
-      `Are you sure you want to migrate "${nation?.name}" to "${world.name}"?\n\nWarning: You will lose all your territories and need to reclaim them in the new world.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Migrate',
-          style: 'destructive',
-          onPress: async () => {
-            setMigrating(true);
-            try {
-              const response = await api.migrateToWorld(worldId, nationId);
-              if (response.success) {
-                await AsyncStorage.setItem('selected_world_id', worldId);
-                await refreshNation();
-                router.replace('/world-map?place=migrate');
-                return;
-              }
-              Alert.alert('Error', response.detail || 'Migration failed');
-            } catch (error: any) {
-              console.error('Error migrating:', error);
-              Alert.alert('Error', error.message || 'Failed to migrate');
-            } finally {
-              setMigrating(false);
-            }
-          },
-        },
-      ]
-    );
+    const ok =
+      typeof window !== 'undefined'
+        ? window.confirm(
+            `Migrate "${nation?.name}" to "${world.name}"?\n\nYou will lose all territories and pick a new capital.`
+          )
+        : true;
+    if (!ok) return;
+
+    setMigrating(true);
+    try {
+      const response = await api.migrateToWorld(worldId, nationId);
+      if (response.success) {
+        await AsyncStorage.setItem('selected_world_id', worldId);
+        await refreshNation();
+        router.replace('/world-map?place=migrate');
+        return;
+      }
+      const msg = response.detail || 'Migration failed';
+      if (typeof window !== 'undefined') window.alert(msg);
+      else Alert.alert('Error', msg);
+    } catch (error: any) {
+      console.error('Error migrating:', error);
+      const msg = error.message || 'Failed to migrate';
+      if (typeof window !== 'undefined') window.alert(msg);
+      else Alert.alert('Error', msg);
+    } finally {
+      setMigrating(false);
+    }
   };
 
   const handleBack = () => {

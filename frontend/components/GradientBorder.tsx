@@ -6,14 +6,17 @@ import { ASME_CSS } from '../utils/asmeStyle';
 
 let injected = false;
 function ensureCss() {
-  if (injected || Platform.OS !== 'web' || typeof document === 'undefined') return;
-  if (!document.getElementById('asme-liquid')) {
-    const el = document.createElement('style');
+  if (Platform.OS !== 'web' || typeof document === 'undefined') return;
+  let el = document.getElementById('asme-liquid') as HTMLStyleElement | null;
+  if (!el) {
+    el = document.createElement('style');
     el.id = 'asme-liquid';
-    el.textContent = ASME_CSS;
     document.head.appendChild(el);
   }
-  injected = true;
+  if (!injected || el.textContent !== ASME_CSS) {
+    el.textContent = ASME_CSS;
+    injected = true;
+  }
 }
 
 function shade(hex: string, t: number) {
@@ -36,6 +39,7 @@ export default function GradientBorder({
   speed?: number;
   tone?: 'compass' | 'war';
 }) {
+  const focused = true;
   const tint = leaningColor(useNationStore((s) => s.nation));
   const primary = tone === 'war' ? '#7f1d1d' : shade(tint, 0.55);
   const secondary = tone === 'war' ? '#dc2626' : tint;
@@ -56,13 +60,14 @@ export default function GradientBorder({
           ['--border-width' as any]: '2px',
           ['--border-radius' as any]: `${radius}px`,
           ['--animation-duration' as any]: `${speed}s`,
+          animationPlayState: focused ? 'running' : 'paused',
         } as ViewStyle)
       : {};
 
   return (
     <View
       // @ts-expect-error web className
-      className={`gradient-border ${fast ? 'gradient-border-fast' : 'gradient-border-auto'}`}
+      className={`gradient-border${fast ? ' gradient-border-fast' : ''}`}
       style={[
         styles.base,
         { borderRadius: radius },

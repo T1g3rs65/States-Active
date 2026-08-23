@@ -100,14 +100,12 @@ html, body, #root {
   background-clip: padding-box, border-box;
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-}
-
-.gradient-border-auto {
   animation: gradient-rotate var(--animation-duration) linear infinite;
+  animation-play-state: running;
 }
 
 .gradient-border-fast {
-  animation: gradient-rotate 0.8s linear infinite;
+  --animation-duration: 0.8s;
 }
 `;
 
