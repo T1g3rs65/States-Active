@@ -20,9 +20,45 @@ import ScreenCanvas from '../components/ScreenCanvas';
 import LiquidGlass from '../components/LiquidGlass';
 import GradientBorder from '../components/GradientBorder';
 import EmptyNation from '../components/EmptyNation';
-import { wheelIdentity } from '../utils/govCopy';
+import { getNationSizeClass } from '../utils/nationSize';
 
 const { width } = Dimensions.get('window');
+
+// Display labels for raw government attribute values (GH-93).
+const FORM_LABELS: Record<string, string> = {
+  democracy: 'Democracy',
+  oligarchy: 'Oligarchy',
+  autocracy: 'Autocracy',
+  anocracy: 'Anocracy',
+  anarchy: 'Anarchy',
+};
+const TERRITORIAL_LABELS: Record<string, string> = {
+  unitary: 'Unitary',
+  federal: 'Federal',
+  confederal: 'Confederal',
+};
+
+// Build the government attribute chips for the stats page. The full blended
+// name is intentionally NOT shown here — only the individual components.
+function govChips(nation: any): { label: string; value: string }[] {
+  const chips: { label: string; value: string }[] = [];
+  if (nation?.government_subtype) {
+    chips.push({ label: 'Subtype', value: nation.government_subtype });
+  }
+  const style = nation?.style_modifier;
+  if (style && style !== 'None (clean result)') {
+    chips.push({ label: 'Style', value: style });
+  }
+  const territorial = nation?.territorial_structure;
+  if (territorial) {
+    chips.push({ label: 'Territorial', value: TERRITORIAL_LABELS[territorial] || territorial });
+  }
+  const form = nation?.government_form;
+  if (form) {
+    chips.push({ label: 'Form', value: FORM_LABELS[form] || form });
+  }
+  return chips;
+}
 
 export default function StatDetail() {
   const params = useLocalSearchParams();
@@ -126,9 +162,20 @@ export default function StatDetail() {
   return (
     <ScreenCanvas>
     <View style={styles.container}>
-      <ScreenHeader title={nation.name || 'Statistics'} subtitle={wheelIdentity(nation) || 'History'} onBack={() => router.push('/(tabs)/overview')} />
+      <ScreenHeader title={nation.name || 'Statistics'} subtitle={getNationSizeClass(nation.stats?.population)} onBack={() => router.push('/(tabs)/overview')} />
 
       <ScrollView contentContainerStyle={styles.content}>
+        {govChips(nation).length > 0 && (
+          <View style={styles.govChips}>
+            {govChips(nation).map((chip) => (
+              <View key={chip.label} style={styles.govChip}>
+                <Text style={styles.govChipLabel}>{chip.label}</Text>
+                <Text style={[styles.govChipValue, { color: tint }]}>{chip.value}</Text>
+              </View>
+            ))}
+          </View>
+        )}
+
         <GradientBorder tone="compass" speed={6} radius={28} style={styles.currentValueCard}>
           <Text style={styles.currentLabel}>Current Value</Text>
           <View style={styles.currentRow}>
@@ -288,6 +335,35 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 16,
+  },
+  govChips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 16,
+  },
+  govChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.10)',
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  govChipLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    color: 'rgba(243,246,250,0.48)',
+  },
+  govChipValue: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#F3F6FA',
   },
   currentValueCard: {
     padding: 24,

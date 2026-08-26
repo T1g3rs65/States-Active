@@ -400,7 +400,7 @@ export default function Nation() {
   return (
     <ScreenCanvas>
     <View style={styles.container}>
-      <TabChrome title={nation.name} subtitle={nation.display_name || wheelIdentity(nation)} badge={notificationCount} />
+      <TabChrome title={nation.name} badge={notificationCount} />
 
       <ScrollView 
         style={styles.scrollContainer} 
@@ -412,14 +412,15 @@ export default function Nation() {
       <FadeUp key={`nation-${visit}`} delay={0}>
       <GradientBorder tone="compass" speed={5} radius={28} style={styles.headerCard}>
         {renderFlag()}
-        <Text style={styles.nationName}>{nation.name}</Text>
+        <Text style={styles.nationName}>{nation.display_name || wheelIdentity(nation)}</Text>
         <TouchableOpacity onPress={showRaceInfo} style={styles.raceRow} activeOpacity={0.7}>
           <Ionicons name={raceIcon as any} size={16} color={themeColor} />
           <Text style={[styles.raceText, { color: themeColor }]}>{raceName}</Text>
           <Ionicons name="information-circle-outline" size={14} color={themeColor} style={{ marginLeft: 4, opacity: 0.7 }} />
         </TouchableOpacity>
-        <TouchableOpacity onPress={showGovernmentInfo} activeOpacity={0.7}>
-          <Text style={[styles.governmentType, { textDecorationLine: 'underline', color: themeColor }]}>{nation.display_name || wheelIdentity(nation)}</Text>
+        <TouchableOpacity onPress={showGovernmentInfo} style={styles.govInfoRow} activeOpacity={0.7}>
+          <Ionicons name="information-circle-outline" size={14} color={themeColor} />
+          <Text style={[styles.govInfoText, { color: themeColor }]}>Government info</Text>
         </TouchableOpacity>
         {nation.motto && (
           <Text style={styles.motto}>{'\u201c'}{nation.motto}{'\u201d'}</Text>
@@ -451,14 +452,11 @@ export default function Nation() {
             // Anarchy: no ruler. The player IS the society — subtype is the identity.
             <View style={styles.leaderInfo}>
               <Text style={[styles.leaderTitle, { color: colors.accent.gold }]}>
-                {nation.display_name || wheelIdentity(nation) || govTitle(nation.government_type)}
+                {nation.government_subtype || govTitle(nation.government_type)}
               </Text>
               <Text style={styles.leaderName}>
                 No ruler — power rests with the community.
               </Text>
-              <TouchableOpacity onPress={showGovernmentInfo} activeOpacity={0.7}>
-                <Text style={styles.leaderGovType}>{nation.display_name || wheelIdentity(nation)}</Text>
-              </TouchableOpacity>
             </View>
           ) : (
             <>
@@ -474,9 +472,6 @@ export default function Nation() {
                   {getLeaderTitle(nation.race, nation.government_type, nation.leader_name || nation.name)}
                 </Text>
                 <Text style={styles.leaderName}>{nation.leader_name || 'Unknown Leader'}</Text>
-                <TouchableOpacity onPress={showGovernmentInfo} activeOpacity={0.7}>
-                  <Text style={styles.leaderGovType}>{nation.display_name || wheelIdentity(nation)}</Text>
-                </TouchableOpacity>
               </View>
             </>
           )}
@@ -636,10 +631,16 @@ const styles = StyleSheet.create({
     ...typography.body,
     fontWeight: '600',
   },
-  governmentType: {
-    ...typography.body,
-    color: colors.text.secondary,
+  govInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
     marginBottom: spacing.xs,
+  },
+  govInfoText: {
+    ...typography.small,
+    fontWeight: '600',
   },
   sizeClass: {
     ...typography.body,
@@ -735,10 +736,6 @@ const styles = StyleSheet.create({
     ...typography.title,
     color: colors.text.primary,
     marginBottom: spacing.xs,
-  },
-  leaderGovType: {
-    ...typography.small,
-    color: colors.text.secondary,
   },
   detailGrid: {
     backgroundColor: colors.surfaceSolid,
