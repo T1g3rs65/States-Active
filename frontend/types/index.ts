@@ -43,6 +43,38 @@ export interface NationStats {
   alliance_power: number;
 }
 
+// Wheel result shape (GH-93). Mirrors backend/government_wheels.py WheelResult.
+export interface WheelResult {
+  government_form: string;        // democracy | oligarchy | autocracy
+  government_subtype: string;     // e.g. "Parliamentary Democracy"
+  territorial_structure: string;  // unitary | federal | confederal
+  style_modifier: string;         // e.g. "Technocratic" or "None (clean result)"
+}
+
+export interface WheelOption {
+  label: string;
+  weight: number;
+}
+
+export type WheelId = 'form' | 'subtype' | 'territorial' | 'style';
+
+export interface WheelConfig {
+  id: WheelId;
+  label: string;
+  conditional_on?: string; // subtype depends on form
+  options: WheelOption[] | Record<string, WheelOption[]>;
+}
+
+export interface QuizResultPayload {
+  answers: QuizAnswer[];
+  nation_name: string;
+  motto?: string;
+  flag_base64?: string;
+  currency?: string;
+  national_animal?: string;
+  wheel_result?: WheelResult;
+}
+
 export interface Nation {
   id?: string;
   _id?: string;
@@ -50,6 +82,15 @@ export interface Nation {
   name: string;
   flag_base64?: string;
   government_type: string;
+  // GH-93 wheel identity — the DISPLAYED government. government_type stays for compass/flavor.
+  government_form?: string;
+  government_subtype?: string;
+  territorial_structure?: string;
+  style_modifier?: string;
+  form_locked?: boolean;
+  legitimacy?: number;
+  display_identity?: string;
+  display_name?: string;
   motto?: string;
   description: string;
   race?: string;

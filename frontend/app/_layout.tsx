@@ -3,11 +3,13 @@ import { useEffect } from 'react';
 import { View, StyleSheet } from 'react-native';
 import Grain from '../components/Grain';
 import { GlassModalHost } from '../components/GlassModal';
+import { useAccountStore } from '../store/accountStore';
 
-export const APP_BUILD = '22e';
+export const APP_BUILD = '236';
 
 export default function RootLayout() {
   useEffect(() => {
+    useAccountStore.getState().loadSession();
     if (typeof fetch === 'undefined') return;
     // One-shot stale-bundle check. Never loop: mark attempt in sessionStorage.
     try {

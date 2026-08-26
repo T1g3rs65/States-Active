@@ -16,6 +16,8 @@ class GovernmentType(str, Enum):
     AUTHORITARIAN_DEMOCRACY = "Authoritarian Democracy"
     BENEVOLENT_DICTATORSHIP = "Benevolent Dictatorship"
     IRON_FIST_CONSUMERISTS = "Iron Fist Consumerists"
+    CONSTITUTIONAL_MONARCHY = "Constitutional Monarchy"
+    CONSERVATIVE_REPUBLIC = "Conservative Republic"
     MORALISTIC_DEMOCRACY = "Moralistic Democracy"
     PSYCHOTIC_DICTATORSHIP = "Psychotic Dictatorship"
     ANARCHY = "Anarchy"
@@ -206,6 +208,25 @@ class DecisionFeedItem(BaseModel):
     # For breaking news detection
     is_international: bool = False
 
+class WheelResult(BaseModel):
+    government_form: str
+    government_subtype: str
+    territorial_structure: str
+    style_modifier: str
+
+class CrisisState(BaseModel):
+    type: str  # revolution | coup | convention | territorial_reform | reform_evolution
+    phase: int  # 1..N, current beat in the chain
+    started_at: datetime
+    started_by_issue_id: Optional[str] = None
+
+class CrisisHistoryEntry(BaseModel):
+    type: str
+    started_at: datetime
+    resolved_at: datetime
+    final_issue_id: Optional[str] = None
+    wheel_changed: Optional[str] = None
+
 class Nation(BaseModel):
     id: Optional[str] = None
     user_id: str
@@ -218,6 +239,8 @@ class Nation(BaseModel):
     currency: str = "Dollar"  # National currency name
     national_animal: str = "Eagle"  # National animal
     
+    display_name: Optional[str] = None
+
     # World assignment
     world_id: Optional[str] = None  # Which world this nation belongs to
     
@@ -241,12 +264,24 @@ class Nation(BaseModel):
     # Territory counts by biome type (for industry system)
     territory_counts: Dict[str, int] = Field(default_factory=dict)
     total_territories: int = 0
+    resource_counts: Dict[str, int] = Field(default_factory=dict)
 
     # Official timezones (contiguous). None = geographic max.
     timezone_count: Optional[int] = None
     timezone_geo_max: int = 1
     timezone_bands: List[int] = Field(default_factory=list)
-    
+
+    # Government wheel identity
+    government_form: Optional[str] = None
+    government_subtype: Optional[str] = None
+    territorial_structure: Optional[str] = None
+    style_modifier: Optional[str] = None
+    form_locked: bool = True
+    legitimacy: float = 50.0
+    leader_name: Optional[str] = None
+    crisis_state: Optional[CrisisState] = None
+    crisis_history: List[CrisisHistoryEntry] = Field(default_factory=list)
+
     # Reform cooldown (nation-level, 7-day)
     last_reform_sent: Optional[datetime] = None
     
@@ -271,6 +306,7 @@ class Issue(BaseModel):
     resolved_at: Optional[datetime] = None
     chosen_index: Optional[int] = None
     kind: Optional[str] = None
+    chains_into: Optional[str] = None  # Title of a follow-up issue if this one chains
 
 
 class Decision(BaseModel):
@@ -293,6 +329,7 @@ class QuizResult(BaseModel):
     currency: Optional[str] = "Credits"  # Default currency
     national_animal: Optional[str] = "Eagle"  # Default national animal
     advisors: List[Advisor] = []  # 8 permanent cabinet positions
+    wheel_result: Optional[WheelResult] = None
 
 class CreateNationRequest(BaseModel):
     user_id: str
@@ -301,6 +338,19 @@ class CreateNationRequest(BaseModel):
     world_id: Optional[str] = None  # World to join (optional)
     capital_col: Optional[int] = None
     capital_row: Optional[int] = None
+
+class SpinWheelsRequest(BaseModel):
+    world_id: Optional[str] = None
+    spin_token: Optional[str] = None
+    race: Optional[str] = None
+
+class CrisisRespinRequest(BaseModel):
+    wheel_id: str  # form | subtype | territorial | style
+    issue_id: Optional[str] = None
+
+class ResolveCrisisRequest(BaseModel):
+    crisis_type: str
+    issue_id: Optional[str] = None
 
 class SubmitDecisionRequest(BaseModel):
     nation_id: str

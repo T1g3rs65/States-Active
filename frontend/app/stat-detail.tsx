@@ -20,6 +20,7 @@ import ScreenCanvas from '../components/ScreenCanvas';
 import LiquidGlass from '../components/LiquidGlass';
 import GradientBorder from '../components/GradientBorder';
 import EmptyNation from '../components/EmptyNation';
+import { wheelIdentity } from '../utils/govCopy';
 
 const { width } = Dimensions.get('window');
 
@@ -125,7 +126,7 @@ export default function StatDetail() {
   return (
     <ScreenCanvas>
     <View style={styles.container}>
-      <ScreenHeader title={statLabel} subtitle="History" onBack={() => router.push('/(tabs)/overview')} />
+      <ScreenHeader title={nation.name || 'Statistics'} subtitle={wheelIdentity(nation) || 'History'} onBack={() => router.push('/(tabs)/overview')} />
 
       <ScrollView contentContainerStyle={styles.content}>
         <GradientBorder tone="compass" speed={6} radius={28} style={styles.currentValueCard}>

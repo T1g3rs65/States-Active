@@ -18,7 +18,7 @@ import { colors, typography, spacing, radii } from '../../utils/theme';
 import { getNationSizeClass } from '../../utils/nationSize';
 import { getPoliticalCompassTheme, leaningColor, leaningWash, mixIntoDark } from '../../utils/politicalCompass';
 import { getRaceTheme } from '../../utils/raceColors';
-import { govTitle } from '../../utils/govCopy';
+import { govTitle, wheelIdentity } from '../../utils/govCopy';
 import { TabChrome } from '../../components/ScreenHeader';
 import ScreenCanvas from '../../components/ScreenCanvas';
 import GradientBorder from '../../components/GradientBorder';
@@ -228,7 +228,11 @@ export default function Overview() {
           })()}
           <View style={styles.headerTextContainer}>
             <Text style={styles.nationName}>{nation.name}</Text>
-            <Text style={styles.governmentType}>{govTitle(nation.government_type)}</Text>
+            {wheelIdentity(nation) ? (
+              <Text style={styles.wheelIdentity} numberOfLines={2}>
+                {wheelIdentity(nation)}
+              </Text>
+            ) : null}
             <Text style={[styles.sizeClass, { color: themeColor }]}>{getNationSizeClass(stats.population)}</Text>
           </View>
         </View>
@@ -675,6 +679,13 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.text.secondary,
     marginBottom: 4,
+  },
+  wheelIdentity: {
+    ...typography.small,
+    color: colors.text.muted,
+    marginBottom: 4,
+    fontStyle: 'italic',
+    lineHeight: 18,
   },
   sizeClass: {
     ...typography.body,

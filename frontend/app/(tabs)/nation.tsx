@@ -19,7 +19,7 @@ import { getNationSizeClass } from '../../utils/nationSize';
 import { getRaceTheme, getRaceName, getRaceIcon } from '../../utils/raceColors';
 import { leaningColor, leaningWash, hexAlpha } from '../../utils/politicalCompass';
 import { colors, typography, spacing, radii } from '../../utils/theme';
-import { govTitle, govBlurb } from '../../utils/govCopy';
+import { govTitle, govBlurb, wheelIdentity } from '../../utils/govCopy';
 import NewsFeed from '../../components/NewsFeed';
 import CollapsibleSection from '../../components/CollapsibleSection';
 import { TabChrome } from '../../components/ScreenHeader';
@@ -266,11 +266,11 @@ export default function Nation() {
 
   // Show government type description
   const showGovernmentInfo = () => {
-    if (!nation?.government_type) return;
+    const title = nation.display_name || wheelIdentity(nation) || govTitle(nation.government_type);
     const description = govBlurb(nation.government_type) || "A unique form of governance.";
     setInfoModal({
       visible: true,
-      title: govTitle(nation.government_type),
+      title,
       content: description
     });
   };
@@ -400,7 +400,7 @@ export default function Nation() {
   return (
     <ScreenCanvas>
     <View style={styles.container}>
-      <TabChrome title={nation.name} subtitle={govTitle(nation.government_type)} badge={notificationCount} />
+      <TabChrome title={nation.name} subtitle={nation.display_name || wheelIdentity(nation)} badge={notificationCount} />
 
       <ScrollView 
         style={styles.scrollContainer} 
@@ -419,9 +419,8 @@ export default function Nation() {
           <Ionicons name="information-circle-outline" size={14} color={themeColor} style={{ marginLeft: 4, opacity: 0.7 }} />
         </TouchableOpacity>
         <TouchableOpacity onPress={showGovernmentInfo} activeOpacity={0.7}>
-          <Text style={[styles.governmentType, { textDecorationLine: 'underline', color: themeColor }]}>{govTitle(nation.government_type)}</Text>
+          <Text style={[styles.governmentType, { textDecorationLine: 'underline', color: themeColor }]}>{nation.display_name || wheelIdentity(nation)}</Text>
         </TouchableOpacity>
-        <Text style={[styles.sizeClass, { color: themeColor }]}>{getNationSizeClass(stats.population)}</Text>
         {nation.motto && (
           <Text style={styles.motto}>{'\u201c'}{nation.motto}{'\u201d'}</Text>
         )}
@@ -448,22 +447,39 @@ export default function Nation() {
 
       <CollapsibleSection title="Leader" initiallyOpen>
         <View style={styles.leaderSection}>
-          <View style={[styles.leaderPortraitContainer, { borderColor: colors.accent.gold }]}>
-            <Image
-              source={getLeaderPortrait(nation.race, nation.government_type, nation.leader_name || nation.name, nation.name)}
-              style={styles.leaderPortrait}
-              resizeMode="cover"
-            />
-          </View>
-          <View style={styles.leaderInfo}>
-            <Text style={[styles.leaderTitle, { color: colors.accent.gold }]}>
-              {getLeaderTitle(nation.race, nation.government_type, nation.leader_name || nation.name)}
-            </Text>
-            <Text style={styles.leaderName}>{nation.leader_name || 'Unknown Leader'}</Text>
-            <TouchableOpacity onPress={showGovernmentInfo} activeOpacity={0.7}>
-              <Text style={styles.leaderGovType}>{govTitle(nation.government_type)}</Text>
-            </TouchableOpacity>
-          </View>
+          {nation.government_form === 'anarchy' ? (
+            // Anarchy: no ruler. The player IS the society — subtype is the identity.
+            <View style={styles.leaderInfo}>
+              <Text style={[styles.leaderTitle, { color: colors.accent.gold }]}>
+                {nation.display_name || wheelIdentity(nation) || govTitle(nation.government_type)}
+              </Text>
+              <Text style={styles.leaderName}>
+                No ruler — power rests with the community.
+              </Text>
+              <TouchableOpacity onPress={showGovernmentInfo} activeOpacity={0.7}>
+                <Text style={styles.leaderGovType}>{nation.display_name || wheelIdentity(nation)}</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <>
+              <View style={[styles.leaderPortraitContainer, { borderColor: colors.accent.gold }]}>
+                <Image
+                  source={getLeaderPortrait(nation.race, nation.government_type, nation.leader_name || nation.name, nation.name)}
+                  style={styles.leaderPortrait}
+                  resizeMode="cover"
+                />
+              </View>
+              <View style={styles.leaderInfo}>
+                <Text style={[styles.leaderTitle, { color: colors.accent.gold }]}>
+                  {getLeaderTitle(nation.race, nation.government_type, nation.leader_name || nation.name)}
+                </Text>
+                <Text style={styles.leaderName}>{nation.leader_name || 'Unknown Leader'}</Text>
+                <TouchableOpacity onPress={showGovernmentInfo} activeOpacity={0.7}>
+                  <Text style={styles.leaderGovType}>{nation.display_name || wheelIdentity(nation)}</Text>
+                </TouchableOpacity>
+              </View>
+            </>
+          )}
         </View>
       </CollapsibleSection>
 

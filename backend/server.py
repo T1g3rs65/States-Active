@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, HTTPException, BackgroundTasks
+from fastapi import FastAPI, APIRouter, HTTPException, BackgroundTasks, Header, Depends
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from dotenv import load_dotenv
@@ -24,7 +24,8 @@ from models import (
     InternationalVote, VoteSponsor, VoteRecord, CastVoteRequest, ChainEvent, VoteType,
     AllianceRequest, Alliance, SendAllianceRequest, RespondAllianceRequest, AllianceStatus,
     War, WarEvent, DeclareWarRequest, SurrenderRequest, CasusBelli,
-    FactionChatMessage, SendFactionMessageRequest
+    FactionChatMessage, SendFactionMessageRequest,
+    WheelResult, SpinWheelsRequest, CrisisRespinRequest, ResolveCrisisRequest,
 )
 from quiz import calculate_starting_stats, get_quiz_questions
 from stats_config import classify_government, get_government_description
@@ -36,6 +37,16 @@ from terrain_utils import find_land_position, is_land_tile, validate_capital_sit
 from advisor_effects import apply_daily_ticks, publicize_advisors, reveal_trust, ROLE, task_used_today
 from race_service import get_races_for_api, get_race_ai_description, is_race_enabled, get_race_display_info
 from grok_client import LlmChat, UserMessage
+import account_service as accounts
+import email_service
+from government_wheels import (
+    spin_wheels, wheels_config, respin_wheel, respin_to_form,
+    recalc_legitimacy,
+    crisis_check, crisis_for_issue, CRISIS_WHEEL_MAP,
+    build_display_identity, build_government_name, LOW_LEGIT, MID_LEGIT, HIGH_LEGIT,
+    collapse_subtype, founding_target_form,
+    WheelResult as WheelsWheelResult,
+)
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -52,9 +63,16 @@ else:
     client = AsyncMongoMockClient()
 db = client[os.environ.get('DB_NAME', 'states')]
 
-# Initialize AI service (routes through OpenClaw gateway)
-XAI_API_KEY = os.environ.get('OPENCLAW_GATEWAY_TOKEN') or os.environ.get('XAI_API_KEY')
-ai_service = AIService(XAI_API_KEY)
+# Initialize AI service — **exclusively** through the local OpenClaw gateway.
+# Direct Grok/xAI (XAI_API_KEY) and emergentintegrations fallbacks are removed.
+GATEWAY_TOKEN = os.environ.get('OPENCLAW_GATEWAY_TOKEN')
+if not GATEWAY_TOKEN:
+    raise RuntimeError(
+        "OPENCLAW_GATEWAY_TOKEN is required. "
+        "All AI (issues, descriptions, war, images) must route through the self-hosted gateway (http://127.0.0.1:18789/v1). "
+        "XAI_API_KEY and EMERGENT_LLM_KEY are no longer accepted."
+    )
+ai_service = AIService(GATEWAY_TOKEN)
 
 # Create the main app
 app = FastAPI(title="SovereignHex API")
@@ -87,6 +105,37 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+
+async def current_user(authorization: Optional[str] = Header(default=None)):
+    if not authorization or not authorization.lower().startswith("bearer "):
+        raise HTTPException(status_code=401, detail="Sign in required")
+    token = authorization.split(" ", 1)[1].strip()
+    try:
+        payload = accounts.decode_token(token)
+    except Exception:
+        raise HTTPException(status_code=401, detail="Session expired. Sign in again.")
+    user = await accounts.get_user_by_id(db, payload.get("sub"))
+    if not user:
+        raise HTTPException(status_code=401, detail="Account not found")
+    return user
+
+
+async def optional_user(authorization: Optional[str] = Header(default=None)):
+    if not authorization or not authorization.lower().startswith("bearer "):
+        return None
+    try:
+        payload = accounts.decode_token(authorization.split(" ", 1)[1].strip())
+        return await accounts.get_user_by_id(db, payload.get("sub"))
+    except Exception:
+        return None
+
+
+async def require_admin(user=Depends(current_user)):
+    if not user.get("is_admin"):
+        raise HTTPException(status_code=403, detail="Admin only")
+    return user
+
+
 # ============== Leader Name Generation ==============
 import random
 
@@ -108,7 +157,7 @@ def generate_leader_name(race: str, government_type: str) -> str:
     
     # Monarchies get royal titles
     gov_lower = government_type.lower() if government_type else ''
-    if 'monarchy' in gov_lower or 'empire' in gov_lower or 'father knows' in gov_lower:
+    if 'monarchy' in gov_lower or 'royal hive' in gov_lower or 'imperial swarm' in gov_lower:
         first_name = random.choice(HUMAN_FEMALE_FIRST_NAMES if is_female else HUMAN_MALE_FIRST_NAMES)
         numeral = random.choice(["", " II", " III", " IV", " V"])
         return first_name + numeral
@@ -168,9 +217,29 @@ async def create_nation(request: CreateNationRequest):
             stats.military_strength,
             stats.scientific_advancement,
             stats.crime_rate,
-            race=race_id
+            race=race_id,
+            freedom_religion=getattr(stats, "freedom_religion", 50),
+            tax_rate=getattr(stats, "tax_rate", 25),
         )
-        
+
+        # Wheel result: use provided result if present, otherwise spin fresh
+        wheel_result = request.quiz_result.wheel_result
+        if not wheel_result:
+            wheel_result = spin_wheels(race=race_id)
+
+        # Seed legitimacy
+        wheel_result = WheelsWheelResult(**wheel_result.dict())
+        legitimacy = recalc_legitimacy(stats.dict(), wheel_result)
+
+        # Race constraint validation (now covers all forbidden forms for Zythera)
+        if race_id == "zythera" and wheel_result.government_form in ("democracy", "anocracy", "anarchy"):
+            raise HTTPException(status_code=400, detail="Zythera nations cannot roll democracy, anocracy, or anarchy")
+
+        # Generate leader name for non-anarchy nations
+        leader_name = None
+        if wheel_result.government_form != "anarchy":
+            leader_basis = wheel_result.government_subtype or gov_type.value
+            leader_name = generate_leader_name(race_id, leader_basis)
         # Assign unique territory position on map (ENSURE NO OVERLAP AND ON LAND)
         # Get world seed - check if joining a specific world
         world_seed = 123456  # Default seed
@@ -237,6 +306,13 @@ async def create_nation(request: CreateNationRequest):
             currency=request.quiz_result.currency or "Credits",
             national_animal=request.quiz_result.national_animal or "Eagle",
             government_type=gov_type,
+            government_form=wheel_result.government_form,
+            government_subtype=wheel_result.government_subtype,
+            territorial_structure=wheel_result.territorial_structure,
+            style_modifier=wheel_result.style_modifier,
+            form_locked=True,
+            legitimacy=legitimacy,
+            leader_name=leader_name,
             stats=stats,
             stats_history=[StatsSnapshot(stats=stats)],
             advisors=advisors,
@@ -248,18 +324,22 @@ async def create_nation(request: CreateNationRequest):
         
         # Generate initial description
         try:
-            description = await ai_service.generate_nation_description(nation)
+            description = await ai_service.generate_nation_description(nation, db=db)
             nation.description = description
         except Exception as e:
             logger.error(f"Failed to generate description: {e}")
             nation.description = get_government_description(gov_type)
-        
+
+        # Compute display name from wheel fields
+        nation.display_name = build_government_name(nation.dict())
+
         # Save to database
         nation_dict = nation.dict()
         logger.info(f"Nation dict before save - advisors count: {len(nation_dict.get('advisors', []))}")
         result = await db.nations.insert_one(nation_dict)
         nation_dict["id"] = str(result.inserted_id)
         nation_dict["_id"] = str(result.inserted_id)
+        nation_dict["display_identity"] = nation.display_name
         logger.info(f"Nation saved with ID: {result.inserted_id}")
         
         # Update world's nation count if nation is in a world
@@ -305,11 +385,13 @@ async def get_nation(nation_id: str):
         nation["task_used_today"] = task_used_today(nation["advisors"])
         
         # Always recalculate government type based on current stats
-        # This ensures government type stays in sync as stats change from decisions
+        # This ensures government type stays in sync as stats change from decisions.
+        # Wheel fields (government_form, subtype, territorial, style) are NOT
+        # overwritten; they are the founding identity.
         race = nation.get("race", "human")
         current_gov = nation.get("government_type", "")
         stats = nation.get("stats", {})
-        
+
         new_gov_type = classify_government(
             stats.get("civil_rights", 50),
             stats.get("gdp", 50),
@@ -318,9 +400,11 @@ async def get_nation(nation_id: str):
             stats.get("military_strength", 50),
             stats.get("scientific_advancement", 50),
             stats.get("crime_rate", 5),
-            race=race
+            race=race,
+            freedom_religion=stats.get("freedom_religion", 50),
+            tax_rate=stats.get("tax_rate", 25),
         )
-        
+
         # Update if government type changed
         if current_gov != new_gov_type.value:
             nation["government_type"] = new_gov_type.value
@@ -330,16 +414,23 @@ async def get_nation(nation_id: str):
                 {"$set": {"government_type": new_gov_type.value}}
             )
             logger.info(f"Government type updated for nation {nation_id}: '{current_gov}' -> '{new_gov_type.value}'")
-        
-        # Generate leader name if it doesn't exist
-        if not nation.get("leader_name"):
-            leader_name = generate_leader_name(nation.get("race"), nation.get("government_type", ""))
+
+        nation["display_identity"] = build_government_name(nation)
+        nation["display_name"] = nation["display_identity"]
+
+        # Generate leader name if it doesn't exist (anarchy nations have no leader)
+        if not nation.get("leader_name") and nation.get("government_form") != "anarchy":
+            # Prefer wheel subtype for titles (President, Queen, Chairman, etc.)
+            leader_basis = nation.get("government_subtype") or nation.get("government_type", "")
+            leader_name = generate_leader_name(nation.get("race"), leader_basis)
             nation["leader_name"] = leader_name
             # Save it to the database
             await db.nations.update_one(
                 {"_id": ObjectId(nation_id)},
                 {"$set": {"leader_name": leader_name}}
             )
+        elif nation.get("government_form") == "anarchy":
+            nation["leader_name"] = None
         
         # Calculate realistic GDP values
         population = nation["stats"]["population"]
@@ -356,6 +447,190 @@ async def get_nation(nation_id: str):
     except Exception as e:
         logger.error(f"Error fetching nation: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@api_router.get("/auth/google/status")
+async def google_auth_status():
+    cid = os.environ.get("GOOGLE_CLIENT_ID") or ""
+    return {"success": True, "enabled": bool(cid), "client_id": cid or None}
+
+
+@api_router.post("/auth/google")
+async def auth_google(request: dict):
+    """Exchange a Google ID token for a SovereignHex session.
+
+    Verifies the token via Google's tokeninfo endpoint (no client secret needed
+    for ID-token validation). Finds or creates an account by google_sub, links
+    the account if an existing logged-in user is passed, returns a JWT.
+    """
+    import urllib.request as urlreq
+    import urllib.parse as urlparse
+    import json as _json
+
+    id_token = (request.get("id_token") or "").strip()
+    if not id_token:
+        raise HTTPException(status_code=400, detail="id_token required")
+
+    try:
+        url = "https://oauth2.googleapis.com/tokeninfo?id_token=" + urlparse.quote(id_token, safe="")
+        with urlreq.urlopen(url, timeout=15) as resp:
+            info = _json.loads(resp.read().decode("utf-8"))
+    except Exception as e:
+        logger.error(f"Google token verify failed: {e}")
+        raise HTTPException(status_code=401, detail="Invalid Google token")
+
+    google_sub = info.get("sub")
+    email = (info.get("email") or "").strip().lower()
+    cid = (os.environ.get("GOOGLE_CLIENT_ID") or "").strip()
+    if cid and info.get("aud") != cid:
+        raise HTTPException(status_code=401, detail="Google token audience mismatch")
+    if not google_sub or not email:
+        raise HTTPException(status_code=401, detail="Google token missing sub/email")
+
+    user = await accounts.get_user_by_id(db, google_sub)
+    if not user:
+        user = await accounts.get_user_by_email(db, email)
+
+    if user:
+        # Link google_sub to this account if not already
+        await db.users.update_one({"id": user["id"]}, {"$set": {"google_sub": google_sub}})
+        user["google_sub"] = google_sub
+    else:
+        n = await accounts.count_users(db)
+        is_admin = n == 0
+        doc = {
+            "id": google_sub,
+            "email": email,
+            "username": (info.get("name") or email.split("@")[0]).strip(),
+            "password_hash": None,
+            "is_admin": is_admin,
+            "google_sub": google_sub,
+            "legacy_user_id": None,
+            "created_at": datetime.utcnow(),
+        }
+        await db.users.insert_one(doc)
+        user = doc
+
+    token = accounts.make_token(user)
+    return {"success": True, "token": token, "user": accounts.public_user(user)}
+
+
+@api_router.post("/auth/register")
+async def auth_register(request: dict):
+    try:
+        user = await accounts.register_user(
+            db,
+            email=request.get("email") or "",
+            password=request.get("password") or "",
+            username=request.get("username"),
+        )
+        legacy = (request.get("legacy_user_id") or "").strip()
+        if legacy:
+            await accounts.link_legacy_user_id(db, user["id"], legacy)
+            user["legacy_user_id"] = legacy
+        token = accounts.make_token(user)
+        # Send a verification email (Open SaaS pattern). The account is active but
+        # the frontend prompts to verify. Email failures do not block signup.
+        try:
+            verify_token = await accounts.create_verify_token(db, user["id"])
+            base = os.environ.get("STATES_PUBLIC_URL") or "https://sovereignhex.tigerflix.stream"
+            link = f"{base}/verify-email?token={verify_token}"
+            email_service.send_verification_email(user.get("email") or "", link)
+        except Exception as e:  # noqa: BLE001
+            logger.warning("Verification email not sent for %s: %s", user.get("email"), e)
+        return {"success": True, "token": token, "user": accounts.public_user(user)}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@api_router.post("/auth/verify")
+async def auth_verify(request: dict):
+    token = (request.get("token") or "").strip()
+    if not token:
+        raise HTTPException(status_code=400, detail="token required")
+    user = await accounts.verify_email(db, token)
+    if not user:
+        raise HTTPException(status_code=400, detail="Invalid or expired verification link")
+    return {"success": True, "user": accounts.public_user(user)}
+
+
+@api_router.post("/auth/login")
+async def auth_login(request: dict):
+    try:
+        user = await accounts.login_user(db, request.get("email") or "", request.get("password") or "")
+        token = accounts.make_token(user)
+        return {"success": True, "token": token, "user": accounts.public_user(user)}
+    except ValueError as e:
+        raise HTTPException(status_code=401, detail=str(e))
+
+
+@api_router.get("/auth/me")
+async def auth_me(user=Depends(current_user)):
+    return {"success": True, "user": accounts.public_user(user)}
+
+
+@api_router.post("/auth/link-legacy")
+async def auth_link_legacy(request: dict, user=Depends(current_user)):
+    legacy = (request.get("legacy_user_id") or "").strip()
+    if not legacy:
+        raise HTTPException(status_code=400, detail="legacy_user_id required")
+    await accounts.link_legacy_user_id(db, user["id"], legacy)
+    return {"success": True}
+
+
+@api_router.get("/admin/overview")
+async def admin_overview(_admin=Depends(require_admin)):
+    users = await accounts.count_users(db)
+    nations = await db.nations.count_documents({})
+    worlds = await db.worlds.count_documents({})
+    official = await db.worlds.count_documents({"official": True})
+    return {
+        "success": True,
+        "users": users,
+        "nations": nations,
+        "worlds": worlds,
+        "official_worlds": official,
+    }
+
+
+@api_router.get("/admin/users")
+async def admin_users(_admin=Depends(require_admin)):
+    return {"success": True, "users": await accounts.list_users(db)}
+
+
+@api_router.post("/admin/users/{user_id}/admin")
+async def admin_set_admin(user_id: str, request: dict, _admin=Depends(require_admin)):
+    user = await accounts.set_admin(db, user_id, bool(request.get("is_admin")))
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return {"success": True, "user": accounts.public_user(user)}
+
+
+@api_router.get("/admin/worlds")
+async def admin_worlds(_admin=Depends(require_admin)):
+    out = []
+    async for w in db.worlds.find({}):
+        w["id"] = str(w.get("id") or w.get("_id"))
+        w["_id"] = w["id"]
+        w["official"] = bool(w.get("official"))
+        out.append(w)
+    return {"success": True, "worlds": out}
+
+
+@api_router.post("/admin/worlds/{world_id}/official")
+async def admin_set_official(world_id: str, request: dict, _admin=Depends(require_admin)):
+    from bson import ObjectId
+    official = bool(request.get("official"))
+    q = {"$or": [{"id": world_id}]}
+    try:
+        q["$or"].append({"_id": ObjectId(world_id)})
+    except Exception:
+        pass
+    res = await db.worlds.update_one(q, {"$set": {"official": official}})
+    if res.matched_count == 0:
+        raise HTTPException(status_code=404, detail="World not found")
+    return {"success": True, "official": official}
+
 
 @api_router.get("/nations/user/{user_id}")
 async def get_user_nation(user_id: str):
@@ -384,11 +659,14 @@ async def get_user_nation(user_id: str):
         population = nation["stats"]["population"]
         gdp_stat = nation["stats"]["gdp"]
         currency = nation.get("currency", "Dollar")
-        
+
         gdp_value = calculate_realistic_gdp(population, gdp_stat)
         nation["gdp_value"] = gdp_value
         nation["gdp_display"] = format_gdp_display(gdp_value, currency)
-        
+
+        nation["display_identity"] = build_government_name(nation)
+        nation["display_name"] = nation["display_identity"]
+
         return {"success": True, "nation": nation}
     except Exception as e:
         logger.error(f"Error fetching user nation: {e}")
@@ -434,7 +712,7 @@ async def regenerate_description(nation_id: str):
             # Convert _id to id string before creating Nation object
             nation_data["id"] = str(nation_data["_id"])
             nation = Nation(**nation_data)
-            description = await ai_service.generate_nation_description(nation)
+            description = await ai_service.generate_nation_description(nation, db=db)
             
             await db.nations.update_one(
                 {"_id": ObjectId(nation_id)},
@@ -547,6 +825,156 @@ async def get_territory_stats(nation_id: str):
         "success": True,
         "message": "Calculate territory stats on frontend from world map"
     }
+
+@api_router.get("/wheels/config")
+async def get_wheels_config(race: Optional[str] = None):
+    """Return the four government wheels with options and weights."""
+    return {"success": True, **wheels_config(race)}
+
+
+# In-memory idempotency cache for spin tokens (per-process; OK for single-host LAN).
+_spin_cache: dict[str, dict] = {}
+
+
+@api_router.post("/wheels/spin")
+async def post_spin_wheels(request: SpinWheelsRequest):
+    """Server-side one-shot wheel spin.
+
+    If a spin_token is provided and already has a stored result, return it.
+    Race is optional; if provided it constrains Wheel 1 (Zythera only).
+    """
+    token = request.spin_token
+    if token and token in _spin_cache:
+        cached = _spin_cache[token]
+        return {"success": True, "result": cached, "cached": True}
+
+    result = spin_wheels(seed=None, race=request.race)
+    result_dict = result.dict()
+    if token:
+        _spin_cache[token] = result_dict
+    return {"success": True, "result": result_dict}
+
+
+@api_router.post("/nations/{nation_id}/crisis-respin")
+async def crisis_respin(nation_id: str, request: CrisisRespinRequest):
+    """Resolve an active crisis by re-spinning the specified wheel."""
+    from bson import ObjectId
+
+    nation = await db.nations.find_one({"_id": ObjectId(nation_id)})
+    if not nation:
+        raise HTTPException(status_code=404, detail="Nation not found")
+
+    crisis_state = nation.get("crisis_state")
+    if not crisis_state:
+        raise HTTPException(status_code=400, detail="No active crisis")
+
+    crisis_type = crisis_state.get("type")
+    expected_wheel = CRISIS_WHEEL_MAP.get(crisis_type)
+    if expected_wheel and request.wheel_id != expected_wheel:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Crisis '{crisis_type}' must resolve by re-spinning '{expected_wheel}'",
+        )
+
+    current = spin_wheels(seed=None, race=nation.get("race"))
+    current.government_form = nation.get("government_form", "democracy")
+    current.government_subtype = nation.get("government_subtype", "Representative Democracy")
+    current.territorial_structure = nation.get("territorial_structure", "unitary")
+    current.style_modifier = nation.get("style_modifier", "None (clean result)")
+
+    new_result: WheelsWheelResult
+    if crisis_type == "state_collapse":
+        # Force form to anarchy and pick subtype by national conditions
+        subtype = collapse_subtype(nation.get("stats", {}), race=nation.get("race"))
+        new_result = respin_to_form(
+            current,
+            "anarchy",
+            race=nation.get("race"),
+            seed=None,
+        )
+        new_result = new_result.copy(update={"government_subtype": subtype})
+    elif crisis_type == "founding":
+        # Anarchy -> form, weighted by current subtype and race
+        target_form = founding_target_form(
+            current.government_subtype,
+            race=nation.get("race"),
+            seed=None,
+        )
+        new_result = respin_to_form(
+            current,
+            target_form,
+            race=nation.get("race"),
+            seed=None,
+        )
+    else:
+        new_result = respin_wheel(
+            request.wheel_id,
+            current,
+            seed=None,
+            race=nation.get("race"),
+        )
+    new_result = WheelsWheelResult(**new_result.dict())
+    legitimacy = recalc_legitimacy(nation.get("stats", {}), new_result)
+
+    # Special post-crisis legitimacy adjustment
+    if crisis_type == "state_collapse":
+        legitimacy = max(0.0, legitimacy)  # already clamped; anarchy gets subtype mod above
+    elif crisis_type == "founding":
+        legitimacy = min(100.0, max(legitimacy, 40.0))
+    elif crisis_type == "convention":
+        legitimacy = max(legitimacy, 35.0)
+
+    history_entry = {
+        "type": crisis_type,
+        "started_at": crisis_state.get("started_at", datetime.utcnow()),
+        "resolved_at": datetime.utcnow(),
+        "final_issue_id": request.issue_id or crisis_state.get("started_by_issue_id"),
+        "wheel_changed": request.wheel_id,
+    }
+
+    update = {
+        "government_form": new_result.government_form,
+        "government_subtype": new_result.government_subtype,
+        "territorial_structure": new_result.territorial_structure,
+        "style_modifier": new_result.style_modifier,
+        "display_name": build_government_name({**nation, **new_result.dict()}),
+        "form_locked": True,
+        "legitimacy": legitimacy,
+        "crisis_state": None,
+    }
+    # Anarchy nations have no leader; formed states get a new leader
+    if new_result.government_form == "anarchy":
+        update["leader_name"] = None
+    else:
+        leader_basis = new_result.government_subtype or nation.get("government_type", "")
+        update["leader_name"] = generate_leader_name(nation.get("race"), leader_basis)
+
+    await db.nations.update_one(
+        {"_id": ObjectId(nation_id)},
+        {
+            "$set": update,
+            "$push": {"crisis_history": history_entry},
+        },
+    )
+
+    return {
+        "success": True,
+        "crisis_resolved": crisis_type,
+        "wheel_id": request.wheel_id,
+        "result": new_result.dict(),
+        "legitimacy": legitimacy,
+        "display_identity": build_government_name({**nation, **new_result.dict()}),
+        "display_name": build_government_name({**nation, **new_result.dict()}),
+    }
+
+
+@api_router.post("/admin/nations/delete-all", dependencies=[Depends(require_admin)])
+async def admin_delete_all_nations():
+    """Delete every nation. Austin-approved for the wheel-system fresh start."""
+    result = await db.nations.delete_many({})
+    await db.issues.delete_many({})
+    await db.decisions.delete_many({})
+    return {"success": True, "deleted_nations": result.deleted_count}
 
 @api_router.post("/nations/{nation_id}/timezone-geo")
 async def set_timezone_geo(nation_id: str, body: dict):
@@ -699,7 +1127,7 @@ async def get_daily_issues(nation_id: str, force_generate: bool = False):
                 logger.info(f"Generating {issues_to_generate} issues for nation {nation_id} (available slots: {available_slots})")
                 
                 # Generate issues
-                new_issues = await ai_service.generate_issues(nation, count=issues_to_generate)
+                new_issues = await ai_service.generate_issues(nation, count=issues_to_generate, db=db)
                 
                 for issue in new_issues:
                     issue_dict = issue.dict()
@@ -816,7 +1244,9 @@ async def submit_decision(request: SubmitDecisionRequest):
             current_stats.get("military_strength", 50),
             current_stats.get("scientific_advancement", 50),
             current_stats.get("crime_rate", 5),
-            race=nation_data.get("race", "human")
+            race=nation_data.get("race", "human"),
+            freedom_religion=current_stats.get("freedom_religion", 50),
+            tax_rate=current_stats.get("tax_rate", 25),
         )
         
         # Save stats snapshot
@@ -1455,6 +1885,7 @@ Stay in this advisor's lane. Do not write a generic "the cabinet did a thing" is
 - Population: {nation['stats']['population']}k
 - GDP: {nation['stats']['gdp']}/100
 - Happiness: {nation['stats']['happiness']}/100
+{ai_service._build_geography_context(nation)}
 
 **VALID STAT NAMES (use ONLY these in effects):**
 gdp, economy_growth, unemployment, inflation, civil_rights, freedom_speech, freedom_press, freedom_assembly, freedom_religion, political_freedom, voting_rights, corruption, political_apathy, happiness, life_expectancy, obesity_rate, environment, pollution, biodiversity, eco_footprint, healthcare_quality, literacy_rate, university_attendance, scientific_advancement, crime_rate, law_enforcement, military_strength, income_equality, gini_coefficient, population, population_growth, budget_education, budget_defense, budget_healthcare, budget_welfare, budget_environment, budget_infrastructure, budget_other, national_debt, tax_rate, international_approval
@@ -1650,9 +2081,18 @@ async def get_industry_leaderboard(world_id: str = None):
         # Get all nations with resource data
         cursor = db.nations.find(
             query,
-            {"name": 1, "resource_counts": 1, "total_territories": 1}
+            {"name": 1, "resource_counts": 1, "total_territories": 1, "flag_base64": 1, "government_type": 1, "race": 1, "faction_id": 1}
         )
         nations = await cursor.to_list(length=100)
+        
+        # Pre-fetch factions for tag/color lookup
+        faction_map = {}
+        faction_ids = [n.get("faction_id") for n in nations if n.get("faction_id")]
+        if faction_ids:
+            from bson import ObjectId as _OID
+            faq = {"_id": {"$in": [_OID(fid) for fid in faction_ids if fid]}}
+            async for f in db.alliances.find(faq, {"name": 1, "tag": 1, "color": 1}):
+                faction_map[str(f["_id"])] = f
         
         leaderboard = []
         for nation in nations:
@@ -1665,13 +2105,21 @@ async def get_industry_leaderboard(world_id: str = None):
                 total_value += count * value_multiplier
                 resource_tiles += count
             
+            fid = nation.get("faction_id")
+            faction = faction_map.get(fid, {}) if fid else {}
+            
             leaderboard.append({
                 "nation_id": str(nation["_id"]),
                 "nation_name": nation.get("name", "Unknown"),
                 "total_value": total_value,
                 "resource_tiles": resource_tiles,
                 "unique_resources": len(resource_counts),
-                "total_territories": nation.get("total_territories", 0)
+                "total_territories": nation.get("total_territories", 0),
+                "flag_base64": nation.get("flag_base64"),
+                "government_type": nation.get("government_type"),
+                "race": nation.get("race"),
+                "faction_tag": faction.get("tag"),
+                "faction_color": faction.get("color"),
             })
         
         # Sort by total value descending
@@ -3938,12 +4386,15 @@ async def get_worlds():
 
 
 @api_router.post("/worlds")
-async def create_world(request: dict):
-    """Create a new world."""
+async def create_world(request: dict, user=Depends(current_user)):
+    """Create a new world. Admin only."""
+    if not user.get("is_admin"):
+        raise HTTPException(status_code=403, detail="Only admins can create worlds")
     try:
         name = request.get("name")
         if not name:
             raise HTTPException(status_code=400, detail="World name is required")
+        official = bool(request.get("official", True))
         
         # Check if world with same name exists
         existing = await db.worlds.find_one({"name": name})
@@ -3960,6 +4411,7 @@ async def create_world(request: dict):
             "noise_settings": request.get("noise_settings") or {},
             "owner_nation_id": request.get("creator_nation_id"),
             "owner_nation_name": request.get("creator_nation_name"),
+            "official": bool(request.get("official")),
             "player_count": 0,
             "nation_count": 0,
             "is_active": True,

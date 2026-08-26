@@ -17,6 +17,8 @@ export const GOV_BLURB: Record<string, string> = {
   'Benevolent Dictatorship': 'One ruler. Competent, not free.',
   'Iron Fist Consumerists': 'Shop freely. Do not talk politics.',
   'Moralistic Democracy': 'The majority voted in a moral code.',
+  'Conservative Republic': 'Elected conservatives. Tradition and markets, no crown.',
+  'Constitutional Monarchy': 'A crown on paper. Parliament does the work.',
   'Psychotic Dictatorship': 'Terror as policy.',
   'Anarchy': 'No centre. Local deals and local guns.',
   'Father Knows Best State': 'The state parents you “for your own good.”',
@@ -62,4 +64,26 @@ export const GOV_BLURB: Record<string, string> = {
 export function govBlurb(raw?: string | null): string {
   if (!raw) return '';
   return GOV_BLURB[raw] || '';
+}
+
+/** GH-93 wheel identity string. Prefers the backend-built full display name. */
+export function wheelIdentity(nation?: {
+  display_name?: string | null;
+  display_identity?: string | null;
+  government_subtype?: string | null;
+  territorial_structure?: string | null;
+  style_modifier?: string | null;
+} | null): string {
+  if (!nation) return '';
+  if (nation.display_name) return nation.display_name;
+  if (nation.display_identity) return nation.display_identity;
+  return [
+    nation.government_subtype,
+    nation.territorial_structure,
+    nation.style_modifier && nation.style_modifier !== 'None (clean result)'
+      ? nation.style_modifier
+      : null,
+  ]
+    .filter(Boolean)
+    .join(' · ');
 }
