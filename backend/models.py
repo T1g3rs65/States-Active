@@ -192,7 +192,9 @@ class DecisionFeedItem(BaseModel):
     nation_id: str
     nation_name: str
     race: str = "human"  # Race ID for theme colors
-    government_type: str
+    government_type: str  # Deprecated: full display name or subtype for back-compat
+    government_subtype: Optional[str] = None
+    display_name: Optional[str] = None
     issue_title: str
     choice_text: str
     policy_created: Optional[str] = None  # Policy name if one was created
@@ -365,7 +367,8 @@ class RankingEntry(BaseModel):
     nation_name: str
     race: str = "human"  # Race ID for theme colors
     flag_base64: Optional[str]
-    government_type: str
+    government_subtype: str  # Wheel-based short government identity for chips/tags
+    display_name: Optional[str] = None  # Wheel-based full government identity
     stat_value: float
     rank: int
 
@@ -466,7 +469,12 @@ class NationExportData(BaseModel):
     """Exported nation data for migration between servers."""
     # Core identity
     name: str
-    government_type: str
+    display_name: Optional[str] = None
+    government_subtype: Optional[str] = None
+    government_form: Optional[str] = None
+    territorial_structure: Optional[str] = None
+    style_modifier: Optional[str] = None
+    government_type: str  # Deprecated: stores display name or subtype for back-compat
     motto: Optional[str] = None
     description: str = ""
     currency: str = "Dollar"

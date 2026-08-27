@@ -1,70 +1,4 @@
-/** Display names and one-line blurbs. Enum/DB strings stay as keys. */
-
-export function govTitle(raw?: string | null): string {
-  if (!raw) return '';
-  return raw;
-}
-
-export const GOV_BLURB: Record<string, string> = {
-  'Left-Wing Utopia': 'Public ownership, tight equality, thin private wealth.',
-  'Scandinavian Liberal Paradise': 'High tax, high services, still a market.',
-  'Democratic Socialists': 'Elected government, heavy welfare, mixed economy.',
-  'Liberal Democratic Paradise': 'Elections, civil liberties, ordinary capitalism.',
-  'Capitalist Paradise': 'Light regulation, business first.',
-  'Corporate Police State': 'Firms write the rules and enforce them.',
-  'Right-Wing Utopia': 'Small state, property and guns, little else.',
-  'Authoritarian Democracy': 'Votes happen. The same people stay in charge.',
-  'Benevolent Dictatorship': 'One ruler. Competent, not free.',
-  'Iron Fist Consumerists': 'Shop freely. Do not talk politics.',
-  'Moralistic Democracy': 'The majority voted in a moral code.',
-  'Conservative Republic': 'Elected conservatives. Tradition and markets, no crown.',
-  'Constitutional Monarchy': 'A crown on paper. Parliament does the work.',
-  'Psychotic Dictatorship': 'Terror as policy.',
-  'Anarchy': 'No centre. Local deals and local guns.',
-  'Father Knows Best State': 'The state parents you “for your own good.”',
-  'Eco-Socialist Haven': 'Green rules and public ownership.',
-  'Welfare Paradise': 'Cradle-to-grave benefits, funded by the tax take.',
-  'Laissez-Faire Dynamo': 'No industrial policy. Markets clear or they don’t.',
-  'Tech Oligarchy': 'Engineers and founders run the cabinet.',
-  'Trade Empire': 'Customs, ports, and deals with everyone.',
-  'Surveillance Panopticon': 'Cameras, IDs, no private life.',
-  'Theocratic Enforcers': 'Clergy as law.',
-  'Martial Command': 'Generals keep the peace.',
-  'Seastead Republic': 'Offshore, lightly taxed, legally fuzzy.',
-  'Psychedelic Free State': 'Drugs are legal. Most other vices too.',
-  'Pragmatic Meritocracy': 'Exams and résumés beat bloodlines.',
-  'Technocratic Syndicate': 'Specialists vote; parties don’t.',
-  'Inoffensive Centrist Democracy': 'The middle of every chart.',
-  'Civil Rights Lovefest': 'The state exists to get out of the way.',
-  'Corporate Bordello': 'If it sells, it’s legal.',
-  'Corrupt Dictatorship': 'The palace is a payroll.',
-  'Free-Market Paradise': 'Competition is the only plan.',
-  'Cyberpunk Megacity': 'High tech, bad streets, corporate towers.',
-  'Pirate Haven': 'No extradition, few questions.',
-  'Socialist Republic': 'Central plan, some room to speak.',
-  "People's Republic": 'The party owns the economy and the press.',
-  'Collective Hive': 'Queen as quartermaster. Shares are even.',
-  "Worker's Swarm": 'Labour caste runs production under the Queen.',
-  'Royal Hive': 'Caste is law. The Queen does not explain.',
-  'Imperial Swarm': 'The hive grows by taking ground.',
-  'Divine Hive': 'The Queen is worshipped, not merely obeyed.',
-  'Militant Hive': 'Warrior caste first.',
-  'Ordered Colony': 'Forms, rosters, quotas.',
-  'Symbiotic Swarm': 'Room for individuals inside the hive.',
-  'Nurturing Hive': 'The Queen spends on brood and sick.',
-  'Merchant Hive': 'Trade first, war later.',
-  'Techno-Swarm': 'Labs outrank temples.',
-  'Harmonious Hive': 'Neither tight nor loose. It works.',
-  'Free Colony': 'The Queen lets subjects wander.',
-  'Balanced Hive': 'Whatever the hive needs this season.',
-  'Diplomatic Swarm': 'Treaties over raids.',
-  'Parasitic Hive': 'Tribute in, work out.',
-};
-
-export function govBlurb(raw?: string | null): string {
-  if (!raw) return '';
-  return GOV_BLURB[raw] || '';
-}
+/** Wheel-based government display helpers. Legacy enum/DB strings are no longer displayed. */
 
 /** GH-93 wheel identity string. Prefers the backend-built full display name. */
 export function wheelIdentity(nation?: {
@@ -86,4 +20,123 @@ export function wheelIdentity(nation?: {
   ]
     .filter(Boolean)
     .join(' · ');
+}
+
+/** Return a generic wheel-based government blurb. */
+export function govBlurb(raw?: string | null): string {
+  if (!raw) return '';
+  // Wheel subtypes are the new display identity; keep only wheel-relevant blurbs.
+  const WHEEL_BLURB: Record<string, string> = {
+    'Democracy': 'Power flows from elections and public consent.',
+    'Republic': 'Elected representatives govern under a constitution.',
+    'Monarchy': 'A hereditary crown holds sovereign authority.',
+    'Theocracy': 'Religious law and clerical authority shape the state.',
+    'Dictatorship': 'A single ruler or clique holds unchecked power.',
+    'Oligarchy': 'A small elite class controls government and economy.',
+    'Autocracy': 'One authority rules with minimal constraint.',
+    'Corporatocracy': 'Corporate interests dominate public policy.',
+    'Technocracy': 'Experts and technical criteria guide decisions.',
+    'Anarchy': 'No centralized state; society self-organizes.',
+    'Commune': 'Collective ownership and direct participation.',
+    'Hive': 'Caste and collective will override individual ambition.',
+    'Swarm': 'A decentralized but coordinated collective.',
+    'Collective': 'Group decisions bind all members.',
+    'Junta': 'Military leaders hold transitional or permanent power.',
+    'Military': 'Armed forces oversee civil governance.',
+    'Federal': 'Power is divided between central and regional governments.',
+    'Unitary': 'A single national government holds primary authority.',
+    'Confederation': 'Sovereign regions delegate limited power upward.',
+    'Parliamentary': 'The legislature selects and supervises the executive.',
+    'Presidential': 'A separate elected president heads the executive.',
+    'Direct': 'Citizens vote on policy without intermediaries.',
+    'Constitutional': 'Fundamental law limits all branches of government.',
+    'Absolute': 'The ruler is not meaningfully bound by law.',
+    'Elective': 'Leadership is chosen rather than inherited.',
+    'Meritocratic': 'Ability and achievement determine position.',
+    'Plutocratic': 'Wealth translates directly into political power.',
+    'Socialist': 'Social ownership and equality are explicit goals.',
+    'Capitalist': 'Markets and private ownership drive the economy.',
+    'Liberal': 'Individual rights and limited government are core principles.',
+    'Conservative': 'Tradition, order, and gradual change are emphasized.',
+    'Progressive': 'Reform and social improvement are pursued actively.',
+    'Nationalist': 'National identity and interest guide policy.',
+    'Internationalist': 'Global cooperation takes priority over narrow interest.',
+    'Isolationist': 'Foreign entanglement is minimized.',
+    'Interventionist': 'The state actively shapes society and abroad.',
+    'Laissez-Faire': 'The state interferes as little as possible.',
+    'Regulated': 'Markets operate under significant rules.',
+    'Planned': 'Central direction coordinates economic activity.',
+    'Mixed': 'Public and private sectors share economic responsibility.',
+    'Free-Market': 'Private exchange and competition are paramount.',
+    'Syndicalist': 'Worker organizations manage industry.',
+    'Tribal': 'Kinship and custom organize political life.',
+    'Clan': 'Extended families are the basic units of power.',
+    'City-State': 'A single urban center is the focus of sovereignty.',
+    'Empire': 'A dominant center rules over diverse territories.',
+    'Commonwealth': 'Associated peoples share sovereignty voluntarily.',
+    'Union': 'Formerly separate polities have merged authority.',
+    'Protectorate': 'A stronger power guarantees and influences the state.',
+    'Puppet': 'Foreign interests effectively control the government.',
+    'Vassal': 'The state owes allegiance and service to a suzerain.',
+    'Satrapy': 'A provincial governor rules on behalf of an empire.',
+    'Client': 'Independence is limited by dependence on a patron.',
+    'Buffer': 'The state exists chiefly between rival powers.',
+    'Frontier': 'Borderland conditions shape law and society.',
+    'Nomadic': 'The population and government are mobile.',
+    'Sedentary': 'Permanent settlement anchors the state.',
+    'Maritime': 'Sea trade and naval power define the nation.',
+    'Mercantile': 'Trade and commercial profit drive the state.',
+    'Agrarian': 'Landed agriculture dominates economy and culture.',
+    'Industrial': 'Manufacturing and urban labor define the state.',
+    'Post-Industrial': 'Services, technology, and information dominate.',
+    'Feudal': 'Lords and vassals hold land in exchange for service.',
+    'Bureaucratic': 'Official rules and hierarchy govern daily life.',
+    'Pragmatic': 'Practical outcomes outweigh ideology.',
+    'Idealistic': 'Principles are pursued even at practical cost.',
+    'Populist': 'The people, or their supposed will, are invoked constantly.',
+    'Elitist': 'A claimed superior class is trusted to rule.',
+    'Secular': 'Religious institutions have no official role.',
+    'Religious': 'Faith is central to law and identity.',
+    'Multi-Faith': 'Several religions coexist under state neutrality.',
+    'Atheist': 'Religion is formally excluded from public life.',
+    'Militarist': 'Military values pervade civilian society.',
+    'Pacifist': 'Force is rejected as a tool of policy.',
+    'Neutral': 'The state avoids alignment in great-power conflicts.',
+    'Allied': 'The state is bound to partners by formal obligation.',
+    'Satellite': 'The state orbits a stronger power’s interests.',
+    'Rump': 'The remnants of a once-larger polity persist.',
+    'Exile': 'The government claims authority from outside its homeland.',
+    'Revolutionary': 'The regime derives legitimacy from upheaval.',
+    'Restoration': 'An older order has been re-established.',
+    'Transitional': 'The system is explicitly temporary and reforming.',
+    'Provisional': 'An interim government awaits permanent arrangement.',
+    'Emergency': 'Crisis powers have suspended normal rules.',
+    'Occupied': 'Foreign forces administer the territory.',
+    'Mandate': 'An international authority supervises the state.',
+    'Trust': 'The state is held in stewardship for future independence.',
+    'Condominium': 'Two or more powers share sovereignty.',
+    'Free Territory': 'No outside power claims control.',
+    'Autonomous': 'Self-governance exists within a larger sovereignty.',
+    'Dependent': 'A metropolitan power controls external affairs.',
+    'Associated': 'The state is linked to another by treaty, not subjection.',
+    'Sovereign': 'The state claims full independent authority.',
+    'Personal Union': 'Two states share the same monarch but remain separate.',
+    'Dynastic Union': 'Ruling families link otherwise separate realms.',
+    'Real Union': 'Separate crowns share institutions.',
+    'Composite': 'Multiple historical realms are governed together.',
+    'Supranational': 'Authority has been pooled above the national level.',
+    'Subnational': 'The unit operates below full sovereignty.',
+    'Microstate': 'A very small state survives by niche and diplomacy.',
+    'Great Power': 'The state shapes the international system.',
+    'Middle Power': 'The state influences regional affairs.',
+    'Small Power': 'The state must align to protect its interests.',
+  };
+  const direct = WHEEL_BLURB[raw];
+  if (direct) return direct;
+  // Try matching any word in the raw string against wheel blurb keys.
+  const words = raw.split(/[^A-Za-z0-9\-]+/);
+  for (const word of words) {
+    if (WHEEL_BLURB[word]) return WHEEL_BLURB[word];
+  }
+  return '';
 }

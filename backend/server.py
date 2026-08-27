@@ -146,8 +146,8 @@ HUMAN_LAST_NAMES = ["Windsor", "Blackwood", "Sterling", "Ashford", "Thornton", "
 
 ZYTHERA_QUEEN_NAMES = ["Xyris", "Zylara", "Chrysalia", "Nyxara", "Aurelia", "Velyra", "Seraphyx", "Lunaris", "Crystallis", "Azuryx", "Celestrix", "Aethyra", "Prismara", "Opalyx", "Iridessa", "Luminia", "Staryx", "Nebulara", "Galaxia", "Cosmara"]
 
-def generate_leader_name(race: str, government_type: str) -> str:
-    """Generate a leader name based on race and government type."""
+def generate_leader_name(race: str, government_basis: str) -> str:
+    """Generate a leader name based on race and government wheel subtype/form."""
     if race and race.lower() == 'zythera':
         # Zythera always have Queens with elegant alien names
         return f"Queen {random.choice(ZYTHERA_QUEEN_NAMES)}"
@@ -155,9 +155,9 @@ def generate_leader_name(race: str, government_type: str) -> str:
     # For humans, determine if leader should be male or female (50/50)
     is_female = random.random() > 0.5
     
-    # Monarchies get royal titles
-    gov_lower = government_type.lower() if government_type else ''
-    if 'monarchy' in gov_lower or 'royal hive' in gov_lower or 'imperial swarm' in gov_lower:
+    # Use wheel subtype/form to pick royal names for monarchies / kingdoms / empires
+    gov_lower = government_basis.lower() if government_basis else ''
+    if 'monarchy' in gov_lower or 'kingdom' in gov_lower or 'imperial' in gov_lower or 'absolute' in gov_lower:
         first_name = random.choice(HUMAN_FEMALE_FIRST_NAMES if is_female else HUMAN_MALE_FIRST_NAMES)
         numeral = random.choice(["", " II", " III", " IV", " V"])
         return first_name + numeral
@@ -287,16 +287,21 @@ async def create_nation(request: CreateNationRequest):
         stats_dict = normalize_budget(stats_dict)
         stats = NationStats(**stats_dict)
         
-        # Generate 8 advisors based on government type and race
+        # Generate 8 advisors based on government wheel subtype and race.
+        # Wheel subtype is the player-facing government identity, not the old compass type.
         try:
-            advisors = generate_advisors(gov_type.value, race_id)  # Pass government type and race
-            logger.info(f"Generated {len(advisors)} advisors for {race_id} nation with government type: {gov_type}")
+            advisor_basis = wheel_result.government_subtype or gov_type.value
+            advisors = generate_advisors(advisor_basis, race_id)
+            logger.info(f"Generated {len(advisors)} advisors for {race_id} nation with wheel subtype: {advisor_basis}")
             logger.info(f"First advisor: {advisors[0].dict() if advisors else 'None'}")
         except Exception as e:
             logger.error(f"Failed to generate advisors: {e}")
             advisors = []
         
         # Create nation
+        # government_type is kept for compass-color backward compatibility only;
+        # the wheel fields (government_form/subtype/territorial_structure/style_modifier)
+        # and display_name are the displayed government identity.
         nation = Nation(
             user_id=request.user_id,
             name=request.quiz_result.nation_name,
@@ -405,15 +410,15 @@ async def get_nation(nation_id: str):
             tax_rate=stats.get("tax_rate", 25),
         )
 
-        # Update if government type changed
+        # Update if compass government type changed (stored for compass color only)
         if current_gov != new_gov_type.value:
             nation["government_type"] = new_gov_type.value
-            # Save the new government type to database
+            # Save the compass government type for color mapping only
             await db.nations.update_one(
                 {"_id": ObjectId(nation_id)},
                 {"$set": {"government_type": new_gov_type.value}}
             )
-            logger.info(f"Government type updated for nation {nation_id}: '{current_gov}' -> '{new_gov_type.value}'")
+            logger.info(f"Compass government type updated for nation {nation_id}: '{current_gov}' -> '{new_gov_type.value}'")
 
         nation["display_identity"] = build_government_name(nation)
         nation["display_name"] = nation["display_identity"]
@@ -421,7 +426,7 @@ async def get_nation(nation_id: str):
         # Generate leader name if it doesn't exist (anarchy nations have no leader)
         if not nation.get("leader_name") and nation.get("government_form") != "anarchy":
             # Prefer wheel subtype for titles (President, Queen, Chairman, etc.)
-            leader_basis = nation.get("government_subtype") or nation.get("government_type", "")
+            leader_basis = nation.get("government_subtype") or "Democracy"
             leader_name = generate_leader_name(nation.get("race"), leader_basis)
             nation["leader_name"] = leader_name
             # Save it to the database
@@ -946,7 +951,7 @@ async def crisis_respin(nation_id: str, request: CrisisRespinRequest):
     if new_result.government_form == "anarchy":
         update["leader_name"] = None
     else:
-        leader_basis = new_result.government_subtype or nation.get("government_type", "")
+        leader_basis = new_result.government_subtype or "Democracy"
         update["leader_name"] = generate_leader_name(nation.get("race"), leader_basis)
 
     await db.nations.update_one(
@@ -1298,14 +1303,17 @@ async def submit_decision(request: SubmitDecisionRequest):
             policy_created = law_name
             logger.info(f"Policy created: {law_name}")
         
-        # Update nation with new stats AND government type
+        # Update nation with new stats AND compass government type
         nation_set = {
             "stats": current_stats,
-            "government_type": new_gov_type.value
+            "government_type": new_gov_type.value  # compass color only
         }
         if tz_count is not None:
             geo_max = int(nation_data.get("timezone_geo_max") or 1)
             nation_set["timezone_count"] = max(1, min(geo_max, int(tz_count)))
+        # Also refresh display name if wheel fields exist
+        if nation_data.get("government_form"):
+            nation_set["display_name"] = build_government_name(nation_data)
         await db.nations.update_one(
             {"_id": ObjectId(request.nation_id)},
             {
@@ -1349,7 +1357,9 @@ async def submit_decision(request: SubmitDecisionRequest):
                 nation_id=request.nation_id,
                 nation_name=nation_data["name"],
                 race=nation_data.get("race", "human"),
-                government_type=nation_data["government_type"],
+                government_type=nation_data.get("display_name") or nation_data.get("government_subtype", "Unknown"),  # deprecated, stores display identity
+                government_subtype=nation_data.get("government_subtype"),
+                display_name=nation_data.get("display_name"),
                 issue_title=issue.title,
                 choice_text=choice.text,
                 policy_created=policy_created,
@@ -1547,12 +1557,16 @@ async def get_rankings(stat_name: str, limit: int = 100, world_id: str = None):
             # Get faction info if member
             faction_info = faction_memberships.get(nation_id, {})
             
+            display_name = nation.get("display_name")
+            government_subtype = nation.get("government_subtype")
+            
             rankings.append({
-                "nation_id": nation_id,
+                "nation_id": str(nation["_id"]),
                 "nation_name": nation["name"],
                 "race": nation.get("race", "human"),
                 "flag_base64": nation.get("flag_base64"),
-                "government_type": nation["government_type"],
+                "government_subtype": government_subtype or "Unknown",
+                "display_name": display_name or government_subtype or "Unknown",
                 "stat_value": stat_value,
                 "stat_value_display": stat_value_display,
                 "rank": rank,
@@ -1618,12 +1632,16 @@ async def get_extreme_rankings(category: str, world_id: str = None):
             else:
                 stat_value_display = None
             
+            display_name = nation.get("display_name")
+            government_subtype = nation.get("government_subtype")
+            
             rankings.append({
                 "nation_id": str(nation["_id"]),
                 "nation_name": nation["name"],
                 "race": nation.get("race", "human"),
                 "flag_base64": nation.get("flag_base64"),
-                "government_type": nation["government_type"],
+                "government_subtype": government_subtype or "Unknown",
+                "display_name": display_name or government_subtype or "Unknown",
                 "stat_value": stat_value,
                 "stat_value_display": stat_value_display,
                 "rank": rank,
@@ -1731,9 +1749,10 @@ async def generate_advisors_for_existing():
         for nation in nations:
             # Check if nation already has advisors
             if not nation.get("advisors") or len(nation.get("advisors", [])) == 0:
-                # Generate advisors based on government type and race
+                # Generate advisors based on wheel subtype and race
                 race = nation.get("race", "human")
-                advisors = generate_advisors(nation.get("government_type", "Democracy"), race)
+                advisor_basis = nation.get("government_subtype") or "Democracy"
+                advisors = generate_advisors(advisor_basis, race)
                 
                 # Convert advisors to dict format for MongoDB
                 advisors_dict = [advisor.dict() for advisor in advisors]
@@ -1881,9 +1900,9 @@ Stay in this advisor's lane. Do not write a generic "the cabinet did a thing" is
 {"The advisor has executed this task competently and reports back with findings." if advisor['ability'] >= 70 else "The advisor has encountered complications while attempting this task." if advisor['ability'] >= 40 else "The advisor has struggled significantly with this task and things have gone wrong."}
 
 **NATION CONTEXT:**
-- Government: {nation['government_type']}
-- Population: {nation['stats']['population']}k
-- GDP: {nation['stats']['gdp']}/100
+|Government: {nation.get('display_name') or nation.get('government_subtype', 'Unknown')}
+|- Population: {nation['stats']['population']}k
+|- GDP: {nation['stats']['gdp']}/100
 - Happiness: {nation['stats']['happiness']}/100
 {ai_service._build_geography_context(nation)}
 
@@ -2081,7 +2100,17 @@ async def get_industry_leaderboard(world_id: str = None):
         # Get all nations with resource data
         cursor = db.nations.find(
             query,
-            {"name": 1, "resource_counts": 1, "total_territories": 1, "flag_base64": 1, "government_type": 1, "race": 1, "faction_id": 1}
+            {
+                "name": 1,
+                "resource_counts": 1,
+                "total_territories": 1,
+                "flag_base64": 1,
+                "display_name": 1,
+                "government_subtype": 1,
+                "government_form": 1,
+                "race": 1,
+                "faction_id": 1,
+            }
         )
         nations = await cursor.to_list(length=100)
         
@@ -2116,7 +2145,8 @@ async def get_industry_leaderboard(world_id: str = None):
                 "unique_resources": len(resource_counts),
                 "total_territories": nation.get("total_territories", 0),
                 "flag_base64": nation.get("flag_base64"),
-                "government_type": nation.get("government_type"),
+                "government_subtype": nation.get("government_subtype") or "Unknown",
+                "display_name": nation.get("display_name") or nation.get("government_subtype") or "Unknown",
                 "race": nation.get("race"),
                 "faction_tag": faction.get("tag"),
                 "faction_color": faction.get("color"),
@@ -2281,7 +2311,7 @@ The reform MUST directly address what the leader asked for. The new law should b
 - {outcome_desc}
 
 === NATION CONTEXT ===
-Government: {nation['government_type']} | Population: {nation['stats']['population']}k | GDP: {nation['stats']['gdp']}/100
+Government: {nation.get('display_name') or nation.get('government_subtype', 'Unknown')} | Population: {nation['stats']['population']}k | GDP: {nation['stats']['gdp']}/100
 
 === GENERATE REFORMED LAW ===
 Create a JSON response:
@@ -2655,7 +2685,7 @@ async def get_server_players():
     try:
         nations = await db.nations.find(
             {},
-            {"name": 1, "government_type": 1, "flag_base64": 1, "stats.population": 1, "created_at": 1}
+            {"name": 1, "display_name": 1, "government_subtype": 1, "government_form": 1, "flag_base64": 1, "stats.population": 1, "created_at": 1}
         ).to_list(length=100)
         
         players = []
@@ -2663,7 +2693,8 @@ async def get_server_players():
             players.append({
                 "id": str(nation["_id"]),
                 "name": nation.get("name", "Unknown"),
-                "government_type": nation.get("government_type", "Unknown"),
+                "government_subtype": nation.get("government_subtype") or "Unknown",
+                "display_name": nation.get("display_name") or nation.get("government_subtype") or "Unknown",
                 "flag_base64": nation.get("flag_base64"),
                 "population": nation.get("stats", {}).get("population", 0),
                 "joined_at": nation.get("created_at", datetime.utcnow())
@@ -2693,10 +2724,16 @@ async def export_nation(nation_id: str):
         # Get server URL for source tracking
         server_url = os.environ.get("SERVER_HOST_URL", "")
         
-        # Build export data
+        # Build export data — use wheel fields and display_name for the government identity
         export_data = {
             "name": nation.get("name", ""),
-            "government_type": nation.get("government_type", ""),
+            "display_name": nation.get("display_name") or nation.get("government_subtype") or "",
+            "government_subtype": nation.get("government_subtype"),
+            "government_form": nation.get("government_form"),
+            "territorial_structure": nation.get("territorial_structure"),
+            "style_modifier": nation.get("style_modifier"),
+            # Deprecated migration field kept for older server compatibility; stores display identity
+            "government_type": nation.get("display_name") or nation.get("government_subtype") or nation.get("government_type", ""),
             "motto": nation.get("motto"),
             "description": nation.get("description", ""),
             "currency": nation.get("currency", "Dollar"),
@@ -2770,10 +2807,16 @@ async def import_nation(request: ImportNationRequest):
         elif not isinstance(stats, dict):
             stats = dict(stats)
         
-        # Create the imported nation
+        # Create the imported nation using wheel fields when available
         new_nation = {
             "user_id": request.user_id,
             "name": nation_data.name,
+            "display_name": nation_data.display_name or nation_data.government_type,
+            "government_form": nation_data.government_form,
+            "government_subtype": nation_data.government_subtype or nation_data.government_type,
+            "territorial_structure": nation_data.territorial_structure,
+            "style_modifier": nation_data.style_modifier,
+            # Deprecated compass-color field kept for backward compatibility
             "government_type": nation_data.government_type,
             "motto": nation_data.motto,
             "description": nation_data.description + f" [Migrated from {request.source_server_url}]",

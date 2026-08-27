@@ -81,8 +81,9 @@ export interface Nation {
   user_id: string;
   name: string;
   flag_base64?: string;
+  /** @deprecated Legacy compass/flavor label kept for compatibility. Do not display. */
   government_type: string;
-  // GH-93 wheel identity — the DISPLAYED government. government_type stays for compass/flavor.
+  /** GH-93 wheel identity — the DISPLAYED government. */
   government_form?: string;
   government_subtype?: string;
   territorial_structure?: string;
@@ -231,7 +232,10 @@ export interface DecisionFeedItem {
   id: string;
   nation_id: string;
   nation_name: string;
+  /** @deprecated Legacy compass/flavor label kept for compatibility. Do not display. */
   government_type: string;
+  government_subtype?: string;
+  display_name?: string;
   race?: string;
   issue_title: string;
   choice_text: string;

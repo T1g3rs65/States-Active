@@ -18,7 +18,6 @@ import { colors, typography, spacing, radii } from '../../utils/theme';
 import { getNationSizeClass } from '../../utils/nationSize';
 import { getPoliticalCompassTheme, leaningColor, leaningWash, mixIntoDark } from '../../utils/politicalCompass';
 import { getRaceTheme } from '../../utils/raceColors';
-import { govTitle, wheelIdentity } from '../../utils/govCopy';
 import { TabChrome } from '../../components/ScreenHeader';
 import ScreenCanvas from '../../components/ScreenCanvas';
 import GradientBorder from '../../components/GradientBorder';
@@ -228,11 +227,20 @@ export default function Overview() {
           })()}
           <View style={styles.headerTextContainer}>
             <Text style={styles.nationName}>{nation.name}</Text>
-            {wheelIdentity(nation) ? (
-              <Text style={styles.wheelIdentity} numberOfLines={2}>
-                {wheelIdentity(nation)}
-              </Text>
-            ) : null}
+            <View style={styles.govChips}>
+              {nation.government_subtype ? (
+                <View style={styles.govChip}><Text style={styles.govChipText}>{nation.government_subtype}</Text></View>
+              ) : null}
+              {nation.style_modifier && nation.style_modifier !== 'None (clean result)' ? (
+                <View style={styles.govChip}><Text style={styles.govChipText}>{nation.style_modifier.split(' / ')[0]}</Text></View>
+              ) : null}
+              {nation.territorial_structure && nation.territorial_structure !== 'unitary' ? (
+                <View style={styles.govChip}><Text style={styles.govChipText}>{nation.territorial_structure.split(' / ')[0]}</Text></View>
+              ) : null}
+              {nation.government_form ? (
+                <View style={styles.govChip}><Text style={styles.govChipText}>{nation.government_form.charAt(0).toUpperCase() + nation.government_form.slice(1)}</Text></View>
+              ) : null}
+            </View>
             <Text style={[styles.sizeClass, { color: themeColor }]}>{getNationSizeClass(stats.population)}</Text>
           </View>
         </View>
@@ -686,6 +694,24 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     fontStyle: 'italic',
     lineHeight: 18,
+  },
+  govChips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 4,
+    marginBottom: 4,
+  },
+  govChip: {
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  govChipText: {
+    ...typography.small,
+    color: colors.text.secondary,
+    fontSize: 11,
+    fontWeight: '600',
   },
   sizeClass: {
     ...typography.body,

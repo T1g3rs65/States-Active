@@ -43,10 +43,11 @@ interface PactRequest {
 interface OtherNation {
   id: string;
   name: string;
-  government_type: string;
+  display_name?: string;
+  government_subtype?: string;
 }
 
-export default async function NonAggressionPacts() {
+export default function NonAggressionPacts() {
   const router = useRouter();
   const { nation } = useNationStore();
   
@@ -141,7 +142,8 @@ export default async function NonAggressionPacts() {
           .map((n: any) => ({
             id: n.nation_id,
             name: n.nation_name,
-            government_type: n.government_type,
+            display_name: n.display_name || n.government_subtype || n.government_type,
+            government_subtype: n.government_subtype,
           }));
         setAllNations(filtered);
         setFilteredNations(filtered);
@@ -318,7 +320,7 @@ export default async function NonAggressionPacts() {
       >
         <View style={styles.nationInfo}>
           <Text style={styles.nationName}>{otherNation.name}</Text>
-          <Text style={styles.nationGovt}>{otherNation.government_type}</Text>
+          <Text style={styles.nationGovt}>{otherNation.government_subtype || otherNation.display_name || otherNation.name}</Text>
         </View>
         {hasPending ? (
           <Text style={styles.pendingBadge}>Pending</Text>

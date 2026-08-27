@@ -21,6 +21,7 @@ import { TabChrome } from '../../components/ScreenHeader';
 import ScreenCanvas from '../../components/ScreenCanvas';
 import FadeUp from '../../components/FadeUp';
 import EmptyNation from '../../components/EmptyNation';
+import { LeaderboardPodium, LeaderboardList } from '../../components/LeaderboardPodium';
 import {
   RESOURCES,
   RESOURCE_BY_ID,
@@ -344,6 +345,31 @@ export default function Industry() {
   };
 
   const renderLeaderboard = () => {
+    const podiumData = leaderboardData.slice(0, 3).map((entry: any, i: number) => ({
+      nation_id: entry.nation_id,
+      userName: entry.nation_name,
+      rank: i + 1,
+      value: entry.total_value.toFixed(1),
+      flag_base64: entry.flag_base64,
+      government_subtype: entry.government_subtype || entry.display_name || '',
+      race: entry.race,
+      faction_tag: entry.faction_tag,
+      faction_color: entry.faction_color,
+    }));
+    const listData = leaderboardData.slice(3).map((entry: any, i: number) => ({
+      nation_id: entry.nation_id,
+      nation_name: entry.nation_name,
+      rank: i + 4,
+      value: entry.total_value,
+      flag_base64: entry.flag_base64,
+      government_subtype: entry.government_subtype || entry.display_name || '',
+      race: entry.race,
+      faction_tag: entry.faction_tag,
+      faction_color: entry.faction_color,
+      resource_tiles: entry.resource_tiles,
+      unique_resources: entry.unique_resources,
+    }));
+
     return (
       <View>
         <View style={styles.sectionHeader}>
@@ -357,39 +383,19 @@ export default function Industry() {
             <Text style={styles.emptyStateText}>Loading leaderboard...</Text>
           </View>
         ) : (
-          leaderboardData.slice(0, 10).map((entry, index) => {
-            const isCurrentNation = entry.nation_id === (nation?.id || nation?._id);
-            return (
-              <View 
-                key={entry.nation_id} 
-                style={[
-                  styles.leaderboardEntry,
-                  isCurrentNation && { borderColor: themeColor, borderWidth: 2 }
-                ]}
-              >
-                <View style={styles.leaderboardRank}>
-                  <Text style={[
-                    styles.rankText,
-                    index === 0 && { color: '#FCD34D' },
-                    index === 1 && { color: 'rgba(243,246,250,0.70)' },
-                    index === 2 && { color: '#F97316' }
-                  ]}>
-                    #{index + 1}
-                  </Text>
-                </View>
-                <View style={styles.leaderboardInfo}>
-                  <Text style={styles.leaderboardName}>{entry.nation_name}</Text>
-                  <Text style={styles.leaderboardStats}>
-                    {entry.resource_tiles} tiles • {entry.unique_resources} resources
-                  </Text>
-                </View>
-                <View style={styles.leaderboardValue}>
-                  <Text style={styles.leaderboardValueText}>{entry.total_value.toFixed(1)}</Text>
-                  <Text style={styles.leaderboardValueLabel}>value</Text>
-                </View>
-              </View>
-            );
-          })
+          <>
+            <LeaderboardPodium
+              entries={podiumData}
+              currentNationId={nation?.id || nation?._id}
+              themeColor={themeColor}
+            />
+            <LeaderboardList
+              entries={listData}
+              currentNationId={nation?.id || nation?._id}
+              themeColor={themeColor}
+              onEntryPress={(nid) => router.push(`/compare?nationId=${nid}`)}
+            />
+          </>
         )}
       </View>
     );
@@ -415,7 +421,6 @@ export default function Industry() {
     <View style={styles.container}>
       <TabChrome title="Industry" subtitle="Output" badge={notificationCount} />
 
-      <FadeUp key={`industry-${visit}`}>
       {/* Tab Selector */}
       <View style={styles.tabContainer}>
         <TouchableOpacity
@@ -444,8 +449,7 @@ export default function Industry() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView
-        style={styles.content}
+      <ScrollView style={{flex:1}} contentContainerStyle={{flexGrow:1, paddingBottom:120}}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#00E0C7" />
         }
@@ -476,8 +480,7 @@ export default function Industry() {
 
         <View style={{ height: 100 }} />
       </ScrollView>
-      </FadeUp>
-    </View>
+      </View>
     </ScreenCanvas>
   );
 }

@@ -107,7 +107,7 @@ function utcTaskUsed(advisors?: any[]) {
   });
 }
 
-export default async function Advisors() {
+export default function Advisors() {
   const { nation, setNation, recoverNation } = useNationStore();
   const router = useRouter();
   const [visit, setVisit] = useState(0);
@@ -544,36 +544,39 @@ export default async function Advisors() {
         <Ionicons name="people" size={28} color={themeColor} />
         <Text style={styles.headerTitle}>
           {(() => {
-            const govType = nation.government_type || 'Democracy';
+            // Use wheel-based display identity
+            const govBasis = nation.display_name || nation.government_subtype || nation.government_form || 'Democracy';
+            const govLower = govBasis.toLowerCase();
             
-            // Monarchies
-            if (govType.includes('Father Knows Best')) return 'Royal Council';
+            // Monarchies / royal / imperial
+            if (govLower.includes('monarchy') || govLower.includes('kingdom') || govLower.includes('empire') || govLower.includes('royal')) return 'Royal Council';
             
             // Democracies and Republics
-            if (govType.includes('Democracy') || govType.includes('Republic') || 
-                govType.includes('Paradise') || govType.includes('Liberal')) return 'Cabinet';
+            if (govLower.includes('democracy') || govLower.includes('republic') || govLower.includes('paradise') || govLower.includes('liberal')) return 'Cabinet';
             
             // Theocracies
-            if (govType.includes('Theocratic')) return 'Holy Council';
+            if (govLower.includes('theocr') || govLower.includes('divine')) return 'Holy Council';
             
-            // Dictatorships
-            if (govType.includes('Dictatorship') || govType.includes('Authoritarian') || 
-                govType.includes('Iron Fist') || govType.includes('Psychotic')) return 'Inner Circle';
+            // Dictatorships / autocracies / juntas
+            if (govLower.includes('dictator') || govLower.includes('authoritarian') || govLower.includes('autocracy') || govLower.includes('junta') || govLower.includes('regime')) return 'Inner Circle';
             
             // Corporate states
-            if (govType.includes('Corporate') || govType.includes('Bordello')) return 'Board of Directors';
+            if (govLower.includes('corporate') || govLower.includes('plutocra') || govLower.includes('business')) return 'Board of Directors';
             
             // Anarchy
-            if (govType.includes('Anarchy')) return 'Collective';
+            if (govLower.includes('anarchy') || govLower.includes('commune') || govLower.includes('free territory')) return 'Collective';
             
             // Socialist/Communist
-            if (govType.includes('Socialist') || govType.includes('Eco-Socialist')) return 'Politburo';
+            if (govLower.includes('socialist') || govLower.includes('communist') || govLower.includes('syndicate')) return 'Politburo';
             
             // Technocracies
-            if (govType.includes('Tech') || govType.includes('Syndicate') || govType.includes('Meritocracy')) return 'Executive Board';
+            if (govLower.includes('technocratic') || govLower.includes('meritocracy')) return 'Executive Board';
             
             // Military states
-            if (govType.includes('Martial')) return 'War Council';
+            if (govLower.includes('military') || govLower.includes('martial') || govLower.includes('praetorian')) return 'War Council';
+            
+            // Hive-specific
+            if (govLower.includes('hive') || govLower.includes('swarm') || govLower.includes('colony')) return 'Hive Council';
             
             // Default
             return 'Council of Advisors';

@@ -19,7 +19,7 @@ import { getNationSizeClass } from '../../utils/nationSize';
 import { getRaceTheme, getRaceName, getRaceIcon } from '../../utils/raceColors';
 import { leaningColor, leaningWash, hexAlpha } from '../../utils/politicalCompass';
 import { colors, typography, spacing, radii } from '../../utils/theme';
-import { govTitle, govBlurb, wheelIdentity } from '../../utils/govCopy';
+import { govBlurb } from '../../utils/govCopy';
 import NewsFeed from '../../components/NewsFeed';
 import CollapsibleSection from '../../components/CollapsibleSection';
 import { TabChrome } from '../../components/ScreenHeader';
@@ -264,10 +264,10 @@ export default function Nation() {
   const raceName = getRaceName(nation?.race);
   const raceIcon = getRaceIcon(nation?.race);
 
-  // Show government type description
+  // Show government info (full wheel identity; blurb from subtype or display name)
   const showGovernmentInfo = () => {
-    const title = nation.display_name || wheelIdentity(nation) || govTitle(nation.government_type);
-    const description = govBlurb(nation.government_type) || "A unique form of governance.";
+    const title = nation.display_name || nation.government_subtype || nation.name;
+    const description = govBlurb(nation.government_subtype) || "A unique form of governance shaped by its founding wheel.";
     setInfoModal({
       visible: true,
       title,
@@ -412,7 +412,7 @@ export default function Nation() {
       <FadeUp key={`nation-${visit}`} delay={0}>
       <GradientBorder tone="compass" speed={5} radius={28} style={styles.headerCard}>
         {renderFlag()}
-        <Text style={styles.nationName}>{nation.display_name || wheelIdentity(nation)}</Text>
+        <Text style={styles.nationName}>{nation.display_name || nation.government_subtype || nation.name}</Text>
         <TouchableOpacity onPress={showRaceInfo} style={styles.raceRow} activeOpacity={0.7}>
           <Ionicons name={raceIcon as any} size={16} color={themeColor} />
           <Text style={[styles.raceText, { color: themeColor }]}>{raceName}</Text>
@@ -452,7 +452,7 @@ export default function Nation() {
             // Anarchy: no ruler. The player IS the society — subtype is the identity.
             <View style={styles.leaderInfo}>
               <Text style={[styles.leaderTitle, { color: colors.accent.gold }]}>
-                {nation.government_subtype || govTitle(nation.government_type)}
+                {nation.government_subtype || nation.name}
               </Text>
               <Text style={styles.leaderName}>
                 No ruler — power rests with the community.
@@ -462,14 +462,14 @@ export default function Nation() {
             <>
               <View style={[styles.leaderPortraitContainer, { borderColor: colors.accent.gold }]}>
                 <Image
-                  source={getLeaderPortrait(nation.race, nation.government_type, nation.leader_name || nation.name, nation.name)}
+                  source={getLeaderPortrait(nation.race, nation.government_form || 'democracy', nation.leader_name || nation.name, nation.name)}
                   style={styles.leaderPortrait}
                   resizeMode="cover"
                 />
               </View>
               <View style={styles.leaderInfo}>
                 <Text style={[styles.leaderTitle, { color: colors.accent.gold }]}>
-                  {getLeaderTitle(nation.race, nation.government_type, nation.leader_name || nation.name)}
+                  {getLeaderTitle(nation.race, nation.government_form || 'democracy', nation.leader_name || nation.name)}
                 </Text>
                 <Text style={styles.leaderName}>{nation.leader_name || 'Unknown Leader'}</Text>
               </View>

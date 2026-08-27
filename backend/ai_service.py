@@ -11,19 +11,87 @@ from datetime import datetime
 
 class AIService:
     def __init__(self, api_key: str = None):
-        # Use OPENCLAW_GATEWAY_TOKEN for the local gateway, with legacy fallbacks.
+        # Exclusively use OPENCLAW_GATEWAY_TOKEN. Direct XAI/EMERGENT keys removed.
         self.api_key = (
             api_key
             or os.environ.get("OPENCLAW_GATEWAY_TOKEN")
-            or os.environ.get("XAI_API_KEY")
-            or os.environ.get("EMERGENT_LLM_KEY")
+            
+            
         )
+    
+    @staticmethod
+    def _display_identity(nation: Nation) -> str:
+        """Return the wheel-based full government display name if available."""
+        display = getattr(nation, "display_name", None) or getattr(nation, "display_identity", None)
+        if display:
+            return display
+        parts = [
+            getattr(nation, "government_form", None),
+            getattr(nation, "government_subtype", None),
+            getattr(nation, "territorial_structure", None),
+            getattr(nation, "style_modifier", None),
+        ]
+        parts = [p for p in parts if p and p != "None (clean result)"]
+        return " ".join(parts) or "Unknown"
+    
+    @staticmethod
+    def _neighbor_identity(n: dict) -> str:
+        """Build a readable government label from a neighbor dict."""
+        display = n.get("display_name") or n.get("display_identity")
+        if display:
+            return display
+        parts = [
+            n.get("government_form"),
+            n.get("government_subtype"),
+            n.get("territorial_structure"),
+            n.get("style_modifier"),
+        ]
+        parts = [p for p in parts if p and p != "None (clean result)"]
+        return " ".join(parts) or "Unknown"
         
-    async def generate_issues(self, nation: Nation, count: int = 3) -> List[Issue]:
+    async def generate_issues(self, nation: Nation, count: int = 3, db=None) -> List[Issue]:
         """Generate daily issues based on nation's current state."""
         
+        # Fetch neighboring nations for context (same world, excluding self)
+        neighbors_info = ""
+        if db is not None:
+            try:
+                world_id = getattr(nation, "world_id", None)
+                query = {}
+                if world_id:
+                    query["world_id"] = world_id
+                # Exclude self by name (nation.id may not match _id in DB)
+                self_name = nation.name
+                query["name"] = {"$ne": self_name}
+                cursor = db.nations.find(query, {
+                    "name": 1,
+                    "display_name": 1,
+                    "government_form": 1,
+                    "government_subtype": 1,
+                    "territorial_structure": 1,
+                    "style_modifier": 1,
+                    "stats.gdp": 1,
+                    "stats.military_strength": 1,
+                    "stats.happiness": 1,
+                    "stats.population": 1,
+                }).limit(5)
+                neighbors = await cursor.to_list(length=5)
+                if neighbors:
+                    lines = []
+                    for n in neighbors:
+                        nm = n.get("name", "?")
+                        gov_display = n.get("display_name") or self._neighbor_identity(n)
+                        s = n.get("stats") or {}
+                        gdp = s.get("gdp", "?")
+                        mil = s.get("military_strength", "?")
+                        pop = s.get("population", "?")
+                        lines.append(f"  - {nm} ({gov_display}): GDP {gdp}, Military {mil}, Pop {pop}k, Happiness {s.get('happiness','?')}")
+                    neighbors_info = "\nNEIGHBORING / NEARBY NATIONS (for reference — use sparingly in issues):\n" + "\n".join(lines) + "\n"
+            except Exception as e:
+                print(f"Warning: could not fetch neighbors: {e}")
+        
         # Build context about the nation
-        context = self._build_nation_context(nation)
+        context = self._build_nation_context(nation, db=db, neighbors_info=neighbors_info)
         
         # Create system message for issue generation
         system_message = f"""You are the issue generator for 'SovereignHex', a nation simulation game.
@@ -32,7 +100,7 @@ Your task is to generate realistic, nuanced policy dilemmas that:
 1. Reflect the nation's current situation and stats
 2. Have NO clear "right" answer - all choices have trade-offs
 3. Range from mundane (local issues) to dramatic (national crises)
-4. Feel authentic to the nation's government type and culture
+4. Feel authentic to the nation's full government identity and culture
 5. Create cascading effects across multiple stats
 
 Current Nation Context:
@@ -54,7 +122,8 @@ Generate {count} issues in the following JSON format:
           "description": "What happens if this is chosen (15-30 words)"
         }},
         // EXACTLY 4 choices per issue - no more, no less
-      ]
+      ],
+      "chains_into": "Optional: short title for a follow-up issue that results from this one. Omit entirely for most issues; only include ~20% of the time."
     }}
   ]
 }}
@@ -83,6 +152,9 @@ INTERNATIONAL: international_approval
 - IMPORTANT: Most choices should have a small population effect (±0.05 to ±0.5 thousand) to show nation growth/decline
 - Make descriptions engaging and consequences believable
 - Vary issue types: economy, social, environment, international, crime, military, technology, education, etc.
+- GEOGRAPHY LOCK: The geography and resources listed in the nation context are REFERENCE ONLY — use them to keep issues believable (don't invent a coastline if landlocked), but do NOT make resource/terrain topics the focus of most issues. Most issues should be about politics, society, economy, culture, crime, diplomacy, military, technology, or daily life — not about wheat, timber, or mining quotas.
+- NEIGHBORS: If nearby/bordering nations are listed in the context, you may reference them in issues (trade disputes, border incidents, refugee flows, diplomatic overtures) but do not force every issue to involve a neighbor.
+- CHAIN ISSUES: About 1 in 5 issues (roughly 20% chance) may end with a "chains_into" field — a short title for a follow-up issue that would logically result from the player's choice. This is optional; most issues should NOT have chains_into. Only include it when a choice would clearly lead to a consequential next dilemma.
 - Reference past decisions occasionally to create narrative continuity
 - Issues can change government type by shifting key stats (civil_rights, gdp, political_freedom, environment, military_strength, scientific_advancement, crime_rate)
 - Population growth represents immigration, birth rate, and overall national vitality"""
@@ -128,7 +200,8 @@ INTERNATIONAL: international_approval
                     nation_id=nation.id,
                     title=issue_data["title"],
                     description=issue_data["description"],
-                    choices=choices
+                    choices=choices,
+                    chains_into=issue_data.get("chains_into"),  # Optional follow-up title
                 )
                 issues.append(issue)
             
@@ -139,10 +212,11 @@ INTERNATIONAL: international_approval
             # Return fallback issues
             return self._get_fallback_issues(nation)
     
-    async def generate_nation_description(self, nation: Nation) -> str:
+    async def generate_nation_description(self, nation: Nation, db=None) -> str:
         """Generate dynamic nation description based on current stats."""
         
-        context = self._build_nation_context(nation)
+        context = self._build_nation_context(nation, db=db)
+        display = self._display_identity(nation)
         
         system_message = f"""You are a creative writer for 'Emergent: Rise of Nations'.
 
@@ -154,7 +228,7 @@ The description should:
 3. Mention notable strengths and challenges
 4. Include specific details about culture, economy, and society
 5. Use evocative language and concrete examples
-6. Evolve based on stat thresholds (e.g., describe differently if civil_rights > 85 vs < 20)
+6. Evolve based on stat thresholds (e.g. describe differently if civil_rights > 85 vs < 20)
 
 Current Nation Context:
 {context}
@@ -168,7 +242,7 @@ Write in third person, present tense. Make it feel like a living, breathing nati
         )
         
         user_message = UserMessage(
-            text=f"Write a compelling nation description for {nation.name}, a {nation.government_type.value}."
+            text=f"Write a compelling nation description for {nation.name}, a {display}."
         )
         
         try:
@@ -178,7 +252,7 @@ Write in third person, present tense. Make it feel like a living, breathing nati
             print(f"Error generating description: {e}")
             return self._get_fallback_description(nation)
     
-    def _build_nation_context(self, nation: Nation) -> str:
+    def _build_nation_context(self, nation: Nation, db=None, neighbors_info: str = "") -> str:
         """Build detailed context about the nation for AI prompts."""
         
         stats = nation.stats
@@ -208,9 +282,15 @@ Write in third person, present tense. Make it feel like a living, breathing nati
         top_stats = sorted_stats[:10]
         bottom_stats = sorted_stats[-10:]
         
+        display_identity = self._display_identity(nation)
+        
         context = f"""Nation: {nation.name}
+Full Government Identity: {display_identity}
+Government Form: {getattr(nation, 'government_form', 'unknown')}
+Government Subtype: {getattr(nation, 'government_subtype', 'unknown')}
+Territorial Structure: {getattr(nation, 'territorial_structure', 'unknown')}
+Style Modifier: {getattr(nation, 'style_modifier', 'unknown')}
 Species/Race: {race_info['name']}
-Government Type: {nation.government_type.value}
 Age: {(datetime.utcnow() - nation.created_at).days} days old
 Total Decisions Made: {nation.total_decisions}
 Population: {stats.population:.1f}k citizens
@@ -237,6 +317,10 @@ RECENT POLICIES (Major Laws):"""
         else:
             context += " None enacted yet.\n"
         
+        context += self._build_geography_context(nation)
+        if neighbors_info:
+            context += neighbors_info
+
         context += "\nTop Performing Stats:\n"
         for stat_name, data in top_stats:
             context += f"  - {data['name']}: {data['value']:.1f}\n"
@@ -258,7 +342,61 @@ RECENT POLICIES (Major Laws):"""
         context += f"  Taxes: Tax Rate {stats.tax_rate:.1f}%, National Debt {stats.national_debt:.1f}\n"
         
         return context
-    
+
+    def _build_geography_context(self, nation: Nation) -> str:
+        """Tile + resource brief so issues match the actual map."""
+        counts = getattr(nation, "territory_counts", None)
+        resources = getattr(nation, "resource_counts", None)
+        total = getattr(nation, "total_territories", None)
+        if isinstance(nation, dict):
+            counts = nation.get("territory_counts", counts)
+            resources = nation.get("resource_counts", resources)
+            total = nation.get("total_territories", total)
+        counts = counts or {}
+        resources = resources or {}
+        total = int(total or 0)
+        if not counts and not resources:
+            return (
+                "\nGEOGRAPHY & RESOURCES: Unknown — no terrain census yet. "
+                "Avoid inventing a specific coast, desert, or mine until the nation's land is surveyed.\n"
+            )
+
+        water_keys = {
+            "deep_ocean", "shallow_sea", "ocean", "coast", "coastal",
+            "river", "lake", "wetland", "mangrove", "flooded_grassland",
+        }
+        water = sum(int(v or 0) for k, v in counts.items() if k in water_keys)
+        land = max(0, total - water) if total else sum(
+            int(v or 0) for k, v in counts.items() if k not in water_keys
+        )
+        landlocked = water == 0 and land > 0
+        access = "LANDLOCKED — no coastline. Do not write ports, navies, beaches, fishing fleets, or overseas shipping as local facts."
+        if water > 0 and land == 0:
+            access = "MARITIME / island-heavy — water dominates the territory."
+        elif water > 0:
+            access = f"HAS COASTLINE ({water} water area of {total or water + land} total). Ports and fishing are allowed if they fit the biomes."
+
+        biome_order = sorted(counts.items(), key=lambda kv: int(kv[1] or 0), reverse=True)
+        biome_line = ", ".join(f"{k.replace('_', ' ')} {int(v)}" for k, v in biome_order[:8] if int(v or 0) > 0) or "none recorded"
+        res_order = sorted(resources.items(), key=lambda kv: int(kv[1] or 0), reverse=True)
+        top_res = [f"{k.replace('_', ' ')} {int(v)}" for k, v in res_order[:6] if int(v or 0) > 0]
+        missing = [k.replace("_", " ") for k, v in res_order if int(v or 0) <= 0]
+        # Also flag common resources never present
+        known = {k for k, _ in res_order}
+        for expected in ("fish", "oil", "iron", "coal", "timber", "gold"):
+            if expected not in known:
+                missing.append(expected)
+        missing = missing[:8]
+
+        return (
+            f"\nGEOGRAPHY & RESOURCES (use this; do not invent a different landscape):\n"
+            f"  Access: {access}\n"
+            f"  Extent: {total or land + water} area — land {land}, water {water}\n"
+            f"  Dominant terrain: {biome_line}\n"
+            f"  Principal resources: {', '.join(top_res) if top_res else 'none recorded'}\n"
+            f"  Do not invent these as major local industries: {', '.join(missing) if missing else 'n/a'}\n"
+        )
+
     def _get_fallback_issues(self, nation: Nation) -> List[Issue]:
         """Return generic fallback issues if AI generation fails."""
         return [
@@ -288,4 +426,5 @@ RECENT POLICIES (Major Laws):"""
     
     def _get_fallback_description(self, nation: Nation) -> str:
         """Return generic description if AI generation fails."""
-        return f"{nation.name} is a {nation.government_type.value} finding its place in the world. Through careful governance and strategic decisions, the nation continues to evolve and face new challenges each day."
+        display = self._display_identity(nation)
+        return f"{nation.name} is a {display} finding its place in the world. Through careful governance and strategic decisions, the nation continues to evolve and face new challenges each day."

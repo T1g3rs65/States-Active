@@ -17,12 +17,12 @@ import { useNationStore } from '../../store/nationStore';
 import { getRaceTheme } from '../../utils/raceColors';
 import { leaningColor } from '../../utils/politicalCompass';
 import { colors } from '../../utils/theme';
-import { govTitle } from '../../utils/govCopy';
 import { TabChrome } from '../../components/ScreenHeader';
 import ScreenCanvas from '../../components/ScreenCanvas';
 import LiquidGlass from '../../components/LiquidGlass';
 import FadeUp from '../../components/FadeUp';
 import { glassAlert, glassConfirm } from '../../components/GlassModal';
+import { LeaderboardPodium, LeaderboardList } from '../../components/LeaderboardPodium';
 
 interface AllyInfo {
   ally_id: string;
@@ -56,7 +56,7 @@ const EXTREME_CATEGORIES = [
   { key: 'highest_taxes', label: 'Highest Taxes' },
 ];
 
-export default async function Rankings() {
+export default function Rankings() {
   const router = useRouter();
   const { nation } = useNationStore();
   const [selectedCategory, setSelectedCategory] = useState('gdp');
@@ -230,7 +230,6 @@ export default async function Rankings() {
     <View style={styles.container}>
       <TabChrome title="Rankings" subtitle="Who is on top" badge={notificationCount} />
 
-      <FadeUp key={`ranks-${visit}`}>
       <View style={styles.categoryHeader}>
         <LiquidGlass radius={999} style={styles.modeSelector}>
           <TouchableOpacity
@@ -255,11 +254,7 @@ export default async function Rankings() {
           </TouchableOpacity>
         </LiquidGlass>
 
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.categoriesScroll}
-          contentContainerStyle={styles.categoriesContainer}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{flexGrow:0}} contentContainerStyle={{paddingHorizontal:16, paddingBottom:12, gap:8}}
         >
           {(viewMode === 'standard' ? RANKING_CATEGORIES : EXTREME_CATEGORIES).map((category) => (
             <TouchableOpacity
@@ -289,74 +284,49 @@ export default async function Rankings() {
           <Text style={styles.loadingText}>Loading rankings...</Text>
         </View>
       ) : (
-        <ScrollView
-          style={styles.content}
-          contentContainerStyle={styles.contentContainer}
+        <ScrollView style={{flex:1}} contentContainerStyle={{flexGrow:1, paddingBottom:80}}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={themeColor} />
           }
         >
-          {rankings.map((entry, index) => {
-            // Use race-based theme colors
-            const nationRace = entry.race || 'human';
-            const entryRaceTheme = getRaceTheme(nationRace);
-            const nationColor = entryRaceTheme.color;
-            const isInMyFaction = isSameFaction(entry);
-            
-            return (
-              <LiquidGlass
-                key={entry.nation_id}
-                radius={22}
-                style={styles.rankingCard}
-              >
-                <View style={styles.rankContainer}>
-                  <Text style={styles.rankText}>{getMedalEmoji(entry.rank)}</Text>
-                </View>
-                {entry.flag_base64 && renderFlag(entry.flag_base64)}
-                <View style={styles.nationInfo}>
-                  <View style={styles.nationNameRow}>
-                    {isAlly(entry.nation_id) && (
-                      <Text style={styles.allyStarIcon}>⭐</Text>
-                    )}
-                    {isInMyFaction && (
-                      <Ionicons name="star" size={14} color={themeColor} style={styles.factionStarIcon} />
-                    )}
-                    <Text style={styles.nationName} numberOfLines={1}>
-                      {entry.nation_name}
-                    </Text>
-                    {entry.faction_tag && (
-                      <View style={[styles.factionTagBadge, { backgroundColor: entry.faction_color || themeColor }]}>
-                        <Text style={styles.factionTagText}>{entry.faction_tag}</Text>
-                      </View>
-                    )}
-                  </View>
-                  <Text style={[styles.governmentType, { color: nationColor }]}>
-                    {govTitle(entry.government_type)}
-                  </Text>
-                </View>
-                <View style={styles.statContainer}>
-                  <Text style={[styles.statValue, { color: themeColor }]}>
-                    {entry.stat_value_display || entry.stat_value.toFixed(1)}
-                  </Text>
-                </View>
-                <TouchableOpacity
-                  style={styles.compareButton}
-                  onPress={() => router.push(`/compare?nationId=${entry.nation_id}`)}
-                >
-                  <Ionicons name="git-compare-outline" size={20} color={themeColor} />
-                </TouchableOpacity>
-              </LiquidGlass>
-            );
-          })}
+          {/* Podium for top 3 */}
+          <LeaderboardPodium
+            entries={rankings.slice(0, 3).map((entry: any) => ({
+              nation_id: entry.nation_id,
+              userName: entry.nation_name,
+              rank: entry.rank,
+              value: entry.stat_value_display || entry.stat_value.toFixed(1),
+              flag_base64: entry.flag_base64,
+              government_subtype: entry.government_subtype || entry.display_name || '',
+              race: entry.race,
+              faction_tag: entry.faction_tag,
+              faction_color: entry.faction_color,
+            }))}
+            currentNationId={nationId}
+            themeColor={themeColor}
+          />
 
-          {rankings.length === 0 && (
-            <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>No rankings available yet</Text>
-            </View>
-          )}
+          {/* Remaining entries as list */}
+          <LeaderboardList
+            entries={rankings.slice(3).map((entry: any) => ({
+              nation_id: entry.nation_id,
+              nation_name: entry.nation_name,
+              rank: entry.rank,
+              value: entry.stat_value,
+              stat_value_display: entry.stat_value_display,
+              flag_base64: entry.flag_base64,
+              government_subtype: entry.government_subtype || entry.display_name || '',
+              race: entry.race,
+              faction_tag: entry.faction_tag,
+              faction_color: entry.faction_color,
+            }))}
+            currentNationId={nationId}
+            themeColor={themeColor}
+            onEntryPress={(nid) => router.push(`/compare?nationId=${nid}`)}
+          />
         </ScrollView>
-      )}</FadeUp>
-    </View>
+      )}
+      </View>
     </ScreenCanvas>
   );
 }

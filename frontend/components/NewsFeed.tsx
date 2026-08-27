@@ -253,7 +253,7 @@ export default function NewsFeed({ themeColor }: NewsFeedProps) {
                           <Text style={styles.factionTagText}>{item.faction_tag}</Text>
                         </View>
                       )}
-                      <Text style={[styles.govType, { color: politicalTheme.color }]}>{item.government_type}</Text>
+                      <Text style={[styles.govType, { color: politicalTheme.color }]}>{item.government_subtype || item.display_name || item.nation_name}</Text>
                     </View>
                     <View style={styles.actionIcons}>
                       <Text style={styles.timeAgo}>{getTimeAgo(item.timestamp)}</Text>
