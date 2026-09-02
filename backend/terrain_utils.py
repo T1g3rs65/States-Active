@@ -262,7 +262,7 @@ def extra_city_count(population: float) -> int:
     return 5
 
 
-def snap_to_land(col: int, row: int, seed: int, max_r: int = 12):
+def snap_to_land(col: int, row: int, seed: int, max_r: int = 2):
     col = int(col) % _MAP_COLS
     row = int(row)
     if is_land_tile(col, row, seed) and 2 <= row <= _MAP_ROWS - 3:
@@ -285,15 +285,19 @@ def snap_to_land(col: int, row: int, seed: int, max_r: int = 12):
 
 
 def validate_capital_site(col: int, row: int, seed: int, others: list):
-    """others: list of (col, row, population). Returns (error, col, row)."""
-    col = int(col) % _MAP_COLS
-    row = int(row)
+    """others: list of (col, row, population). Returns (error, col, row).
+
+    The painted Voronoi cell is the source of truth for land. Independent
+    noise sampling here is only a snap toward inland if it agrees — it must
+    never reject a player pick as water.
+    """
+    col = int(round(col)) % _MAP_COLS
+    row = int(round(row))
     if row < 2 or row > _MAP_ROWS - 3:
         return ("Too close to the poles.", col, row)
-    snapped = snap_to_land(col, row, seed)
-    if not snapped:
-        return ("That tile is water.", col, row)
-    col, row = snapped
+    snapped = snap_to_land(col, row, seed, max_r=24)
+    if snapped:
+        col, row = snapped
     for ex_col, ex_row, pop in others:
         dist = math.hypot(_wrap_dx(col, int(ex_col)), row - int(ex_row))
         if dist < 8:

@@ -1,18 +1,23 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Image } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { api } from '../utils/api';
 import ScreenHeader from '../components/ScreenHeader';
 import GradientBorder from '../components/GradientBorder';
 import ScreenCanvas from '../components/ScreenCanvas';
+import LiquidGlass from '../components/LiquidGlass';
+import { useNationStore } from '../store/nationStore';
+import { leaningColor } from '../utils/politicalCompass';
 import { glassAlert, glassConfirm } from '../components/GlassModal';
+import StatusDots from '../components/StatusDots';
 
 function leaveWarRoom() {
   if (router.canGoBack()) router.back();
   else router.replace('/(tabs)/advisors');
 }
 
-export default async function WarDashboard() {
+export default function WarDashboard() {
   const { warId, nationId } = useLocalSearchParams();
   const [war, setWar] = useState<any>(null);
   const [participants, setParticipants] = useState<any>(null);
@@ -60,18 +65,21 @@ export default async function WarDashboard() {
 
   if (loading) {
     return (
+      <ScreenCanvas>
       <View style={styles.container}>
         <ScreenHeader title="War Room" subtitle="Loading" onBack={leaveWarRoom} />
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#FF5A65" />
+          <StatusDots status="Loading" color="#FF5A65" />
           <Text style={styles.loadingText}>Loading War Status...</Text>
         </View>
       </View>
+      </ScreenCanvas>
     );
   }
 
   if (!war) {
     return (
+      <ScreenCanvas>
       <View style={styles.container}>
         <ScreenHeader title="War Room" subtitle="No war" onBack={leaveWarRoom} />
         <View style={styles.loadingContainer}>
@@ -81,6 +89,7 @@ export default async function WarDashboard() {
           </TouchableOpacity>
         </View>
       </View>
+      </ScreenCanvas>
     );
   }
 
@@ -95,6 +104,7 @@ export default async function WarDashboard() {
   const scoreColor = displayScore > 0 ? '#27D17A' : displayScore < 0 ? '#FF5A65' : 'rgba(243,246,250,0.48)';
   
   return (
+    <ScreenCanvas>
     <View style={styles.container}>
       <ScreenHeader
         title="War Room"
@@ -156,7 +166,7 @@ export default async function WarDashboard() {
             
             {/* Attackers Side */}
             <View style={styles.participantsSide}>
-              <Text style={styles.sideTitle}>⚔️ Attackers</Text>
+              <Text style={styles.sideTitle}>Attackers</Text>
               <Text style={styles.sidePower}>
                 Combined Strength: {participants.total_attacker_strength}
               </Text>
@@ -168,10 +178,10 @@ export default async function WarDashboard() {
                       attacker.is_primary && styles.primaryParticipant
                     ]}>
                       {attacker.name}
-                      {attacker.is_primary && ' 👑'}
+                      {attacker.is_primary && '  (lead)'}
                     </Text>
                     <Text style={styles.participantRace}>
-                      {attacker.race} · 🗡️ {attacker.military_strength}
+                      {attacker.race} · Strength {attacker.military_strength}
                     </Text>
                   </View>
                   {attacker.nation_id === nationId && (
@@ -189,7 +199,7 @@ export default async function WarDashboard() {
             
             {/* Defenders Side */}
             <View style={styles.participantsSide}>
-              <Text style={styles.sideTitle}>🛡️ Defenders</Text>
+              <Text style={styles.sideTitle}>Defenders</Text>
               <Text style={styles.sidePower}>
                 Combined Strength: {participants.total_defender_strength}
               </Text>
@@ -201,10 +211,10 @@ export default async function WarDashboard() {
                       defender.is_primary && styles.primaryParticipant
                     ]}>
                       {defender.name}
-                      {defender.is_primary && ' 👑'}
+                      {defender.is_primary && '  (lead)'}
                     </Text>
                     <Text style={styles.participantRace}>
-                      {defender.race} · 🗡️ {defender.military_strength}
+                      {defender.race} · Strength {defender.military_strength}
                     </Text>
                   </View>
                   {defender.nation_id === nationId && (
@@ -219,7 +229,7 @@ export default async function WarDashboard() {
             {war.is_vassal_war && (
               <View style={styles.vassalWarNotice}>
                 <Text style={styles.vassalWarText}>
-                  ⚠️ Vassal War - 1v1 Only (No allies can join)
+                  Vassal war — 1v1 only (no allies can join)
                 </Text>
               </View>
             )}
@@ -259,7 +269,8 @@ export default async function WarDashboard() {
               style={styles.surrenderButton}
               onPress={handleSurrender}
             >
-              <Text style={styles.surrenderButtonText}>🏳️ Surrender</Text>
+              <Ionicons name="flag-outline" size={18} color="#FFF" />
+              <Text style={styles.surrenderButtonText}>Surrender</Text>
             </TouchableOpacity>
             <Text style={styles.warningText}>
               Wars resolve automatically. Events occur daily. You can surrender at any time, but consequences will be severe.
@@ -270,17 +281,18 @@ export default async function WarDashboard() {
         <View style={{ height: 50 }} />
       </ScrollView>
     </View>
+    </ScreenCanvas>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0B0F14',
+    backgroundColor: 'transparent',
   },
   loadingContainer: {
     flex: 1,
-    backgroundColor: '#0B0F14',
+    backgroundColor: 'transparent',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -295,7 +307,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 60,
     paddingBottom: 20,
-    backgroundColor: '#11171F',
+    backgroundColor: 'rgba(255,255,255,0.04)',
     borderBottomWidth: 2,
     borderBottomColor: '#FF5A65',
   },
@@ -332,12 +344,12 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   card: {
-    backgroundColor: '#11171F',
-    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderRadius: 28,
     padding: 20,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: 'rgba(255,255,255,0.12)',
   },
   cardTitle: {
     fontSize: 20,
@@ -402,7 +414,7 @@ const styles = StyleSheet.create({
     color: '#27D17A',
   },
   battleTimerCard: {
-    backgroundColor: '#11171F',
+    backgroundColor: 'rgba(255,255,255,0.04)',
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
@@ -436,7 +448,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   eventCard: {
-    backgroundColor: '#0B0F14',
+    backgroundColor: 'transparent',
     borderRadius: 8,
     padding: 16,
     marginBottom: 12,
@@ -478,7 +490,7 @@ const styles = StyleSheet.create({
     paddingVertical: 20,
   },
   actionsCard: {
-    backgroundColor: '#11171F',
+    backgroundColor: 'rgba(255,255,255,0.04)',
     borderRadius: 12,
     padding: 20,
     marginBottom: 16,
@@ -490,6 +502,9 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingVertical: 14,
     alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 8,
     marginBottom: 12,
   },
   surrenderButtonText: {
@@ -529,7 +544,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 8,
     paddingHorizontal: 12,
-    backgroundColor: '#0B0F14',
+    backgroundColor: 'transparent',
     borderRadius: 8,
     marginBottom: 6,
   },
@@ -551,7 +566,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   youBadge: {
-    backgroundColor: '#00E0C7',
+    backgroundColor: '#2EE6C5',
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 4,

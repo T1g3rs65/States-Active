@@ -38,8 +38,13 @@ export type Biome =
   | 'hot_desert' | 'semi_arid_desert' | 'cold_desert' | 'barren'
   | 'beach' | 'rocky_coast' | 'salt_marsh' | 'badlands' | 'karst';
 
+// Water biomes must match backend terrain_utils.py is_land_tile threshold.
+// Backend land = normalized elevation >= 0.45 (landThreshold default).
+// Frontend shallow_sea cutoff is < 0.45, so shallow_sea is the only
+// borderline water biome. Rivers flow on land — they are NOT water for
+// placement purposes (a capital can sit on a river tile).
 const WATER_BIOMES = new Set<string>([
-  'abyss', 'midnight_zone', 'deep_ocean', 'shallow_sea', 'river',
+  'abyss', 'midnight_zone', 'deep_ocean', 'shallow_sea',
 ]);
 
 const DEEP_WATER_BIOMES = new Set<string>(['abyss', 'midnight_zone', 'deep_ocean']);

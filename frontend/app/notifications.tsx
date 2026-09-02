@@ -5,7 +5,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  ActivityIndicator,
   RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -13,11 +12,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { api } from '../utils/api';
 import { useNationStore } from '../store/nationStore';
-import { getRaceTheme } from '../utils/raceColors';
+import { leaningColor } from '../utils/politicalCompass';
 import ScreenHeader, { HeaderIcon } from '../components/ScreenHeader';
 import { glassAlert, glassConfirm } from '../components/GlassModal';
+import StatusDots, { ButtonBusy } from '../components/StatusDots';
+import ScreenCanvas from '../components/ScreenCanvas';
 
-export default async function Notifications() {
+export default function Notifications() {
   const router = useRouter();
   const { nation } = useNationStore();
   const [warJoinRequests, setWarJoinRequests] = useState<any[]>([]);
@@ -28,7 +29,7 @@ export default async function Notifications() {
   const [respondingTo, setRespondingTo] = useState<string | null>(null);
 
   const nationId = nation?.id || nation?._id;
-  const themeColor = getRaceTheme(nation?.race || 'human').color;
+  const themeColor = leaningColor(nation);
 
   useEffect(() => {
     if (nationId) {
@@ -136,6 +137,7 @@ export default async function Notifications() {
   };
 
   return (
+    <ScreenCanvas>
     <SafeAreaView style={styles.container} edges={['bottom']}>
       {/* Header */}
       <ScreenHeader
@@ -149,17 +151,18 @@ export default async function Notifications() {
         ) : undefined}
       />
 
+      {loading ? (
+        <View style={styles.loaderFill}>
+          <StatusDots status="Loading" color={themeColor} pattern="carve" />
+        </View>
+      ) : (
       <ScrollView
         style={styles.content}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#F3F6FA" />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={themeColor} />
         }
       >
-        {loading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={themeColor} />
-          </View>
-        ) : totalNotifications === 0 ? (
+        {totalNotifications === 0 ? (
           <View style={styles.emptyContainer}>
             <Ionicons name="notifications-off-outline" size={64} color="rgba(255,255,255,0.08)" />
             <Text style={styles.emptyTitle}>No Notifications</Text>
@@ -172,7 +175,10 @@ export default async function Notifications() {
             {/* War Join Requests */}
             {warJoinRequests.length > 0 && (
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>⚔️ War Join Requests</Text>
+                <View style={styles.sectionHead}>
+                  <Ionicons name="flash" size={18} color="#F3F6FA" />
+                  <Text style={styles.sectionTitle}>War Join Requests</Text>
+                </View>
                 {warJoinRequests.map((request) => (
                   <View key={request.id || request._id} style={styles.requestCard}>
                     <View style={styles.requestIcon}>
@@ -194,14 +200,10 @@ export default async function Notifications() {
                           onPress={() => handleWarRespond(request.id || request._id, false)}
                           disabled={respondingTo === (request.id || request._id)}
                         >
-                          {respondingTo === (request.id || request._id) ? (
-                            <ActivityIndicator size="small" color="#FF5A65" />
-                          ) : (
-                            <>
-                              <Ionicons name="close" size={16} color="#FF5A65" />
-                              <Text style={styles.rejectButtonText}>Decline</Text>
-                            </>
-                          )}
+                          <ButtonBusy busy={respondingTo === (request.id || request._id)} color="#FF5A65">
+                            <Ionicons name="close" size={16} color="#FF5A65" />
+                            <Text style={styles.rejectButtonText}>Decline</Text>
+                          </ButtonBusy>
                         </TouchableOpacity>
                         
                         <TouchableOpacity
@@ -209,20 +211,14 @@ export default async function Notifications() {
                           onPress={() => handleWarRespond(request.id || request._id, true)}
                           disabled={respondingTo === (request.id || request._id)}
                         >
-                          {respondingTo === (request.id || request._id) ? (
-                            <ActivityIndicator size="small" color="#FFF" />
-                          ) : (
-                            <>
-                              <Ionicons name="checkmark" size={16} color="#FFF" />
-                              <Text style={styles.acceptButtonText}>Join War!</Text>
-                            </>
-                          )}
+                          <ButtonBusy busy={respondingTo === (request.id || request._id)} color="#081014">
+                            <Ionicons name="checkmark" size={16} color="#FFF" />
+                            <Text style={styles.acceptButtonText}>Join War!</Text>
+                          </ButtonBusy>
                         </TouchableOpacity>
                       </View>
                       
-                      <Text style={styles.warningText}>
-                        ⚠️ Declining will affect your reputation
-                      </Text>
+                      <Text style={styles.warningText}>Declining will affect your reputation</Text>
                     </View>
                   </View>
                 ))}
@@ -232,7 +228,10 @@ export default async function Notifications() {
             {/* Non-Aggression Pact Requests */}
             {pactRequests.length > 0 && (
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>🤝 Non-Aggression Pact Requests</Text>
+                <View style={styles.sectionHead}>
+                  <Ionicons name="people" size={18} color="#F3F6FA" />
+                  <Text style={styles.sectionTitle}>Non-Aggression Pact Requests</Text>
+                </View>
                 {pactRequests.map((request) => (
                   <View key={request.id || request._id} style={styles.requestCard}>
                     <View style={[styles.requestIcon, { backgroundColor: '#27D17A20' }]}>
@@ -256,14 +255,10 @@ export default async function Notifications() {
                           onPress={() => handlePactRespond(request.id || request._id, false, request.from_nation_name)}
                           disabled={respondingTo === (request.id || request._id)}
                         >
-                          {respondingTo === (request.id || request._id) ? (
-                            <ActivityIndicator size="small" color="#FF5A65" />
-                          ) : (
-                            <>
-                              <Ionicons name="close" size={16} color="#FF5A65" />
-                              <Text style={styles.rejectButtonText}>Decline</Text>
-                            </>
-                          )}
+                          <ButtonBusy busy={respondingTo === (request.id || request._id)} color="#FF5A65">
+                            <Ionicons name="close" size={16} color="#FF5A65" />
+                            <Text style={styles.rejectButtonText}>Decline</Text>
+                          </ButtonBusy>
                         </TouchableOpacity>
                         
                         <TouchableOpacity
@@ -271,20 +266,14 @@ export default async function Notifications() {
                           onPress={() => handlePactRespond(request.id || request._id, true, request.from_nation_name)}
                           disabled={respondingTo === (request.id || request._id)}
                         >
-                          {respondingTo === (request.id || request._id) ? (
-                            <ActivityIndicator size="small" color="#FFF" />
-                          ) : (
-                            <>
-                              <Ionicons name="checkmark" size={16} color="#FFF" />
-                              <Text style={styles.acceptButtonText}>Accept Pact</Text>
-                            </>
-                          )}
+                          <ButtonBusy busy={respondingTo === (request.id || request._id)} color="#081014">
+                            <Ionicons name="checkmark" size={16} color="#FFF" />
+                            <Text style={styles.acceptButtonText}>Accept Pact</Text>
+                          </ButtonBusy>
                         </TouchableOpacity>
                       </View>
                       
-                      <Text style={styles.infoText}>
-                        ℹ️ You cannot declare war on pact partners
-                      </Text>
+                      <Text style={styles.infoText}>You cannot declare war on pact partners</Text>
                     </View>
                   </View>
                 ))}
@@ -294,7 +283,10 @@ export default async function Notifications() {
             {/* General Notifications (Responses) */}
             {generalNotifications.length > 0 && (
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>📬 Updates</Text>
+                <View style={styles.sectionHead}>
+                  <Ionicons name="mail" size={18} color="#F3F6FA" />
+                  <Text style={styles.sectionTitle}>Updates</Text>
+                </View>
                 {generalNotifications.map((notif) => {
                   const style = getNotificationStyle(notif.notification_type);
                   return (
@@ -336,14 +328,21 @@ export default async function Notifications() {
         
         <View style={{ height: 40 }} />
       </ScrollView>
+      )}
     </SafeAreaView>
+    </ScreenCanvas>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0B0F14',
+    backgroundColor: 'transparent',
+  },
+  loaderFill: {
+    flex: 1,
+    position: 'relative',
+    overflow: 'hidden',
   },
   header: {
     flexDirection: 'row',
@@ -410,11 +409,16 @@ const styles = StyleSheet.create({
   section: {
     marginBottom: 24,
   },
+  sectionHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
+  },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
     color: '#F3F6FA',
-    marginBottom: 12,
   },
   requestCard: {
     flexDirection: 'row',
@@ -474,6 +478,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#FF5A65',
     backgroundColor: '#0B0F14',
+    overflow: 'hidden',
   },
   rejectButtonText: {
     fontSize: 14,
@@ -488,6 +493,7 @@ const styles = StyleSheet.create({
     gap: 4,
     paddingVertical: 10,
     borderRadius: 8,
+    overflow: 'hidden',
   },
   acceptButtonText: {
     fontSize: 14,

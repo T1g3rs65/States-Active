@@ -249,22 +249,34 @@ export const RESOURCES: ResourceDefinition[] = [
     name: 'Oil',
     tier: 'rare',
     value: 5,
-    validBiomes: ['arctic_tundra', 'deep_ocean'],
-    spawnChance: 0.03,
+    validBiomes: [
+      'deep_ocean', 'shallow_sea',
+      'hot_desert', 'semi_arid_desert', 'cold_desert', 'barren',
+      'temperate_grassland', 'grassland', 'flooded_grassland',
+      'wetland', 'swamp', 'salt_marsh',
+      'arctic_tundra', 'tundra',
+    ],
+    spawnChance: 0.028,
     icon: 'water',
-    color: '#0F172A',
-    description: 'Black gold - petroleum reserves'
+    color: '#1A1208',
+    description: 'Black gold — rare petroleum on land and offshore'
   },
   {
     id: 'natural_gas',
     name: 'Natural Gas',
     tier: 'rare',
     value: 4.5,
-    validBiomes: ['tundra', 'arctic_tundra'],
-    spawnChance: 0.04,
+    validBiomes: [
+      'tundra', 'arctic_tundra',
+      'temperate_grassland', 'grassland', 'flooded_grassland',
+      'wetland', 'peat_bog', 'swamp',
+      'semi_arid_desert', 'cold_desert', 'barren',
+      'shrubland',
+    ],
+    spawnChance: 0.035,
     icon: 'flame',
     color: '#60A5FA',
-    description: 'Clean-burning fossil fuel'
+    description: 'Clean-burning fossil fuel — rare land and tundra fields'
   },
   {
     id: 'gold',
@@ -445,28 +457,49 @@ export const RARE_RESOURCES = RESOURCES.filter(r => r.tier === 'rare');
  */
 export class SeededRandom {
   private seed: number;
-  
+
   constructor(seed: number) {
-    this.seed = seed;
+    this.seed = seed >>> 0;
   }
-  
-  // Simple LCG random generator
+
   next(): number {
-    this.seed = (this.seed * 1664525 + 1013904223) % 4294967296;
+    this.seed = (Math.imul(this.seed, 1664525) + 1013904223) >>> 0;
     return this.seed / 4294967296;
-  }
-  
-  // Get random with specific seed offset for a tile
-  nextForTile(col: number, row: number): number {
-    const tileSeed = this.seed + col * 10000 + row;
-    const tempSeed = (tileSeed * 1664525 + 1013904223) % 4294967296;
-    return tempSeed / 4294967296;
   }
 }
 
+/** Avalanche 2D hash in [0,1) — no col/row lattice. */
+function hash01(col: number, row: number, seed: number, salt: number): number {
+  let h = seed ^ salt;
+  h = Math.imul(h ^ Math.imul(Math.floor(col) + 0x9e3779b9, 0x85ebca6b), 0xc2b2ae35);
+  h = Math.imul(h ^ Math.imul(Math.floor(row) + 0x165667b1, 0x27d4eb2d), 0x165667b1);
+  h = Math.imul(h ^ (h >>> 16), 2246822519);
+  h = Math.imul(h ^ (h >>> 13), 3266489917);
+  return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+}
+
+function smoothstep(t: number): number {
+  return t * t * (3 - 2 * t);
+}
+
+/** Soft blobs so deposits clump instead of striping. */
+function depositField(col: number, row: number, seed: number, scale: number): number {
+  const x = col / scale;
+  const y = row / scale;
+  const x0 = Math.floor(x);
+  const y0 = Math.floor(y);
+  const fx = smoothstep(x - x0);
+  const fy = smoothstep(y - y0);
+  const v00 = hash01(x0, y0, seed, 11);
+  const v10 = hash01(x0 + 1, y0, seed, 11);
+  const v01 = hash01(x0, y0 + 1, seed, 11);
+  const v11 = hash01(x0 + 1, y0 + 1, seed, 11);
+  return v00 * (1 - fx) * (1 - fy) + v10 * fx * (1 - fy) + v01 * (1 - fx) * fy + v11 * fx * fy;
+}
+
 /**
- * Assign a resource to a tile based on its biome and seed
- * Returns null if no resource spawns on this tile
+ * Assign a resource to a tile based on its biome and seed.
+ * Returns null if no resource spawns on this tile.
  */
 export function assignResourceToTile(
   biome: string,
@@ -475,35 +508,32 @@ export function assignResourceToTile(
   worldSeed: number
 ): string | null {
   const validResources = RESOURCES_BY_BIOME.get(biome);
-  if (!validResources || validResources.length === 0) {
-    return null; // No resources can spawn in this biome
-  }
-  
-  const rng = new SeededRandom(worldSeed);
-  const tileRandom = rng.nextForTile(col, row);
-  
-  // Determine if ANY resource spawns (base 45% chance for land tiles)
-  const baseSpawnChance = 0.22;
-  if (tileRandom > baseSpawnChance) {
-    return null;
-  }
+  if (!validResources || validResources.length === 0) return null;
 
-  const resourceRandom = rng.nextForTile(col + 1000, row + 1000);
+  // Patches from a slow field; holes + a few stray tiles so it isn't solid clumps.
+  const blob =
+    depositField(col, row, worldSeed, 12.4) * 0.78 +
+    depositField(col + 40, row - 17, worldSeed ^ 0x9e3779b9, 6.2) * 0.22;
+  const jitter = hash01(col, row, worldSeed, 77);
+  const inVein = blob > 0.64;
+  const straggler = !inVein && jitter < 0.04;
+  if (!inVein && !straggler) return null;
 
+  // Large-scale type field → a patch is mostly one resource, with a little mix.
+  const typeField = depositField(col, row, worldSeed ^ 0x51ed, 22);
+  const pick = straggler ? hash01(col, row, worldSeed, 91) : typeField * 0.88 + jitter * 0.12;
   const sortedResources = [...validResources].sort((a, b) => {
     const tierOrder = { rare: 0, uncommon: 1, common: 2 };
     return tierOrder[a.tier] - tierOrder[b.tier];
   });
 
   let cumulative = 0;
+  const weightSum = sortedResources.reduce((s, r) => s + r.spawnChance, 0) || 1;
   for (const resource of sortedResources) {
-    cumulative += resource.spawnChance * 0.7;
-    if (resourceRandom < cumulative) {
-      return resource.id;
-    }
+    cumulative += resource.spawnChance / weightSum;
+    if (pick < cumulative) return resource.id;
   }
-
-  return null;
+  return sortedResources[sortedResources.length - 1].id;
 }
 
 /**
@@ -547,7 +577,8 @@ function calculateRealisticGDP(populationThousands: number, gdpStat: number): nu
 export function calculateIndustryStats(
   resourceCounts: Record<string, number>,
   totalTiles: number,
-  nationStats?: { population: number; gdp: number }
+  nationStats?: { population: number; gdp: number },
+  extractMult: number = 1,
 ): NationIndustryStats {
   let totalValue = 0;
   let resourceTiles = 0;
@@ -604,7 +635,7 @@ export function calculateIndustryStats(
     const industryShareOfPrivate = 0.05 + (0.35 * resourceRichness);
     
     // GDP Contribution = Private Sector GDP × Industry Share
-    gdpContribution = privateSectorGDP * industryShareOfPrivate;
+    gdpContribution = privateSectorGDP * industryShareOfPrivate * Math.max(0.55, Math.min(1.5, extractMult));
     
     // Calculate what % of total GDP this represents
     industryPercentOfGDP = (gdpContribution / actualGDP) * 100;

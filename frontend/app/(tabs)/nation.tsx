@@ -19,7 +19,9 @@ import { getNationSizeClass } from '../../utils/nationSize';
 import { getRaceTheme, getRaceName, getRaceIcon } from '../../utils/raceColors';
 import { leaningColor, leaningWash, hexAlpha } from '../../utils/politicalCompass';
 import { colors, typography, spacing, radii } from '../../utils/theme';
-import { govBlurb } from '../../utils/govCopy';
+import { govOperatingBlurb } from '../../utils/govOperating';
+import { govFrictionRows } from '../../utils/wheelFriction';
+import { leaderTitle as resolveLeaderTitle, portraitKind } from '../../utils/governmentTitles';
 import NewsFeed from '../../components/NewsFeed';
 import CollapsibleSection from '../../components/CollapsibleSection';
 import { TabChrome } from '../../components/ScreenHeader';
@@ -120,39 +122,53 @@ const getPortraitIndex = (nationName: string, arrayLength: number): number => {
 };
 
 // Government type to leader type mapping
-const getLeaderTypeFromGovernment = (governmentType: string): string => {
-  const govLower = governmentType?.toLowerCase() || '';
-  
-  // Monarchies
-  if (govLower.includes('monarchy') || govLower.includes('benevolent dictatorship') || govLower.includes('father knows')) {
-    return 'monarch';
+const getLeaderTitle = (nation: any) =>
+  resolveLeaderTitle({
+    subtype: nation?.government_subtype,
+    territorial: nation?.territorial_structure,
+    race: nation?.race,
+    leaderName: nation?.leader_name || nation?.name,
+  });
+
+const getLeaderPortrait = (nation: any, nameOverride?: string) => {
+  const race = nation?.race;
+  const leaderName = nameOverride || nation?.leader_name || '';
+  if (race?.toLowerCase() === 'zythera') {
+    const isEvil = EVIL_ZYTHERA_GOVERNMENTS.includes(nation?.government_subtype || nation?.government_form || '');
+    const portraits = isEvil ? ZYTHERA_QUEEN_EVIL_PORTRAITS : ZYTHERA_QUEEN_PORTRAITS;
+    const portraitIndex = getPortraitIndex(nation?.name || leaderName, portraits.length);
+    return portraits[portraitIndex];
   }
-  // Empires
-  if (govLower.includes('empire') || govLower.includes('iron fist')) {
-    return 'emperor';
+  const kind = portraitKind({
+    subtype: nation?.government_subtype,
+    territorial: nation?.territorial_structure,
+    race,
+  });
+  const gender =
+    nation?.leader_sex === 'female' || nation?.leader_sex === 'male'
+      ? nation.leader_sex
+      : detectLeaderGender(leaderName);
+  switch (kind) {
+    case 'monarch':
+      return gender === 'female' ? LEADER_PORTRAITS.queen : LEADER_PORTRAITS.king;
+    case 'emperor':
+      return gender === 'female' ? LEADER_PORTRAITS.empress : LEADER_PORTRAITS.emperor;
+    case 'theocrat':
+      return gender === 'female' ? LEADER_PORTRAITS.high_priestess : LEADER_PORTRAITS.high_priest;
+    case 'military':
+      return gender === 'female' ? LEADER_PORTRAITS.general_female : LEADER_PORTRAITS.general_male;
+    case 'corporate':
+      return gender === 'female' ? LEADER_PORTRAITS.ceo_female : LEADER_PORTRAITS.ceo_male;
+    case 'dictator':
+      return gender === 'female' ? LEADER_PORTRAITS.dictator_female : LEADER_PORTRAITS.dictator_male;
+    case 'chairman':
+      return gender === 'female' ? LEADER_PORTRAITS.chairwoman_female : LEADER_PORTRAITS.chairman_male;
+    case 'prime_minister':
+      return gender === 'female' ? LEADER_PORTRAITS.prime_minister_female : LEADER_PORTRAITS.prime_minister_male;
+    case 'president':
+    default:
+      return gender === 'female' ? LEADER_PORTRAITS.president_female : LEADER_PORTRAITS.president_male;
   }
-  // Theocracies
-  if (govLower.includes('theocr') || govLower.includes('moralistic')) {
-    return 'theocrat';
-  }
-  // Military
-  if (govLower.includes('martial') || govLower.includes('military') || govLower.includes('police state')) {
-    return 'military';
-  }
-  // Corporate/Tech
-  if (govLower.includes('corporate') || govLower.includes('tech') || govLower.includes('capitalist') || govLower.includes('market')) {
-    return 'corporate';
-  }
-  // Authoritarian/Dictatorship
-  if (govLower.includes('dictator') || govLower.includes('authoritarian') || govLower.includes('psychotic') || govLower.includes('surveillance') || govLower.includes('corrupt')) {
-    return 'dictator';
-  }
-  // Socialist/Communist
-  if (govLower.includes('socialist') || govLower.includes('communist') || govLower.includes('left-wing')) {
-    return 'chairman';
-  }
-  // Default - Democracy
-  return 'president';
 };
 
 // Detect gender from leader name
@@ -168,74 +184,6 @@ const detectLeaderGender = (name: string): 'male' | 'female' => {
   return 'male';
 };
 
-// Get leader portrait based on race, government type, and leader name
-const getLeaderPortrait = (race: string | undefined, governmentType: string, leaderName: string, nationName?: string) => {
-  // Zythera always have a Queen - select from appropriate portrait set
-  if (race?.toLowerCase() === 'zythera') {
-    const isEvil = EVIL_ZYTHERA_GOVERNMENTS.includes(governmentType);
-    const portraits = isEvil ? ZYTHERA_QUEEN_EVIL_PORTRAITS : ZYTHERA_QUEEN_PORTRAITS;
-    // Use nation name to get a consistent portrait for this nation
-    const portraitIndex = getPortraitIndex(nationName || leaderName, portraits.length);
-    return portraits[portraitIndex];
-  }
-  
-  // For humans, determine leader type and gender
-  const leaderType = getLeaderTypeFromGovernment(governmentType);
-  const gender = detectLeaderGender(leaderName);
-  
-  // Map leader type to portrait key
-  switch (leaderType) {
-    case 'monarch':
-      return gender === 'female' ? LEADER_PORTRAITS.queen : LEADER_PORTRAITS.king;
-    case 'emperor':
-      return gender === 'female' ? LEADER_PORTRAITS.empress : LEADER_PORTRAITS.emperor;
-    case 'theocrat':
-      return gender === 'female' ? LEADER_PORTRAITS.high_priestess : LEADER_PORTRAITS.high_priest;
-    case 'military':
-      return gender === 'female' ? LEADER_PORTRAITS.general_female : LEADER_PORTRAITS.general_male;
-    case 'corporate':
-      return gender === 'female' ? LEADER_PORTRAITS.ceo_female : LEADER_PORTRAITS.ceo_male;
-    case 'dictator':
-      return gender === 'female' ? LEADER_PORTRAITS.dictator_female : LEADER_PORTRAITS.dictator_male;
-    case 'chairman':
-      return gender === 'female' ? LEADER_PORTRAITS.chairwoman_female : LEADER_PORTRAITS.chairman_male;
-    case 'president':
-    default:
-      return gender === 'female' ? LEADER_PORTRAITS.president_female : LEADER_PORTRAITS.president_male;
-  }
-};
-
-// Get leader title based on race and government type
-const getLeaderTitle = (race: string | undefined, governmentType: string, leaderName: string) => {
-  // Zythera always have a Queen
-  if (race?.toLowerCase() === 'zythera') {
-    return 'Queen';
-  }
-  
-  const leaderType = getLeaderTypeFromGovernment(governmentType);
-  const gender = detectLeaderGender(leaderName);
-  
-  switch (leaderType) {
-    case 'monarch':
-      return gender === 'female' ? 'Queen' : 'King';
-    case 'emperor':
-      return gender === 'female' ? 'Empress' : 'Emperor';
-    case 'theocrat':
-      return gender === 'female' ? 'High Priestess' : 'High Priest';
-    case 'military':
-      return 'Supreme General';
-    case 'corporate':
-      return 'Chief Executive';
-    case 'dictator':
-      return 'Supreme Leader';
-    case 'chairman':
-      return gender === 'female' ? 'Chairwoman' : 'Chairman';
-    case 'president':
-    default:
-      return 'President';
-  }
-};
-
 export default function Nation() {
   const router = useRouter();
   const { nation, setNation, recoverNation } = useNationStore();
@@ -249,7 +197,7 @@ export default function Nation() {
       setVisit((v) => v + 1);
     }, [])
   );
-  const [descriptionTimer, setDescriptionTimer] = useState<string>('');
+  const [descriptionTimer, setDescriptionTimer] = useState<string>('—');
   
   // Modal state for info popups
   const [infoModal, setInfoModal] = useState<{ visible: boolean; title: string; content: string }>({
@@ -267,7 +215,13 @@ export default function Nation() {
   // Show government info (full wheel identity; blurb from subtype or display name)
   const showGovernmentInfo = () => {
     const title = nation.display_name || nation.government_subtype || nation.name;
-    const description = govBlurb(nation.government_subtype) || "A unique form of governance shaped by its founding wheel.";
+    const blurb =
+      govOperatingBlurb(nation) ||
+      'No operating brief for this exact mix yet. The wheels still describe it; the write-up has not caught up.';
+    const fric = govFrictionRows(nation)
+      .map((r) => `${r.label}\n+ ${r.plus}\n− ${r.minus}`)
+      .join('\n\n');
+    const description = fric ? `${blurb}\n\n${fric}` : blurb;
     setInfoModal({
       visible: true,
       title,
@@ -326,20 +280,38 @@ export default function Nation() {
     }
   };
 
+  const formatDescriptionCountdown = (lastUpdate?: string | null) => {
+    if (!lastUpdate) return '—';
+    const raw = String(lastUpdate);
+    const iso = /Z$|[+-]\d{2}:?\d{2}$/.test(raw) ? raw : `${raw}Z`;
+    const start = Date.parse(iso);
+    if (!Number.isFinite(start)) return '—';
+    const rem = start + 7 * 24 * 3600 * 1000 - Date.now();
+    if (rem <= 0) return 'Due now';
+    const days = Math.floor(rem / (24 * 3600 * 1000));
+    const hours = Math.floor((rem % (24 * 3600 * 1000)) / (3600 * 1000));
+    if (days > 0) return `${days}d ${hours}h`;
+    const minutes = Math.floor((rem % (3600 * 1000)) / 60000);
+    return `${hours}h ${minutes}m`;
+  };
+
   const checkDescriptionTimer = async () => {
+    const last = (nation as any)?.last_description_update;
+    setDescriptionTimer(formatDescriptionCountdown(last));
     if (!nation?.id && !nation?._id) return;
-    
+    const due = formatDescriptionCountdown(last) === 'Due now' || !last;
+    if (!due) return;
     try {
       const nationId = nation.id || nation._id;
       const response = await api.regenerateDescription(nationId);
-      
       if (response.success) {
-        setDescriptionTimer(response.timer_display || '');
-        
-        // If description was just refreshed, update the nation
-        if (response.just_refreshed && response.description) {
-          const updatedNation = { ...nation, description: response.description };
-          setNation(updatedNation);
+        setDescriptionTimer(response.timer_display || formatDescriptionCountdown(last) || '—');
+        if (response.description) {
+          setNation({
+            ...nation,
+            description: response.description,
+            last_description_update: new Date().toISOString(),
+          } as any);
         }
       }
     } catch (error) {
@@ -347,13 +319,20 @@ export default function Nation() {
     }
   };
 
-  // Check description timer on focus
+  useEffect(() => {
+    setDescriptionTimer(formatDescriptionCountdown((nation as any)?.last_description_update));
+    const tick = setInterval(() => {
+      setDescriptionTimer(formatDescriptionCountdown((nation as any)?.last_description_update));
+    }, 30000);
+    return () => clearInterval(tick);
+  }, [(nation as any)?.last_description_update]);
+
   useFocusEffect(
     useCallback(() => {
       if (nation?.id || nation?._id) {
         checkDescriptionTimer();
       }
-    }, []) // Empty dependency - only run on focus
+    }, [nation?.id, nation?._id, (nation as any)?.last_description_update])
   );
 
   if (!nation) {
@@ -458,18 +437,48 @@ export default function Nation() {
                 No ruler — power rests with the community.
               </Text>
             </View>
+          ) : String(nation.government_subtype || '').toLowerCase().includes('diarchy') ? (
+            <View style={styles.leaderPair}>
+              {[
+                { name: nation.leader_name, slot: 1 },
+                { name: nation.co_leader_name, slot: 2 },
+              ].filter((who) => who.name).map((who) => {
+                const senior = nation.diarchy_senior === who.slot;
+                const title = getLeaderTitle({ ...nation, leader_name: who.name });
+                return (
+                  <View key={who.slot} style={styles.leaderCard}>
+                    <View style={[styles.leaderPortraitContainer, { borderColor: colors.accent.gold, marginRight: 0 }]}>
+                      <Image
+                        source={getLeaderPortrait(nation, who.name)}
+                        style={styles.leaderPortrait}
+                        resizeMode="cover"
+                      />
+                    </View>
+                    <Text style={[styles.leaderTitle, { color: colors.accent.gold, textAlign: 'center', marginTop: 8 }]}>
+                      {title}
+                    </Text>
+                    <Text style={[styles.leaderName, { textAlign: 'center', fontSize: 16 }]}>{who.name}</Text>
+                    {senior ? (
+                      <Text style={styles.powerBadge}>Holds real power</Text>
+                    ) : nation.diarchy_senior ? (
+                      <Text style={styles.powerQuiet}>Signs the papers</Text>
+                    ) : null}
+                  </View>
+                );
+              })}
+            </View>
           ) : (
             <>
               <View style={[styles.leaderPortraitContainer, { borderColor: colors.accent.gold }]}>
                 <Image
-                  source={getLeaderPortrait(nation.race, nation.government_form || 'democracy', nation.leader_name || nation.name, nation.name)}
+                  source={getLeaderPortrait(nation)}
                   style={styles.leaderPortrait}
                   resizeMode="cover"
                 />
               </View>
               <View style={styles.leaderInfo}>
                 <Text style={[styles.leaderTitle, { color: colors.accent.gold }]}>
-                  {getLeaderTitle(nation.race, nation.government_form || 'democracy', nation.leader_name || nation.name)}
+                  {getLeaderTitle(nation)}
                 </Text>
                 <Text style={styles.leaderName}>{nation.leader_name || 'Unknown Leader'}</Text>
               </View>
@@ -482,7 +491,7 @@ export default function Nation() {
         <View style={styles.sectionHeaderInline}>
           <View style={styles.descriptionTimerContainer}>
             <Ionicons name="time-outline" size={14} color={colors.text.muted} />
-            <Text style={styles.descriptionTimerText}>{descriptionTimer || 'Loading...'}</Text>
+            <Text style={styles.descriptionTimerText}>{descriptionTimer || '—'}</Text>
           </View>
         </View>
         <Text style={styles.descriptionText}>{nation.description}</Text>
@@ -521,9 +530,11 @@ export default function Nation() {
         activeOpacity={1} 
         onPress={() => setInfoModal({ ...infoModal, visible: false })}
       >
-        <View style={styles.modalContent}>
+        <View style={styles.modalContent} onStartShouldSetResponder={() => true}>
           <Text style={styles.modalTitle}>{infoModal.title}</Text>
-          <Text style={styles.modalText}>{infoModal.content}</Text>
+          <ScrollView style={styles.modalScroll} nestedScrollEnabled>
+            <Text style={styles.modalText}>{infoModal.content}</Text>
+          </ScrollView>
           <TouchableOpacity 
             style={styles.modalButton} 
             onPress={() => setInfoModal({ ...infoModal, visible: false })}
@@ -713,6 +724,28 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     alignItems: 'center',
   },
+  leaderPair: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    gap: spacing.md,
+  },
+  leaderCard: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  powerBadge: {
+    marginTop: 6,
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.accent.gold,
+    letterSpacing: 0.3,
+  },
+  powerQuiet: {
+    marginTop: 6,
+    fontSize: 11,
+    color: colors.text.muted,
+  },
   leaderPortraitContainer: {
     width: 100,
     height: 130,
@@ -761,19 +794,24 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: 'rgba(0, 0, 0, 0.88)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: spacing.lg,
   },
   modalContent: {
-    backgroundColor: colors.surfaceSolid,
+    backgroundColor: '#12161c',
     borderRadius: radii.md,
     padding: spacing.lg,
     width: '100%',
     maxWidth: 400,
+    maxHeight: '80%',
     borderWidth: 1,
     borderColor: colors.glass.border,
+  },
+  modalScroll: {
+    maxHeight: 420,
+    marginBottom: spacing.md,
   },
   modalTitle: {
     ...typography.title,

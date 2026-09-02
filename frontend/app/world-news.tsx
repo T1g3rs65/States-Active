@@ -6,18 +6,20 @@ import {
   TouchableOpacity,
   ScrollView,
   RefreshControl,
-  Modal,
   TextInput,
-  ActivityIndicator,
   Platform,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { api } from '../utils/api';
 import { useNationStore } from '../store/nationStore';
 import ScreenHeader, { HeaderIcon } from '../components/ScreenHeader';
-import { glassAlert, glassConfirm } from '../components/GlassModal';
+import ScreenCanvas from '../components/ScreenCanvas';
+import LiquidGlass from '../components/LiquidGlass';
+import { GlassModal, glassAlert } from '../components/GlassModal';
+import { leaningColor } from '../utils/politicalCompass';
+import { colors } from '../utils/theme';
+import StatusDots from '../components/StatusDots';
 
 interface AllyInfo {
   ally_id: string;
@@ -51,9 +53,10 @@ interface InternationalVote {
   time_remaining_hours?: number;
 }
 
-export default async function WorldNewsScreen() {
+export default function WorldNewsScreen() {
   const router = useRouter();
   const { nation } = useNationStore();
+  const tint = leaningColor(nation);
   const [activeVotes, setActiveVotes] = useState<InternationalVote[]>([]);
   const [endedVotes, setEndedVotes] = useState<InternationalVote[]>([]);
   const [allies, setAllies] = useState<Set<string>>(new Set());
@@ -193,30 +196,19 @@ export default async function WorldNewsScreen() {
         selectedVoteType,
         needsStatement ? sponsorStatement : undefined
       );
-      
-      if (response.success) {
-        const message = response.is_sponsor 
-          ? `Your vote has been cast and you are now the ${selectedVoteType} sponsor!`
-          : 'Your vote has been cast!';
-        
-        if (Platform.OS === 'web') {
-          await glassAlert({ title: 'Notice', message: String(message) });
-        } else {
-          await glassAlert({ title: 'Vote Cast!', message: message });
-        }
-        
-        setShowVoteModal(false);
-        loadData();
-      } else {
-        throw new Error(response.detail || 'Failed to cast vote');
+
+      if (!response?.success) {
+        throw new Error(response?.detail || 'Failed to cast vote');
       }
+
+      setShowVoteModal(false);
+      setSelectedVote(null);
+      setSelectedVoteType(null);
+      setSponsorStatement('');
+      loadData();
     } catch (error: any) {
       console.error('Error casting vote:', error);
-      if (Platform.OS === 'web') {
-        await glassAlert({ title: 'Notice', message: String(error.message || 'Failed to cast vote') });
-      } else {
-        await glassAlert({ title: 'Error', message: error.message || 'Failed to cast vote' });
-      }
+      await glassAlert({ title: 'Vote', message: error.message || 'Failed to cast vote' });
     } finally {
       setVoting(false);
     }
@@ -235,11 +227,12 @@ export default async function WorldNewsScreen() {
     const isOwn = isOwnVote(vote);
     
     return (
+      <LiquidGlass radius={28} style={styles.voteCard}>
       <TouchableOpacity
         key={vote.id}
-        style={styles.voteCard}
         onPress={() => vote.is_active && openVoteModal(vote)}
         disabled={!vote.is_active}
+        activeOpacity={0.85}
       >
         {/* Header */}
         <View style={styles.voteHeader}>
@@ -323,7 +316,7 @@ export default async function WorldNewsScreen() {
         {vote.is_active && (
           <View style={styles.voteStatus}>
             {alreadyVoted ? (
-              <Text style={styles.votedText}>✓ You voted</Text>
+              <Text style={styles.votedText}>You voted</Text>
             ) : isOwn ? (
               <Text style={styles.cannotVoteText}>Your decision - cannot vote</Text>
             ) : (
@@ -332,11 +325,13 @@ export default async function WorldNewsScreen() {
           </View>
         )}
       </TouchableOpacity>
+      </LiquidGlass>
     );
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['bottom']}>
+    <ScreenCanvas>
+    <View style={styles.container}>
       {/* Header */}
       <ScreenHeader
         title="World News"
@@ -378,7 +373,7 @@ export default async function WorldNewsScreen() {
       {/* Content */}
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#00E0C7" />
+          <StatusDots status="Loading" color="#00E0C7" />
           <Text style={styles.loadingText}>Loading world news...</Text>
         </View>
       ) : (
@@ -420,24 +415,41 @@ export default async function WorldNewsScreen() {
       )}
 
       {/* Vote Modal */}
-      <Modal
-        visible={showVoteModal}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowVoteModal(false)}
+      <GlassModal
+        open={showVoteModal}
+        onOpenChange={setShowVoteModal}
+        title="Cast Your Vote"
+        description={
+          selectedVote
+            ? `${isAlly(selectedVote.source_nation_id) ? 'Ally · ' : ''}${selectedVote.source_nation_name}'s decision`
+            : undefined
+        }
+        footer={
+          <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={styles.cancelButton}
+                onPress={() => setShowVoteModal(false)}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={[styles.submitButton, !selectedVoteType && styles.disabledButton, { backgroundColor: tint }]}
+                onPress={submitVote}
+                disabled={!selectedVoteType || voting}
+              >
+                <Text style={[styles.submitButtonText, voting && { opacity: 0 }]}>Submit Vote</Text>
+                {voting ? (
+                  <StatusDots status="Loading" color="#081014" fill />
+                ) : null}
+              </TouchableOpacity>
+            </View>
+        }
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Cast Your Vote</Text>
-            <Text style={styles.modalSubtitle}>
-              {selectedVote && isAlly(selectedVote.source_nation_id) ? '⭐ ' : ''}
-              {selectedVote?.source_nation_name}{'\u2019'}s decision
-            </Text>
-            
             {/* Ally Notice - only for active votes */}
             {selectedVote && selectedVote.is_active && isAlly(selectedVote.source_nation_id) && (
               <View style={styles.allyNotice}>
-                <Ionicons name="shield-checkmark" size={16} color="#FFD700" />
+                <Ionicons name="shield-checkmark" size={16} color={colors.accent.gold} />
                 <Text style={styles.allyNoticeText}>
                   This nation is your ally - you cannot condemn them
                 </Text>
@@ -458,7 +470,7 @@ export default async function WorldNewsScreen() {
                 ]}
                 onPress={() => setSelectedVoteType('praise')}
               >
-                <Ionicons name="thumbs-up" size={24} color="#27D17A" />
+                <Ionicons name="thumbs-up" size={24} color={colors.success} />
                 <Text style={styles.voteOptionText}>Praise</Text>
                 {!selectedVote?.praise_sponsor && (
                   <Text style={styles.sponsorHint}>Be the sponsor!</Text>
@@ -473,7 +485,7 @@ export default async function WorldNewsScreen() {
                 ]}
                 onPress={() => setSelectedVoteType('neutral')}
               >
-                <Ionicons name="remove-circle" size={24} color="rgba(243,246,250,0.48)" />
+                <Ionicons name="remove-circle" size={24} color={colors.text.muted} />
                 <Text style={styles.voteOptionText}>Neutral</Text>
               </TouchableOpacity>
 
@@ -486,11 +498,7 @@ export default async function WorldNewsScreen() {
                 ]}
                 onPress={async () => {
                   if (selectedVote && selectedVote.is_active && isAlly(selectedVote.source_nation_id)) {
-                    if (Platform.OS === 'web') {
-                      await glassAlert({ title: 'Notice', message: String('You cannot condemn an ally!') });
-                    } else {
-                      await glassAlert({ title: 'Alliance Loyalty', message: 'You cannot condemn an ally!' });
-                    }
+                    await glassAlert({ title: 'Alliance Loyalty', message: 'You cannot condemn an ally!' });
                     return;
                   }
                   setSelectedVoteType('condemn');
@@ -499,7 +507,7 @@ export default async function WorldNewsScreen() {
                 <Ionicons 
                   name="thumbs-down" 
                   size={24} 
-                  color={selectedVote && selectedVote.is_active && isAlly(selectedVote.source_nation_id) ? 'rgba(255,255,255,0.08)' : '#FF5A65'} 
+                  color={selectedVote && selectedVote.is_active && isAlly(selectedVote.source_nation_id) ? 'rgba(255,255,255,0.08)' : colors.danger} 
                 />
                 <Text style={[
                   styles.voteOptionText,
@@ -524,7 +532,7 @@ export default async function WorldNewsScreen() {
                   <TextInput
                     style={styles.statementInput}
                     placeholder={`Why should others ${selectedVoteType} this decision?`}
-                    placeholderTextColor="rgba(243,246,250,0.48)"
+                    placeholderTextColor={colors.text.muted}
                     value={sponsorStatement}
                     onChangeText={setSponsorStatement}
                     multiline
@@ -534,39 +542,16 @@ export default async function WorldNewsScreen() {
                 </View>
               )
             )}
-
-            {/* Modal Buttons */}
-            <View style={styles.modalButtons}>
-              <TouchableOpacity
-                style={styles.cancelButton}
-                onPress={() => setShowVoteModal(false)}
-              >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity
-                style={[styles.submitButton, !selectedVoteType && styles.disabledButton]}
-                onPress={submitVote}
-                disabled={!selectedVoteType || voting}
-              >
-                {voting ? (
-                  <ActivityIndicator size="small" color="#FFF" />
-                ) : (
-                  <Text style={styles.submitButtonText}>Submit Vote</Text>
-                )}
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-    </SafeAreaView>
+      </GlassModal>
+    </View>
+    </ScreenCanvas>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0B0F14',
+    backgroundColor: 'transparent',
   },
   header: {
     flexDirection: 'row',
@@ -601,13 +586,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 6,
     paddingVertical: 10,
-    backgroundColor: '#11171F',
+    backgroundColor: 'rgba(255,255,255,0.04)',
     borderRadius: 8,
   },
   activeTab: {
-    backgroundColor: '#1E3A5F',
+    backgroundColor: 'rgba(255,255,255,0.08)',
     borderWidth: 1,
-    borderColor: '#00E0C7',
+    borderColor: '#2EE6C5',
   },
   tabText: {
     fontSize: 14,
@@ -652,7 +637,7 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   voteCard: {
-    backgroundColor: '#11171F',
+    backgroundColor: 'rgba(255,255,255,0.04)',
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
@@ -692,10 +677,10 @@ const styles = StyleSheet.create({
   sourceNation: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#00E0C7',
+    color: '#2EE6C5',
   },
   ownBadge: {
-    backgroundColor: '#00E0C7',
+    backgroundColor: '#2EE6C5',
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 4,
@@ -743,7 +728,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   sponsorCard: {
-    backgroundColor: '#0B0F14',
+    backgroundColor: 'transparent',
     borderRadius: 8,
     padding: 12,
     marginBottom: 8,
@@ -805,7 +790,7 @@ const styles = StyleSheet.create({
   tapToVoteText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#00E0C7',
+    color: '#2EE6C5',
   },
   modalOverlay: {
     flex: 1,
@@ -815,7 +800,7 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   modalContent: {
-    backgroundColor: '#11171F',
+    backgroundColor: 'rgba(255,255,255,0.04)',
     borderRadius: 16,
     padding: 24,
     width: '100%',
@@ -837,7 +822,7 @@ const styles = StyleSheet.create({
   modalDecision: {
     fontSize: 14,
     color: '#F3F6FA',
-    backgroundColor: '#0B0F14',
+    backgroundColor: 'transparent',
     padding: 12,
     borderRadius: 8,
     marginBottom: 20,
@@ -867,13 +852,13 @@ const styles = StyleSheet.create({
     borderColor: '#FF5A65',
   },
   selectedOption: {
-    backgroundColor: '#1E3A5F',
-    borderColor: '#00E0C7',
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderColor: '#2EE6C5',
   },
   disabledVoteOption: {
     opacity: 0.5,
     borderColor: '#11171F',
-    backgroundColor: '#0B0F14',
+    backgroundColor: 'transparent',
   },
   disabledVoteText: {
     color: 'rgba(255,255,255,0.08)',
@@ -901,7 +886,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   statementInput: {
-    backgroundColor: '#0B0F14',
+    backgroundColor: 'transparent',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.08)',
     borderRadius: 8,
@@ -938,7 +923,9 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 8,
     alignItems: 'center',
-    backgroundColor: '#00E0C7',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    backgroundColor: '#2EE6C5',
   },
   submitButtonText: {
     fontSize: 15,

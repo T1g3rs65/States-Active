@@ -5,7 +5,6 @@ import {
   StyleSheet,
   ScrollView,
   Image,
-  ActivityIndicator,
   TouchableOpacity,
   RefreshControl,
 } from 'react-native';
@@ -18,6 +17,7 @@ import { getRaceTheme } from '../utils/raceColors';
 import { leaningColor } from '../utils/politicalCompass';
 import ScreenHeader from '../components/ScreenHeader';
 import EmptyNation from '../components/EmptyNation';
+import StatusDots from '../components/StatusDots';
 
 export default function Policies() {
   const router = useRouter();
@@ -25,6 +25,7 @@ export default function Policies() {
   const [policies, setPolicies] = useState<Policy[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [tab, setTab] = useState<'laws' | 'statutes'>('laws');
   const [expandedPolicies, setExpandedPolicies] = useState<Set<number>>(new Set());
 
   // Get race-based theme color
@@ -105,11 +106,38 @@ export default function Policies() {
     <View style={styles.container}>
       <ScreenHeader title="Policies" subtitle="Standing law" onBack={() => router.back()} />
 
+      <View style={styles.tabs}>
+        {(['laws', 'statutes'] as const).map((t) => (
+          <TouchableOpacity key={t} style={[styles.tab, tab === t && styles.tabOn]} onPress={() => setTab(t)}>
+            <Text style={[styles.tabT, tab === t && { color: themeColor }]}>{t === 'laws' ? 'Laws' : 'Statutes'}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
       {loading ? (
         <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color={themeColor} />
+          <StatusDots status="Loading" color={themeColor} />
           <Text style={styles.loadingText}>Loading policies...</Text>
         </View>
+      ) : tab === 'statutes' ? (
+        <ScrollView contentContainerStyle={styles.content} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={themeColor} />}>
+          <Text style={styles.statsSubtext}>On or off. Stamped by the issues you pick.</Text>
+          {Object.values(nation.policy_flags || {}).length === 0 ? (
+            <Text style={styles.emptyText}>No statutes yet. Issue answers that ban, legalize, or draft will land here.</Text>
+          ) : (
+            Object.values(nation.policy_flags || {}).map((f: any) => (
+              <View key={f.id} style={styles.policyCard}>
+                <View style={styles.policyHeader}>
+                  <Ionicons name={f.on ? 'checkmark-circle' : 'close-circle'} size={22} color={f.on ? '#27D17A' : '#FF5A65'} />
+                  <View style={styles.policyHeaderText}>
+                    <Text style={styles.policyName}>{f.label}</Text>
+                    <Text style={styles.policyDate}>{f.on ? 'In force' : 'Repealed'}{f.source ? ` · ${f.source}` : ''}</Text>
+                  </View>
+                </View>
+              </View>
+            ))
+          )}
+        </ScrollView>
       ) : policies.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Ionicons name="document-text-outline" size={64} color="rgba(243,246,250,0.48)" />
@@ -206,6 +234,18 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#0B0F14',
   },
+  tabs: {
+    flexDirection: 'row',
+    marginHorizontal: 16,
+    marginTop: 8,
+    marginBottom: 4,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderRadius: 12,
+    padding: 3,
+  },
+  tab: { flex: 1, paddingVertical: 8, borderRadius: 10, alignItems: 'center' },
+  tabOn: { backgroundColor: 'rgba(243,246,250,0.1)' },
+  tabT: { color: 'rgba(243,246,250,0.55)', fontWeight: '600' },
   header: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -9,10 +9,8 @@ import {
   RefreshControl,
   Modal,
   TextInput,
-  ActivityIndicator,
   Platform,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { api } from '../utils/api';
@@ -20,7 +18,12 @@ import { useNationStore } from '../store/nationStore';
 import { getRaceTheme } from '../utils/raceColors';
 import { leaningColor } from '../utils/politicalCompass';
 import EmptyNation from '../components/EmptyNation';
-import { glassAlert, glassConfirm } from '../components/GlassModal';
+import ScreenHeader, { HeaderIcon } from '../components/ScreenHeader';
+import ScreenCanvas from '../components/ScreenCanvas';
+import LiquidGlass from '../components/LiquidGlass';
+import { GlassModal, glassAlert, glassConfirm } from '../components/GlassModal';
+import RgbColorPicker from '../components/RgbColorPicker';
+import StatusDots, { ButtonBusy } from '../components/StatusDots';
 
 interface AllianceMember {
   nation_id: string;
@@ -59,12 +62,7 @@ interface AllianceInvite {
   created_at: string;
 }
 
-const ALLIANCE_COLORS = [
-  '#00E0C7', '#FF5A65', '#27D17A', '#F2C94C', '#00E0C7', 
-  '#00B8B8', '#00E0C7', '#F97316', '#6366F1', '#84CC16'
-];
-
-export default async function AllianceBrowserScreen() {
+export default function AllianceBrowserScreen() {
   const router = useRouter();
   const { nation } = useNationStore();
   
@@ -84,7 +82,7 @@ export default async function AllianceBrowserScreen() {
   const [allianceTag, setAllianceTag] = useState('');
   const [allianceDescription, setAllianceDescription] = useState('');
   const [allianceMotto, setAllianceMotto] = useState('');
-  const [allianceColor, setAllianceColor] = useState('#00E0C7');
+  const [allianceColor, setAllianceColor] = useState('#2EE6C5');
   const [isPublic, setIsPublic] = useState(true);
   const [requiresApproval, setRequiresApproval] = useState(true);
   const [creating, setCreating] = useState(false);
@@ -424,7 +422,7 @@ export default async function AllianceBrowserScreen() {
     setAllianceTag('');
     setAllianceDescription('');
     setAllianceMotto('');
-    setAllianceColor('#00E0C7');
+    setAllianceColor('#2EE6C5');
     setIsPublic(true);
     setRequiresApproval(true);
   };
@@ -583,20 +581,18 @@ export default async function AllianceBrowserScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={themeColor} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Factions</Text>
-        <TouchableOpacity 
-          onPress={() => setShowCreateModal(true)}
-          style={[styles.createButton, { backgroundColor: themeColor }]}
-          disabled={!!myAlliance}
-        >
-          <Ionicons name="add" size={20} color="#FFF" />
-        </TouchableOpacity>
-      </View>
+    <ScreenCanvas>
+    <View style={styles.container}>
+      <ScreenHeader
+        title="Factions"
+        subtitle="Blocs and vassals"
+        onBack={() => router.back()}
+        right={
+          !myAlliance ? (
+            <HeaderIcon name="add" onPress={() => setShowCreateModal(true)} />
+          ) : undefined
+        }
+      />
 
       {/* Invites Banner */}
       {invites.length > 0 && (
@@ -628,7 +624,7 @@ export default async function AllianceBrowserScreen() {
 
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={themeColor} />
+          <StatusDots status="Loading" color={themeColor} />
           <Text style={styles.loadingText}>Loading factions...</Text>
         </View>
       ) : (
@@ -803,14 +799,10 @@ export default async function AllianceBrowserScreen() {
                           }}
                           disabled={callingToWar === member.nation_id}
                         >
-                          {callingToWar === member.nation_id ? (
-                            <ActivityIndicator size="small" color="#FF5A65" />
-                          ) : (
-                            <>
-                              <Ionicons name="flame" size={14} color="#FF5A65" />
-                              <Text style={styles.callToWarText}>Call</Text>
-                            </>
-                          )}
+                          <ButtonBusy busy={callingToWar === member.nation_id} color="#FF5A65">
+                            <Ionicons name="flame" size={14} color="#FF5A65" />
+                            <Text style={styles.callToWarText}>Call</Text>
+                          </ButtonBusy>
                         </Pressable>
                       ) : null}
                     </View>
@@ -818,7 +810,7 @@ export default async function AllianceBrowserScreen() {
 
                   {/* Vassals List */}
                   <Text style={styles.sectionTitle}>
-                    🛡️ Vassals ({myAlliance.vassals?.length || 0}/3)
+                    Vassals ({myAlliance.vassals?.length || 0}/3)
                   </Text>
                   {myAlliance.vassals && myAlliance.vassals.length > 0 ? (
                     myAlliance.vassals.map((vassal: AllianceMember) => (
@@ -857,7 +849,7 @@ export default async function AllianceBrowserScreen() {
                     return (
                       <>
                         <View style={styles.requestsSectionHeader}>
-                          <Text style={styles.sectionTitle}>📥 Pending Requests</Text>
+                          <Text style={styles.sectionTitle}>Pending Requests</Text>
                           <View style={[styles.requestCountBadge, { backgroundColor: themeColor }]}>
                             <Text style={styles.requestCountText}>{pendingRequests.length}</Text>
                           </View>
@@ -890,14 +882,10 @@ export default async function AllianceBrowserScreen() {
                                 onPress={() => handleRejectRequest(request.id)}
                                 disabled={processingRequestId === request.id}
                               >
-                                {processingRequestId === request.id ? (
-                                  <ActivityIndicator size="small" color="#FF5A65" />
-                                ) : (
-                                  <>
-                                    <Ionicons name="close" size={14} color="#FF5A65" />
-                                    <Text style={styles.rejectButtonText}>Reject</Text>
-                                  </>
-                                )}
+                                <ButtonBusy busy={processingRequestId === request.id} color="#FF5A65">
+                                  <Ionicons name="close" size={14} color="#FF5A65" />
+                                  <Text style={styles.rejectButtonText}>Reject</Text>
+                                </ButtonBusy>
                               </TouchableOpacity>
                               
                               <TouchableOpacity
@@ -905,14 +893,10 @@ export default async function AllianceBrowserScreen() {
                                 onPress={() => handleAcceptRequest(request)}
                                 disabled={processingRequestId === request.id}
                               >
-                                {processingRequestId === request.id ? (
-                                  <ActivityIndicator size="small" color="#FFF" />
-                                ) : (
-                                  <>
-                                    <Ionicons name="checkmark" size={14} color="#FFF" />
-                                    <Text style={styles.acceptButtonText}>Accept</Text>
-                                  </>
-                                )}
+                                <ButtonBusy busy={processingRequestId === request.id} color="#081014">
+                                  <Ionicons name="checkmark" size={14} color="#FFF" />
+                                  <Text style={styles.acceptButtonText}>Accept</Text>
+                                </ButtonBusy>
                               </TouchableOpacity>
                             </View>
                           </View>
@@ -922,7 +906,7 @@ export default async function AllianceBrowserScreen() {
                   })()}
 
                   {/* Faction Chat */}
-                  <Text style={styles.sectionTitle}>💬 Faction Chat</Text>
+                  <Text style={styles.sectionTitle}>Faction Chat</Text>
                   <View style={styles.chatContainer}>
                     <ScrollView style={styles.messagesList} contentContainerStyle={styles.messagesContent}>
                       {messages.length > 0 ? (
@@ -957,11 +941,9 @@ export default async function AllianceBrowserScreen() {
                         onPress={handleSendMessage}
                         disabled={!messageText.trim() || sendingMessage}
                       >
-                        {sendingMessage ? (
-                          <ActivityIndicator size="small" color="#F3F6FA" />
-                        ) : (
+                        <ButtonBusy busy={sendingMessage} color="#F3F6FA">
                           <Ionicons name="send" size={20} color="#F3F6FA" />
-                        )}
+                        </ButtonBusy>
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -1010,28 +992,25 @@ export default async function AllianceBrowserScreen() {
       )}
 
       {/* Create Alliance Modal */}
-      <Modal
-        visible={showCreateModal}
-        animationType="slide"
-        transparent={false}
-        onRequestClose={() => setShowCreateModal(false)}
-      >
-        <SafeAreaView style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <TouchableOpacity onPress={() => setShowCreateModal(false)}>
+      <GlassModal
+        open={showCreateModal}
+        onOpenChange={setShowCreateModal}
+        title="Create Faction"
+        description="Name it, tag it, pick a color."
+        footer={
+          <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 10, alignItems: 'center' }}>
+            <TouchableOpacity onPress={() => setShowCreateModal(false)} style={{ paddingVertical: 12, paddingHorizontal: 18 }}>
               <Text style={styles.modalCancel}>Cancel</Text>
             </TouchableOpacity>
-            <Text style={styles.modalTitle}>Create Faction</Text>
-            <TouchableOpacity onPress={handleCreateAlliance} disabled={creating}>
-              {creating ? (
-                <ActivityIndicator size="small" color={themeColor} />
-              ) : (
+            <TouchableOpacity onPress={handleCreateAlliance} disabled={creating} style={{ overflow: 'hidden', borderRadius: 8, paddingVertical: 12, paddingHorizontal: 16 }}>
+              <ButtonBusy busy={creating} color={themeColor}>
                 <Text style={[styles.modalSave, { color: themeColor }]}>Create</Text>
-              )}
+              </ButtonBusy>
             </TouchableOpacity>
           </View>
-          
-          <ScrollView style={styles.modalContent}>
+        }
+      >
+          <ScrollView style={{ maxHeight: 420 }} keyboardShouldPersistTaps="handled">
             <Text style={styles.inputLabel}>Faction Name *</Text>
             <TextInput
               style={styles.input}
@@ -1075,20 +1054,7 @@ export default async function AllianceBrowserScreen() {
               maxLength={50}
             />
             
-            <Text style={styles.inputLabel}>Color</Text>
-            <View style={styles.colorPicker}>
-              {ALLIANCE_COLORS.map(color => (
-                <TouchableOpacity
-                  key={color}
-                  style={[
-                    styles.colorOption,
-                    { backgroundColor: color },
-                    allianceColor === color && styles.colorOptionSelected
-                  ]}
-                  onPress={() => setAllianceColor(color)}
-                />
-              ))}
-            </View>
+            <RgbColorPicker label="Color" value={allianceColor} onChange={setAllianceColor} />
             
             <View style={styles.toggleContainer}>
               <View style={styles.toggleRow}>
@@ -1118,8 +1084,7 @@ export default async function AllianceBrowserScreen() {
               </View>
             </View>
           </ScrollView>
-        </SafeAreaView>
-      </Modal>
+      </GlassModal>
 
       {/* Join Alliance Modal */}
       <Modal
@@ -1174,13 +1139,11 @@ export default async function AllianceBrowserScreen() {
                     onPress={handleJoinAlliance}
                     disabled={joining}
                   >
-                    {joining ? (
-                      <ActivityIndicator size="small" color="#FFF" />
-                    ) : (
+                    <ButtonBusy busy={joining} color="#081014">
                       <Text style={styles.joinModalConfirmText}>
                         {selectedAlliance.requires_approval ? 'Request to Join' : 'Join'}
                       </Text>
-                    )}
+                    </ButtonBusy>
                   </TouchableOpacity>
                 </View>
               </>
@@ -1225,7 +1188,7 @@ export default async function AllianceBrowserScreen() {
             <View style={styles.roleOptions}>
               {/* Member Option */}
               <TouchableOpacity
-                style={[styles.roleOption, { borderColor: '#27D17A' }]}
+                style={[styles.roleOption, { borderColor: '#27D17A', overflow: 'hidden' }]}
                 onPress={() => processJoinRequest(selectedRequest?.id, true, 'member')}
                 disabled={processingRequestId === selectedRequest?.id}
               >
@@ -1236,17 +1199,16 @@ export default async function AllianceBrowserScreen() {
                   <Text style={styles.roleOptionTitle}>Full Member</Text>
                   <Text style={styles.roleOptionDesc}>Full voting rights</Text>
                 </View>
+                <Ionicons name="chevron-forward" size={20} color="rgba(243,246,250,0.48)" />
                 {processingRequestId === selectedRequest?.id ? (
-                  <ActivityIndicator size="small" color="#27D17A" />
-                ) : (
-                  <Ionicons name="chevron-forward" size={20} color="rgba(243,246,250,0.48)" />
-                )}
+                  <StatusDots status="Loading" color="#27D17A" fill />
+                ) : null}
               </TouchableOpacity>
               
               {/* Vassal Option - Only show if slots available */}
               {getAvailableVassalSlots() > 0 ? (
                 <TouchableOpacity
-                  style={[styles.roleOption, { borderColor: '#00E0C7' }]}
+                  style={[styles.roleOption, { borderColor: '#2EE6C5', overflow: 'hidden' }]}
                   onPress={() => processJoinRequest(selectedRequest?.id, true, 'vassal')}
                   disabled={processingRequestId === selectedRequest?.id}
                 >
@@ -1257,11 +1219,10 @@ export default async function AllianceBrowserScreen() {
                     <Text style={styles.roleOptionTitle}>Vassal</Text>
                     <Text style={styles.roleOptionDesc}>Auto-promotes at 500K pop</Text>
                   </View>
+                  <Ionicons name="chevron-forward" size={20} color="rgba(243,246,250,0.48)" />
                   {processingRequestId === selectedRequest?.id ? (
-                    <ActivityIndicator size="small" color="#00E0C7" />
-                  ) : (
-                    <Ionicons name="chevron-forward" size={20} color="rgba(243,246,250,0.48)" />
-                  )}
+                    <StatusDots status="Loading" color="#00E0C7" fill />
+                  ) : null}
                 </TouchableOpacity>
               ) : (
                 <View style={[styles.roleOption, styles.roleOptionDisabled]}>
@@ -1293,14 +1254,15 @@ export default async function AllianceBrowserScreen() {
           </View>
         </View>
       </Modal>
-    </SafeAreaView>
+    </View>
+    </ScreenCanvas>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0B0F14',
+    backgroundColor: 'transparent',
   },
   header: {
     flexDirection: 'row',
@@ -1333,7 +1295,7 @@ const styles = StyleSheet.create({
     padding: 12,
     margin: 16,
     marginBottom: 0,
-    backgroundColor: '#11171F',
+    backgroundColor: 'rgba(255,255,255,0.04)',
     borderRadius: 8,
     borderLeftWidth: 4,
   },
@@ -1411,7 +1373,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   inviteCard: {
-    backgroundColor: '#11171F',
+    backgroundColor: 'rgba(255,255,255,0.04)',
     borderRadius: 8,
     padding: 12,
     marginBottom: 8,
@@ -1450,7 +1412,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   allianceCard: {
-    backgroundColor: '#11171F',
+    backgroundColor: 'rgba(255,255,255,0.04)',
     borderRadius: 8,
     padding: 12,
     marginBottom: 8,
@@ -1568,7 +1530,7 @@ const styles = StyleSheet.create({
   memberCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#11171F',
+    backgroundColor: 'rgba(255,255,255,0.04)',
     padding: 12,
     borderRadius: 8,
     marginBottom: 8,
@@ -1623,7 +1585,7 @@ const styles = StyleSheet.create({
   vassalInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#11171F',
+    backgroundColor: 'rgba(255,255,255,0.04)',
     borderRadius: 8,
     padding: 12,
     marginTop: 16,
@@ -1644,7 +1606,7 @@ const styles = StyleSheet.create({
   // Modal styles
   modalContainer: {
     flex: 1,
-    backgroundColor: '#0B0F14',
+    backgroundColor: 'transparent',
   },
   modalHeader: {
     flexDirection: 'row',
@@ -1677,7 +1639,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   input: {
-    backgroundColor: '#11171F',
+    backgroundColor: 'rgba(255,255,255,0.04)',
     borderRadius: 8,
     padding: 12,
     color: '#F3F6FA',
@@ -1746,7 +1708,7 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   joinModalContent: {
-    backgroundColor: '#11171F',
+    backgroundColor: 'rgba(255,255,255,0.04)',
     borderRadius: 16,
     overflow: 'hidden',
   },
@@ -1806,6 +1768,7 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 8,
     alignItems: 'center',
+    overflow: 'hidden',
   },
   joinModalConfirmText: {
     color: '#FFF',
@@ -1813,7 +1776,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   chatContainer: {
-    backgroundColor: '#11171F',
+    backgroundColor: 'rgba(255,255,255,0.04)',
     borderRadius: 12,
     marginBottom: 16,
     borderWidth: 1,
@@ -1828,7 +1791,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
   messageCard: {
-    backgroundColor: '#0B0F14',
+    backgroundColor: 'transparent',
     borderRadius: 8,
     padding: 12,
     marginBottom: 8,
@@ -1870,7 +1833,7 @@ const styles = StyleSheet.create({
   },
   chatInput: {
     flex: 1,
-    backgroundColor: '#0B0F14',
+    backgroundColor: 'transparent',
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 8,
@@ -1886,6 +1849,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
+    overflow: 'hidden',
   },
   vassalCard: {
     borderColor: '#F2C94C',
@@ -1898,7 +1862,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontStyle: 'italic',
     padding: 20,
-    backgroundColor: '#11171F',
+    backgroundColor: 'rgba(255,255,255,0.04)',
     borderRadius: 8,
     marginBottom: 16,
   },
@@ -1921,7 +1885,7 @@ const styles = StyleSheet.create({
     color: '#FFF',
   },
   requestCard: {
-    backgroundColor: '#11171F',
+    backgroundColor: 'rgba(255,255,255,0.04)',
     borderRadius: 10,
     padding: 12,
     marginBottom: 10,
@@ -1957,7 +1921,7 @@ const styles = StyleSheet.create({
   },
   vassalEligibleText: {
     fontSize: 10,
-    color: '#00E0C7',
+    color: '#2EE6C5',
     fontWeight: '500',
   },
   requestMessage: {
@@ -1980,7 +1944,8 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     borderWidth: 1,
     borderColor: '#FF5A65',
-    backgroundColor: '#0B0F14',
+    backgroundColor: 'transparent',
+    overflow: 'hidden',
   },
   rejectButtonText: {
     fontSize: 13,
@@ -1995,6 +1960,7 @@ const styles = StyleSheet.create({
     gap: 4,
     paddingVertical: 8,
     borderRadius: 6,
+    overflow: 'hidden',
   },
   acceptButtonText: {
     fontSize: 13,
@@ -2012,6 +1978,7 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     borderWidth: 1,
     borderColor: '#FF5A65',
+    overflow: 'hidden',
   },
   callToWarText: {
     fontSize: 12,
@@ -2027,7 +1994,7 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   roleModalContent: {
-    backgroundColor: '#11171F',
+    backgroundColor: 'rgba(255,255,255,0.04)',
     borderRadius: 16,
     padding: 20,
     width: '100%',
@@ -2069,7 +2036,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: '#0B0F14',
+    backgroundColor: 'transparent',
     padding: 14,
     borderRadius: 10,
     borderWidth: 2,

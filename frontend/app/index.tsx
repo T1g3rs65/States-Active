@@ -4,13 +4,12 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  TextInput,
-  Animated,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNationStore } from '../store/nationStore';
+import { useAccountStore } from '../store/accountStore';
 import { api } from '../utils/api';
 import { colors, typography, spacing, radii } from '../utils/theme';
 import StatusDots from '../components/StatusDots';
@@ -18,46 +17,21 @@ import ScreenCanvas from '../components/ScreenCanvas';
 import LiquidGlass from '../components/LiquidGlass';
 import { glassAlert } from '../components/GlassModal';
 
-const LOADING_NOTES = [
-  'Checking saved nation...',
-  'Connecting to the world...',
-  'Waking the territories...',
-  'Preparing your realm...',
-];
-
-export default async function Index() {
+export default function Index() {
   const router = useRouter();
   const { nation, setNation, loadNation, saveNation } = useNationStore();
+  const { loadSession, token, user } = useAccountStore();
   const [checking, setChecking] = useState(true);
-  const [showLogin, setShowLogin] = useState(false);
-  const [userId, setUserId] = useState('');
-  const [loadingNoteIndex, setLoadingNoteIndex] = useState(0);
-  const progress = useRef(new Animated.Value(0)).current;
   const booted = useRef(false);
 
   useEffect(() => {
-    const noteTimer = setInterval(() => {
-      setLoadingNoteIndex(i => (i + 1) % LOADING_NOTES.length);
-    }, 2200);
-
-    Animated.timing(progress, {
-      toValue: 0.9,
-      duration: 8000,
-      useNativeDriver: false,
-    }).start();
-
-    // Hard stop: never leave the user spinning forever
     const hang = setTimeout(() => {
       if (!booted.current) {
         console.warn('Boot hang timeout — showing landing');
         finishLoading();
       }
     }, 12000);
-
-    return () => {
-      clearInterval(noteTimer);
-      clearTimeout(hang);
-    };
+    return () => clearTimeout(hang);
   }, []);
 
   useEffect(() => {
@@ -66,11 +40,7 @@ export default async function Index() {
 
   const finishLoading = () => {
     booted.current = true;
-    Animated.timing(progress, {
-      toValue: 1,
-      duration: 250,
-      useNativeDriver: false,
-    }).start(() => setChecking(false));
+    setChecking(false);
   };
 
   const enterNation = async (n: any) => {
@@ -92,129 +62,68 @@ export default async function Index() {
     if (booted.current) return;
     setChecking(true);
     try {
-      await loadNation();
-      const savedUserId = await AsyncStorage.getItem('user_id');
-      let cached = useNationStore.getState().nation;
+      await loadSession();
+      const session = useAccountStore.getState();
 
-      // GH-90: recover nation on hard refresh / deep link when store starts empty
-      if ((!cached?.id && !cached?._id) && savedUserId) {
+      // Account required. Stale local nation cache from the wipe must not skip signup.
+      if (!session.token || !session.user?.id) {
+        await useNationStore.getState().clearNation();
         try {
-          const r = await api.getNationByUser(savedUserId);
-          if (r.success && r.nation) {
-            await enterNation(r.nation);
+          await AsyncStorage.multiRemove(['nation', 'pending_nation']);
+        } catch (_) {}
+        finishLoading();
+        return;
+      }
+
+      await loadNation();
+      const savedUserId = session.user.id;
+      let cached = useNationStore.getState().nation;
+      // Cached nation from a wiped world is dead — drop it
+      if (cached?.id || cached?._id) {
+        try {
+          const live = await api.getNationByUser(savedUserId);
+          if (!live?.nation) {
+            await useNationStore.getState().clearNation();
+            cached = null;
+          } else {
+            await enterNation(live.nation);
+            return;
+          }
+        } catch (_) {
+          await useNationStore.getState().clearNation();
+          cached = null;
+        }
+      } else {
+        try {
+          const live = await api.getNationByUser(savedUserId);
+          if (live?.success && live.nation) {
+            await enterNation(live.nation);
             return;
           }
         } catch (_) {}
       }
-      if (!cached?.id && !cached?._id) {
-        const recovered = await useNationStore.getState().recoverNation?.();
-        if (recovered) cached = useNationStore.getState().nation;
-      }
-
-      if (savedUserId) {
-        const response = await api.getNationByUser(savedUserId);
-        if (response.success && response.nation) {
-          await enterNation(response.nation);
-          return;
-        }
-        // API miss but we have a local cache — still enter so we don't loop
-        if (cached?.id || cached?._id) {
-          await enterNation(cached);
-          return;
-        }
-      } else if (cached?.id || cached?._id) {
-        await enterNation(cached);
-        return;
-      }
       finishLoading();
     } catch (error) {
       console.error('Error checking for nation:', error);
-      // Prefer cached nation over infinite loader
-      const cached = useNationStore.getState().nation;
-      if (cached?.id || cached?._id) {
-        await enterNation(cached);
-        return;
-      }
       finishLoading();
     }
   };
 
-  const startQuiz = () => {
-    router.push('/server-select');
-  };
+  const signedIn = !!(token && user?.id);
 
-  const handleLogin = async () => {
-    if (!userId.trim()) {
-      await glassAlert({ title: 'User ID needed', message: 'Enter your User ID to continue.' });
+  const startQuiz = () => {
+    if (!signedIn) {
+      router.push('/signin');
       return;
     }
-
-    setChecking(true);
-    try {
-      const response = await api.getNationByUser(userId.trim());
-      if (response.success && response.nation) {
-        await AsyncStorage.setItem('user_id', userId.trim());
-        await enterNation(response.nation);
-      } else {
-        await glassAlert({ title: 'Not found', message: 'No nation found with this User ID.' });
-        setChecking(false);
-      }
-    } catch (error) {
-      console.error('Error logging in:', error);
-      await glassAlert({ title: 'Login failed', message: 'Could not reach the server. Try again.' });
-      setChecking(false);
-    }
+    router.push('/server-select');
   };
 
   if (checking) {
     return (
       <ScreenCanvas>
         <View style={styles.container}>
-          <StatusDots status={LOADING_NOTES[loadingNoteIndex]} color={colors.accent.primary} />
-          <View style={styles.progressTrack}>
-            <Animated.View
-              style={[
-                styles.progressFill,
-                {
-                  width: progress.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: ['0%', '100%'],
-                  }),
-                },
-              ]}
-            />
-          </View>
-        </View>
-      </ScreenCanvas>
-    );
-  }
-
-  if (showLogin) {
-    return (
-      <ScreenCanvas>
-        <View style={styles.container}>
-          <LiquidGlass radius={28} style={styles.panel}>
-            <Text style={styles.title}>Welcome back</Text>
-            <Text style={styles.subtitle}>Sign in with your User ID</Text>
-
-            <Text style={styles.label}>User ID</Text>
-            <TextInput
-              style={styles.input}
-              value={userId}
-              onChangeText={setUserId}
-              placeholder="Enter your User ID"
-              placeholderTextColor="rgba(243,246,250,0.35)"
-              autoCapitalize="none"
-            />
-
-            <TouchableOpacity style={styles.button} onPress={handleLogin} activeOpacity={0.88}>
-              <Text style={styles.buttonText}>Login</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.secondaryButton} onPress={() => setShowLogin(false)}>
-              <Text style={styles.secondaryButtonText}>Back</Text>
-            </TouchableOpacity>
-          </LiquidGlass>
+          <StatusDots status="Boot" color={colors.accent.primary} pattern="carve" cover="viewport" />
         </View>
       </ScreenCanvas>
     );
@@ -233,7 +142,11 @@ export default async function Index() {
           >
             A World Awaits
           </Text>
-          <Text style={styles.subtitle}>Claim your nation. Shape its fate.</Text>
+          <Text style={styles.subtitle}>
+            {signedIn
+              ? 'Account ready. Found your nation when you are.'
+              : 'Sign in or create an account to begin your legacy.'}
+          </Text>
 
           <View style={styles.featuresContainer}>
             <FeatureItem icon="earth" text="Create a unique nation" />
@@ -242,13 +155,15 @@ export default async function Index() {
             <FeatureItem icon="trophy" text="Rise in global rankings" />
           </View>
 
-          <TouchableOpacity style={styles.button} onPress={startQuiz} activeOpacity={0.88}>
-            <Text style={styles.buttonText}>Begin Your Legacy</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.secondaryButton} onPress={() => setShowLogin(true)}>
-            <Text style={styles.secondaryButtonText}>Login to Existing Nation</Text>
-          </TouchableOpacity>
+          {signedIn ? (
+            <TouchableOpacity style={styles.button} onPress={startQuiz} activeOpacity={0.88}>
+              <Text style={styles.buttonText}>Begin Your Legacy</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity style={styles.button} onPress={() => router.push('/signin')} activeOpacity={0.88}>
+              <Text style={styles.buttonText}>Sign in / Create account</Text>
+            </TouchableOpacity>
+          )}
         </LiquidGlass>
       </View>
     </ScreenCanvas>
@@ -415,19 +330,5 @@ const styles = StyleSheet.create({
     color: 'rgba(243,246,250,0.72)',
     fontSize: 14,
     fontWeight: '500',
-  },
-  progressTrack: {
-    width: '70%',
-    maxWidth: 280,
-    height: 4,
-    borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    marginTop: 28,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: 'rgba(243,246,250,0.7)',
-    borderRadius: 999,
   },
 });

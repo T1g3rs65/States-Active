@@ -5,16 +5,17 @@ import Grain from '../components/Grain';
 import { GlassModalHost } from '../components/GlassModal';
 import { useAccountStore } from '../store/accountStore';
 
-export const APP_BUILD = '239';
+export const APP_BUILD = '310';
 
 export default function RootLayout() {
   useEffect(() => {
     useAccountStore.getState().loadSession();
     if (typeof fetch === 'undefined') return;
-    // One-shot stale-bundle check. Never loop: mark attempt in sessionStorage.
+    // True one-shot: any prior attempt in this tab must never reload again.
+    // Storing the SERVER id used to loop when it never equaled APP_BUILD.
     try {
       if (typeof sessionStorage !== 'undefined') {
-        if (sessionStorage.getItem('sh_build_reload') === APP_BUILD) return;
+        if (sessionStorage.getItem('sh_build_reload')) return;
       }
     } catch (_) {}
 
@@ -23,7 +24,7 @@ export default function RootLayout() {
       .then((j) => {
         if (j?.id && j.id !== APP_BUILD && typeof location !== 'undefined') {
           try {
-            sessionStorage.setItem('sh_build_reload', j.id);
+            sessionStorage.setItem('sh_build_reload', '1');
           } catch (_) {}
           location.reload();
         }

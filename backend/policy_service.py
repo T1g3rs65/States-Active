@@ -70,11 +70,21 @@ def detect_policy(issue_title: str, choice_text: str, effects: Dict[str, float])
             stat_name = list(large_changes.keys())[0]
             category_matched = _stat_to_category(stat_name)
     
-    # If we found a category match, roll the dice
-    if category_matched and random.random() < base_chance:
-        logger.info(f"Policy creation triggered! Category: {category_matched}, Advisor: {is_advisor_issue}, Chance: {base_chance*100:.0f}%")
+    # Keyword match = this is a law. Always write it.
+    if category_matched:
+        logger.info(f"Policy creation triggered! Category: {category_matched}, Advisor: {is_advisor_issue}")
         return category_matched
-    
+
+    # Large swing with no keyword: still often a defining act.
+    if large_changes and random.random() < 0.55:
+        logger.info(f"Policy creation triggered by large swing → {category_matched}")
+        return category_matched or _stat_to_category(list(large_changes.keys())[0])
+
+    if random.random() < (0.35 if is_advisor_issue else 0.12):
+        cat = category_matched or "general"
+        logger.info(f"Policy creation rolled. Category: {cat}")
+        return cat
+
     return None
 
 def _generate_policy_details(keyword: str, category: str, choice_text: str, effects: Dict[str, float]) -> Tuple[str, str]:

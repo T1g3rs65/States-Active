@@ -1,7 +1,12 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { api } from '../utils/api';
+import ScreenHeader from '../components/ScreenHeader';
+import ScreenCanvas from '../components/ScreenCanvas';
+import LiquidGlass from '../components/LiquidGlass';
+import { colors } from '../utils/theme';
 
 export default function DeclareWarScreen() {
   const { defenderId, defenderName, attackerId } = useLocalSearchParams();
@@ -43,22 +48,18 @@ export default function DeclareWarScreen() {
   };
 
   return (
+    <ScreenCanvas>
     <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Text style={styles.backText}>← Cancel</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Declare War</Text>
-      </View>
+      <ScreenHeader title="Declare War" subtitle={String(defenderName || 'Choose a cause')} onBack={() => router.back()} />
 
       <ScrollView style={styles.content}>
-        <View style={styles.warningCard}>
-          <Text style={styles.warningEmoji}>⚔️</Text>
+        <LiquidGlass radius={28} style={styles.warningCard}>
+          <Ionicons name="flash" size={36} color="#FF5A65" />
           <Text style={styles.targetText}>Target: {defenderName}</Text>
           <Text style={styles.warningText}>
             Choose your reason for war. This action will have serious consequences.
           </Text>
-        </View>
+        </LiquidGlass>
 
         <Text style={styles.sectionTitle}>Select Casus Belli:</Text>
 
@@ -68,7 +69,10 @@ export default function DeclareWarScreen() {
           disabled={loading}
         >
           <View style={styles.optionHeader}>
-            <Text style={styles.optionTitle}>⚖️ Ideological Conflict</Text>
+            <View style={styles.optionLabel}>
+              <Ionicons name="people" size={18} color="#F3F6FA" />
+              <Text style={styles.optionTitle}>Ideological Conflict</Text>
+            </View>
             <View style={styles.repBadge}>
               <Text style={styles.repText}>-5 Rep</Text>
             </View>
@@ -84,7 +88,10 @@ export default function DeclareWarScreen() {
           disabled={loading}
         >
           <View style={styles.optionHeader}>
-            <Text style={styles.optionTitle}>💎 Resource Competition</Text>
+            <View style={styles.optionLabel}>
+              <Ionicons name="cube" size={18} color="#F3F6FA" />
+              <Text style={styles.optionTitle}>Resource Competition</Text>
+            </View>
             <View style={[styles.repBadge, { backgroundColor: '#F2C94C' }]}>
               <Text style={styles.repText}>-10 Rep</Text>
             </View>
@@ -100,7 +107,10 @@ export default function DeclareWarScreen() {
           disabled={loading}
         >
           <View style={styles.optionHeader}>
-            <Text style={[styles.optionTitle, { color: '#FF5A65' }]}>🔥 Aggressive Expansion</Text>
+            <View style={styles.optionLabel}>
+              <Ionicons name="flame" size={18} color="#FF5A65" />
+              <Text style={[styles.optionTitle, { color: '#FF5A65' }]}>Aggressive Expansion</Text>
+            </View>
             <View style={[styles.repBadge, { backgroundColor: '#FF5A65' }]}>
               <Text style={styles.repText}>-20 Rep</Text>
             </View>
@@ -112,13 +122,13 @@ export default function DeclareWarScreen() {
 
         {loading && (
           <View style={styles.loadingCard}>
-            <Text style={styles.loadingText}>⏳ Declaring war...</Text>
+            <Text style={styles.loadingText}>Declaring war...</Text>
           </View>
         )}
 
         {error && (
           <View style={styles.errorCard}>
-            <Text style={styles.errorTitle}>❌ Error</Text>
+            <Text style={styles.errorTitle}>Error</Text>
             <Text style={styles.errorText}>{error}</Text>
             <TouchableOpacity
               style={styles.errorButton}
@@ -133,7 +143,7 @@ export default function DeclareWarScreen() {
         )}
 
         <View style={styles.infoCard}>
-          <Text style={styles.infoTitle}>⚠️ War Consequences:</Text>
+          <Text style={styles.infoTitle}>War consequences</Text>
           <Text style={styles.infoText}>• Wars last until one side reaches ±80 war score or 30 days</Text>
           <Text style={styles.infoText}>• Loser pays tribute (resources + GDP) for 12-24 months</Text>
           <Text style={styles.infoText}>• Truce prevents new wars during tribute period</Text>
@@ -143,13 +153,14 @@ export default function DeclareWarScreen() {
         <View style={{ height: 50 }} />
       </ScrollView>
     </View>
+    </ScreenCanvas>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0B0F14',
+    backgroundColor: 'transparent',
   },
   header: {
     flexDirection: 'row',
@@ -157,7 +168,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 60,
     paddingBottom: 20,
-    backgroundColor: '#11171F',
+    backgroundColor: 'rgba(255,255,255,0.04)',
     borderBottomWidth: 2,
     borderBottomColor: '#FF5A65',
   },
@@ -179,7 +190,7 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   warningCard: {
-    backgroundColor: '#11171F',
+    backgroundColor: 'rgba(255,255,255,0.04)',
     borderRadius: 12,
     padding: 24,
     marginBottom: 24,
@@ -210,7 +221,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   optionCard: {
-    backgroundColor: '#11171F',
+    backgroundColor: 'rgba(255,255,255,0.04)',
     borderRadius: 12,
     padding: 20,
     marginBottom: 16,
@@ -229,6 +240,13 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 12,
+  },
+  optionLabel: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flex: 1,
+    paddingRight: 8,
   },
   optionTitle: {
     fontSize: 18,
@@ -253,7 +271,7 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   loadingCard: {
-    backgroundColor: '#11171F',
+    backgroundColor: 'rgba(255,255,255,0.04)',
     borderRadius: 12,
     padding: 20,
     alignItems: 'center',
@@ -296,7 +314,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   infoCard: {
-    backgroundColor: '#11171F',
+    backgroundColor: 'rgba(255,255,255,0.04)',
     borderRadius: 12,
     padding: 20,
     borderWidth: 1,

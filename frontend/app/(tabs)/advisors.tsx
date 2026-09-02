@@ -19,12 +19,15 @@ import { useNationStore } from '../../store/nationStore';
 import { api } from '../../utils/api';
 import { getRaceTheme } from '../../utils/raceColors';
 import { leaningColor } from '../../utils/politicalCompass';
+import { bodyName, advisorTitle } from '../../utils/governmentTitles';
 import { useRouter , useFocusEffect } from 'expo-router';
 import PressScale from '../../components/PressScale';
 import FadeUp from '../../components/FadeUp';
-import { TabChrome } from '../../components/ScreenHeader';
 import ScreenCanvas from '../../components/ScreenCanvas';
+import ScreenHeader, { TabChrome } from '../../components/ScreenHeader';
+import LiquidGlass from '../../components/LiquidGlass';
 import { glassAlert, glassConfirm } from '../../components/GlassModal';
+import { ButtonBusy } from '../../components/StatusDots';
 
 const { width } = Dimensions.get('window');
 
@@ -181,44 +184,11 @@ export default function Advisors() {
     }
   };
   
-  const isMilitaryAdvisor = (advisor: any) => {
-    const title = advisor.title?.toLowerCase() || '';
-    return title.includes('defense') || 
-           title.includes('military') ||
-           title.includes('general') ||
-           title.includes('marshal') ||
-           title.includes('commander') ||
-           title.includes('admiral') ||
-           title.includes('war');
-  };
-
-  const isForeignAdvisor = (advisor: any) => {
-    const title = advisor.title?.toLowerCase() || '';
-    return title.includes('foreign') || 
-           title.includes('diplomat') ||
-           title.includes('ambassador') ||
-           title.includes('external') ||
-           title.includes('international') ||
-           title.includes('state');
-  };
-
-  // Check if advisor is the First Minister / Chief of Staff type
-  const isFirstMinister = (advisor: any) => {
-    const title = advisor.title?.toLowerCase() || '';
-    return title.includes('prime') ||
-           (title.includes('chief') && !title.includes('builder')) ||  // Exclude Chief Builder
-           title.includes('first minister') ||
-           title.includes('chancellor') ||
-           title.includes('premier') ||
-           title.includes('vizier') ||
-           title.includes('secretary general');
-  };
-
-  const isSpymaster = (advisor: any) => {
-    if (advisor.slot === 5 || advisor.role_id === 'spy') return true;
-    const title = advisor.title?.toLowerCase() || '';
-    return title.includes('spy') || title.includes('whisper') || title.includes('inquisitor') || title.includes('intelligence');
-  };
+  const intSlot = (advisor: any) => Number(advisor?.slot || 0);
+  const isMilitaryAdvisor = (advisor: any) => intSlot(advisor) === 3;
+  const isForeignAdvisor = (advisor: any) => intSlot(advisor) === 7;
+  const isFirstMinister = (advisor: any) => intSlot(advisor) === 1;
+  const isSpymaster = (advisor: any) => intSlot(advisor) === 5 || advisor.role_id === 'spy';
 
   const isFeatureComplete = (_advisor: any) => true;
 
@@ -408,12 +378,13 @@ export default function Advisors() {
       const response = await api.sendAdvisorTask(nationId, selectedAdvisor.slot, taskDescription);
       
       if (response.success) {
-        await glassAlert({ title: 'Success', message: 'Task sent! Check the Issues tab for the advisor response.' });
         setShowTaskModal(false);
         setTaskDescription('');
         setTaskUsedToday(true);
         setNation({ ...nation, task_used_today: true });
         fetchNation();
+      } else {
+        await glassAlert({ title: 'Error', message: response.detail || 'Failed to send task' });
       }
     } catch (error) {
       console.error('Error sending task:', error);
@@ -466,20 +437,20 @@ export default function Advisors() {
         
         switch (response.outcome_type) {
           case 'excellent':
-            alertTitle = '🌟 Excellent Reform!';
+            alertTitle = 'Excellent Reform';
             alertMessage = `Your advisor brilliantly reformed the policy!\n\n${response.reform_summary}\n\nNew Policy: "${response.new_policy_name}"`;
             break;
           case 'good':
-            alertTitle = '✅ Successful Reform';
+            alertTitle = 'Successful Reform';
             alertMessage = `The reform was successful.\n\n${response.reform_summary}\n\nNew Policy: "${response.new_policy_name}"`;
             break;
           case 'mixed':
-            alertTitle = '⚠️ Mixed Results';
+            alertTitle = 'Mixed Results';
             alertMessage = `The reform had mixed results - some improvements, some setbacks.\n\n${response.reform_summary}\n\nNew Policy: "${response.new_policy_name}"`;
             break;
           case 'poor':
           default:
-            alertTitle = '❌ Reform Failed!';
+            alertTitle = 'Reform Failed';
             alertMessage = `Your advisor bungled the reform, potentially making things worse!\n\n${response.reform_summary}\n\nNew Policy: "${response.new_policy_name}"\n\nConsider using a more capable advisor next time.`;
             break;
         }
@@ -502,11 +473,11 @@ export default function Advisors() {
         setReformInstructions('');
         fetchNation();
       } else {
-        await glassAlert({ title: '❌ Error', message: response.detail || 'Failed to reform policy' });
+        await glassAlert({ title: 'Error', message: response.detail || 'Failed to reform policy' });
       }
     } catch (error: any) {
       console.error('Error reforming policy:', error);
-      await glassAlert({ title: '❌ Error', message: error.message || 'Failed to reform policy' });
+      await glassAlert({ title: 'Error', message: error.message || 'Failed to reform policy' });
     } finally {
       setSendingReform(false);
     }
@@ -528,10 +499,17 @@ export default function Advisors() {
     );
   }
 
+  const govOpts = {
+    subtype: nation.government_subtype,
+    territorial: nation.territorial_structure,
+    race: nation.race,
+  };
+  const body = bodyName(govOpts);
+
   return (
     <ScreenCanvas>
     <View style={styles.container}>
-      <TabChrome title="Advisors" subtitle="Cabinet" badge={notificationCount} />
+      <TabChrome title={body} subtitle="Advisors" badge={notificationCount} />
 
     <ScrollView
       style={styles.scrollView}
@@ -542,46 +520,7 @@ export default function Advisors() {
     >
       <View style={styles.header}>
         <Ionicons name="people" size={28} color={themeColor} />
-        <Text style={styles.headerTitle}>
-          {(() => {
-            // Use wheel-based display identity
-            const govBasis = nation.display_name || nation.government_subtype || nation.government_form || 'Democracy';
-            const govLower = govBasis.toLowerCase();
-            
-            // Monarchies / royal / imperial
-            if (govLower.includes('monarchy') || govLower.includes('kingdom') || govLower.includes('empire') || govLower.includes('royal')) return 'Royal Council';
-            
-            // Democracies and Republics
-            if (govLower.includes('democracy') || govLower.includes('republic') || govLower.includes('paradise') || govLower.includes('liberal')) return 'Cabinet';
-            
-            // Theocracies
-            if (govLower.includes('theocr') || govLower.includes('divine')) return 'Holy Council';
-            
-            // Dictatorships / autocracies / juntas
-            if (govLower.includes('dictator') || govLower.includes('authoritarian') || govLower.includes('autocracy') || govLower.includes('junta') || govLower.includes('regime')) return 'Inner Circle';
-            
-            // Corporate states
-            if (govLower.includes('corporate') || govLower.includes('plutocra') || govLower.includes('business')) return 'Board of Directors';
-            
-            // Anarchy
-            if (govLower.includes('anarchy') || govLower.includes('commune') || govLower.includes('free territory')) return 'Collective';
-            
-            // Socialist/Communist
-            if (govLower.includes('socialist') || govLower.includes('communist') || govLower.includes('syndicate')) return 'Politburo';
-            
-            // Technocracies
-            if (govLower.includes('technocratic') || govLower.includes('meritocracy')) return 'Executive Board';
-            
-            // Military states
-            if (govLower.includes('military') || govLower.includes('martial') || govLower.includes('praetorian')) return 'War Council';
-            
-            // Hive-specific
-            if (govLower.includes('hive') || govLower.includes('swarm') || govLower.includes('colony')) return 'Hive Council';
-            
-            // Default
-            return 'Council of Advisors';
-          })()}
-        </Text>
+        <Text style={styles.headerTitle}>{body}</Text>
       </View>
 
       <Text style={styles.subtitle}>
@@ -606,7 +545,7 @@ export default function Advisors() {
               />
             </View>
 
-            <Text style={styles.advisorTitle}>{advisor.title}</Text>
+            <Text style={styles.advisorTitle}>{advisorTitle(advisor.slot, govOpts)}</Text>
             <Text style={styles.advisorName}>{advisor.name}</Text>
 
             <View style={styles.statRow}>
@@ -619,6 +558,11 @@ export default function Advisors() {
             <Text style={[styles.abilityLabel, { color: getAbilityColor(advisor.ability) }]}>
               ({getAbilityLabel(advisor.ability)})
             </Text>
+            {advisor.gov_mod_pct ? (
+              <Text style={[styles.effectLine, { color: advisor.gov_mod_pct > 0 ? '#3DCC84' : '#E07A7A' }]}>
+                Gov {advisor.gov_mod_pct > 0 ? '+' : ''}{advisor.gov_mod_pct}% while this government lasts
+              </Text>
+            ) : null}
 
             <View style={styles.statRow}>
               <Text style={styles.statLabel}>Approval:</Text>
@@ -788,63 +732,61 @@ ${response.note || ''}` });
         presentationStyle="pageSheet"
         onRequestClose={() => setShowTaskModal(false)}
       >
+        <ScreenCanvas>
         <KeyboardAvoidingView 
           style={styles.modalContainer}
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
-          <View style={styles.modalHeader}>
-            <TouchableOpacity onPress={() => setShowTaskModal(false)}>
-              <Text style={styles.modalClose}>Cancel</Text>
-            </TouchableOpacity>
-            <Text style={styles.modalTitle}>Send Task</Text>
-            <View style={{ width: 60 }} />
-          </View>
+          <ScreenHeader
+            title="Send Task"
+            subtitle={selectedAdvisor ? advisorTitle(selectedAdvisor.slot, govOpts) : 'Assign work'}
+            onBack={() => setShowTaskModal(false)}
+          />
 
           {selectedAdvisor && (
             <View style={styles.modalContent}>
-              <View style={styles.advisorInfo}>
+              <LiquidGlass radius={24} style={styles.advisorInfo}>
                 <View style={[styles.smallPortrait, { borderColor: themeColor }]}>
                   <Ionicons name="person" size={24} color={themeColor} />
                 </View>
                 <View>
-                  <Text style={styles.modalAdvisorTitle}>{selectedAdvisor.title}</Text>
+                  <Text style={styles.modalAdvisorTitle}>{advisorTitle(selectedAdvisor.slot, govOpts)}</Text>
                   <Text style={styles.modalAdvisorName}>{selectedAdvisor.name}</Text>
                 </View>
-              </View>
+              </LiquidGlass>
 
-              <Text style={styles.inputLabel}>What task would you like to assign?</Text>
-              <TextInput
-                style={styles.taskInput}
-                value={taskDescription}
-                onChangeText={setTaskDescription}
-                placeholder="e.g., Investigate corruption in the treasury department"
-                placeholderTextColor="rgba(243,246,250,0.48)"
-                multiline
-                numberOfLines={4}
-                textAlignVertical="top"
-              />
+              <Text style={styles.inputLabel}>What should they do?</Text>
+              <LiquidGlass radius={20} style={styles.inputGlass}>
+                <TextInput
+                  style={styles.taskInput}
+                  value={taskDescription}
+                  onChangeText={setTaskDescription}
+                  placeholder="e.g., Investigate corruption in the treasury department"
+                  placeholderTextColor="rgba(243,246,250,0.48)"
+                  multiline
+                  numberOfLines={4}
+                  textAlignVertical="top"
+                />
+              </LiquidGlass>
 
               <TouchableOpacity
                 style={[styles.submitButton, { backgroundColor: themeColor }]}
                 onPress={handleSendTask}
                 disabled={sendingTask}
               >
-                {sendingTask ? (
-                  <Text style={styles.submitButtonText}>Sending...</Text>
-                ) : (
-                  <>
-                    <Ionicons name="paper-plane" size={18} color="#F3F6FA" />
-                    <Text style={styles.submitButtonText}>Send Task</Text>
-                  </>
-                )}
+                <ButtonBusy busy={sendingTask} color="#081014">
+                  <Ionicons name="paper-plane" size={18} color="#08090A" />
+                  <Text style={[styles.submitButtonText, { color: '#08090A' }]}>Send Task</Text>
+                </ButtonBusy>
               </TouchableOpacity>
 
               <Text style={styles.helperText}>
-                Your advisor will generate a special issue based on this task. Results depend on their ability level.
+                They will write a special issue. Ability decides how it lands.
               </Text>
             </View>
           )}
         </KeyboardAvoidingView>
+        </ScreenCanvas>
       </Modal>
 
       {/* Reform Policy Modal */}
@@ -882,7 +824,7 @@ ${response.note || ''}` });
                     <Ionicons name="person" size={24} color={themeColor} />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.modalAdvisorTitle}>{selectedAdvisor.title}</Text>
+                    <Text style={styles.modalAdvisorTitle}>{advisorTitle(selectedAdvisor.slot, govOpts)}</Text>
                     <Text style={styles.modalAdvisorName}>{selectedAdvisor.name}</Text>
                     <Text style={[styles.abilityHint, { color: getAbilityColor(selectedAdvisor.ability) }]}>
                       Ability: {selectedAdvisor.ability}/100 ({getAbilityLabel(selectedAdvisor.ability)})
@@ -984,7 +926,7 @@ ${response.note || ''}` });
         <View style={styles.warModalOverlay}>
           <View style={styles.warModalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>⚔️ Declare War</Text>
+              <Text style={styles.modalTitle}>Declare War</Text>
               <TouchableOpacity onPress={() => setShowDeclareWarModal(false)}>
                 <Ionicons name="close" size={28} color="rgba(243,246,250,0.48)" />
               </TouchableOpacity>
@@ -1242,7 +1184,7 @@ const styles = StyleSheet.create({
   },
   modalContainer: {
     flex: 1,
-    backgroundColor: '#0B0F14',
+    backgroundColor: 'transparent',
   },
   modalHeader: {
     flexDirection: 'row',
@@ -1275,8 +1217,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
     padding: 16,
-    backgroundColor: '#11171F',
-    borderRadius: 12,
     marginBottom: 24,
   },
   smallPortrait: {
@@ -1303,11 +1243,12 @@ const styles = StyleSheet.create({
     color: '#F3F6FA',
     marginBottom: 12,
   },
+  inputGlass: {
+    padding: 4,
+  },
   taskInput: {
-    backgroundColor: '#11171F',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-    borderRadius: 12,
+    backgroundColor: 'transparent',
+    borderWidth: 0,
     padding: 16,
     color: '#F3F6FA',
     fontSize: 15,
@@ -1321,6 +1262,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
     paddingVertical: 14,
     borderRadius: 12,
+    overflow: 'hidden',
   },
   submitButtonText: {
     color: '#F3F6FA',

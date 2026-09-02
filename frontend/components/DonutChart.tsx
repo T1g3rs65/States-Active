@@ -1,5 +1,5 @@
 import { View, Text, StyleSheet } from 'react-native';
-import Svg, { Path } from 'react-native-svg';
+import Svg, { Path, Circle } from 'react-native-svg';
 import { colors, typography, spacing, radii } from '../utils/theme';
 
 interface DonutSlice {
@@ -60,23 +60,41 @@ export default function DonutChart({
     <View style={styles.container}>
       <Svg width={size} height={size}>
         {slices.length === 0 && (
-          <Path
-            d={describeArc(center, center, radius, 0, 360)}
+          <Circle
+            cx={center}
+            cy={center}
+            r={radius}
             stroke={colors.glass.border}
             strokeWidth={thickness}
             fill="none"
           />
         )}
-        {slices.map((slice, idx) => (
-          <Path
-            key={`${slice.name}-${idx}`}
-            d={describeArc(center, center, radius, slice.start, slice.end)}
-            stroke={slice.color}
-            strokeWidth={thickness}
-            fill="none"
-            strokeLinecap="butt"
-          />
-        ))}
+        {slices.map((slice, idx) => {
+          const sweep = slice.end - slice.start;
+          if (sweep >= 359.5) {
+            return (
+              <Circle
+                key={`${slice.name}-${idx}`}
+                cx={center}
+                cy={center}
+                r={radius}
+                stroke={slice.color}
+                strokeWidth={thickness}
+                fill="none"
+              />
+            );
+          }
+          return (
+            <Path
+              key={`${slice.name}-${idx}`}
+              d={describeArc(center, center, radius, slice.start, slice.end)}
+              stroke={slice.color}
+              strokeWidth={thickness}
+              fill="none"
+              strokeLinecap="butt"
+            />
+          );
+        })}
       </Svg>
 
       <View style={styles.legend}>

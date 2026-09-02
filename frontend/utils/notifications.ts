@@ -40,7 +40,7 @@ export const notificationService = {
       // Schedule daily notification
       await Notifications.scheduleNotificationAsync({
         content: {
-          title: 'Your Nation Awaits, Leader 👑',
+          title: 'Your nation awaits',
           body: 'New policy issues require your attention. Shape the future of your nation!',
           data: { type: 'daily_reminder' },
         },
@@ -63,7 +63,7 @@ export const notificationService = {
   sendImmediateNotification: async () => {
     await Notifications.scheduleNotificationAsync({
       content: {
-        title: 'New Issues Available! 📋',
+        title: 'New issues available',
         body: 'Your nation faces new challenges. Make your decisions now!',
       },
       trigger: null, // Send immediately

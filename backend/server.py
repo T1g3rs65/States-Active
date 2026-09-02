@@ -28,19 +28,22 @@ from models import (
     WheelResult, SpinWheelsRequest, CrisisRespinRequest, ResolveCrisisRequest,
 )
 from quiz import calculate_starting_stats, get_quiz_questions
-from stats_config import classify_government, get_government_description
+from stats_config import classify_government, clamp_founding_stats, get_government_description
 from ai_service import AIService
 from economy_utils import calculate_realistic_gdp, format_gdp_display
 from budget_utils import normalize_budget
 from advisor_utils import generate_advisors, regenerate_advisor_names
+from government_titles import apply_titles
 from terrain_utils import find_land_position, is_land_tile, validate_capital_site, extra_city_count, _wrap_dx, _MAP_COLS
+from nation_name import short_name_error
 from advisor_effects import apply_daily_ticks, publicize_advisors, reveal_trust, ROLE, task_used_today
 from race_service import get_races_for_api, get_race_ai_description, is_race_enabled, get_race_display_info
 from grok_client import LlmChat, UserMessage
 import account_service as accounts
 import email_service
 from government_wheels import (
-    spin_wheels, wheels_config, respin_wheel, respin_to_form,
+    spin_wheels, spin_one_wheel, founding_next_wheel, WHEEL_FIELD,
+    wheels_config, respin_wheel, respin_to_form,
     recalc_legitimacy,
     crisis_check, crisis_for_issue, CRISIS_WHEEL_MAP,
     build_display_identity, build_government_name, LOW_LEGIT, MID_LEGIT, HIGH_LEGIT,
@@ -117,6 +120,8 @@ async def current_user(authorization: Optional[str] = Header(default=None)):
     user = await accounts.get_user_by_id(db, payload.get("sub"))
     if not user:
         raise HTTPException(status_code=401, detail="Account not found")
+    if user.get("is_banned") and not user.get("is_admin"):
+        raise HTTPException(status_code=403, detail=user.get("ban_reason") or "This account is banned.")
     return user
 
 
@@ -139,33 +144,64 @@ async def require_admin(user=Depends(current_user)):
 # ============== Leader Name Generation ==============
 import random
 
-# Name pools for leader generation
-HUMAN_MALE_FIRST_NAMES = ["James", "William", "Alexander", "Theodore", "Charles", "Edward", "George", "Richard", "Thomas", "Benjamin", "Frederick", "Arthur", "Henry", "Robert", "Victor", "Marcus", "Sebastian", "Nicholas", "Jonathan", "Maximilian"]
-HUMAN_FEMALE_FIRST_NAMES = ["Elizabeth", "Victoria", "Catherine", "Margaret", "Eleanor", "Isabella", "Charlotte", "Alexandra", "Sophia", "Helena", "Anastasia", "Caroline", "Beatrice", "Josephine", "Valentina", "Evangeline", "Genevieve", "Arabella", "Penelope", "Cordelia"]
-HUMAN_LAST_NAMES = ["Windsor", "Blackwood", "Sterling", "Ashford", "Thornton", "Hartwell", "Whitmore", "Crawford", "Pemberton", "Fairfax", "Aldridge", "Beaumont", "Carrington", "Davenport", "Everett", "Fitzgerald", "Grayson", "Hamilton", "Kensington", "Lancaster"]
+from human_names import HUMAN_MALE_FIRST_NAMES, HUMAN_FEMALE_FIRST_NAMES, HUMAN_LAST_NAMES
 
 ZYTHERA_QUEEN_NAMES = ["Xyris", "Zylara", "Chrysalia", "Nyxara", "Aurelia", "Velyra", "Seraphyx", "Lunaris", "Crystallis", "Azuryx", "Celestrix", "Aethyra", "Prismara", "Opalyx", "Iridessa", "Luminia", "Staryx", "Nebulara", "Galaxia", "Cosmara"]
 
-def generate_leader_name(race: str, government_basis: str) -> str:
+def generate_leader_name(
+    race: str,
+    government_basis: str,
+    sex: str | None = None,
+    surname: str | None = None,
+) -> str:
     """Generate a leader name based on race and government wheel subtype/form."""
     if race and race.lower() == 'zythera':
-        # Zythera always have Queens with elegant alien names
-        return f"Queen {random.choice(ZYTHERA_QUEEN_NAMES)}"
-    
-    # For humans, determine if leader should be male or female (50/50)
-    is_female = random.random() > 0.5
-    
-    # Use wheel subtype/form to pick royal names for monarchies / kingdoms / empires
+        given = random.choice(ZYTHERA_QUEEN_NAMES)
+        if surname:
+            return f"Queen {given} {surname}"
+        return f"Queen {given}"
+
+    if sex in ("female", "f", "woman"):
+        is_female = True
+    elif sex in ("male", "m", "man"):
+        is_female = False
+    else:
+        is_female = random.random() > 0.5
+
     gov_lower = government_basis.lower() if government_basis else ''
-    if 'monarchy' in gov_lower or 'kingdom' in gov_lower or 'imperial' in gov_lower or 'absolute' in gov_lower:
-        first_name = random.choice(HUMAN_FEMALE_FIRST_NAMES if is_female else HUMAN_MALE_FIRST_NAMES)
-        numeral = random.choice(["", " II", " III", " IV", " V"])
-        return first_name + numeral
-    
-    # Everyone else gets first + last name
     first_name = random.choice(HUMAN_FEMALE_FIRST_NAMES if is_female else HUMAN_MALE_FIRST_NAMES)
-    last_name = random.choice(HUMAN_LAST_NAMES)
+    if 'monarchy' in gov_lower or 'kingdom' in gov_lower or 'imperial' in gov_lower or 'queen-rule' in gov_lower:
+        numeral = random.choice(["", " II", " III", " IV", " V"])
+        if surname:
+            return f"{first_name}{numeral} {surname}"
+        return first_name + numeral
+
+    last_name = surname or random.choice(HUMAN_LAST_NAMES)
     return f"{first_name} {last_name}"
+
+
+def is_monarch_subtype(subtype: str | None) -> bool:
+    s = (subtype or "").lower()
+    return "absolute monarchy" in s or "queen-rule" in s
+
+
+def is_diarchy_subtype(subtype: str | None) -> bool:
+    return "diarchy" in (subtype or "").lower()
+
+
+def generate_unique_leader_name(
+    race: str,
+    government_basis: str,
+    taken: set[str] | None = None,
+    sex: str | None = None,
+    surname: str | None = None,
+) -> str:
+    taken = taken or set()
+    for _ in range(12):
+        name = generate_leader_name(race, government_basis, sex=sex, surname=surname)
+        if name not in taken:
+            return name
+    return generate_leader_name(race, government_basis, sex=sex, surname=surname) + " Jr."
 
 # ============== Static Pages ==============
 
@@ -204,11 +240,26 @@ async def create_nation(request: CreateNationRequest):
             raise HTTPException(status_code=400, detail=f"Race '{race_id}' is not enabled on this server")
         
         race_info = get_race_display_info(race_id)
+
+        raw_name = (request.quiz_result.nation_name or "").strip()
+        name_err = short_name_error(raw_name)
+        if name_err:
+            raise HTTPException(status_code=400, detail=name_err)
+        request.quiz_result.nation_name = " ".join(raw_name.split())
         
         # Calculate starting stats from quiz
         stats = calculate_starting_stats(request.quiz_result.answers)
         
-        # Classify government type (race-aware for Zythera)
+        wheel_result = request.quiz_result.wheel_result
+        if not wheel_result:
+            wheel_result = spin_wheels(race=race_id)
+
+        wheel_result = WheelsWheelResult(**wheel_result.dict())
+        stats = clamp_founding_stats(
+            stats,
+            government_form=wheel_result.government_form,
+            government_subtype=wheel_result.government_subtype,
+        )
         gov_type = classify_government(
             stats.civil_rights,
             stats.gdp,
@@ -221,14 +272,6 @@ async def create_nation(request: CreateNationRequest):
             freedom_religion=getattr(stats, "freedom_religion", 50),
             tax_rate=getattr(stats, "tax_rate", 25),
         )
-
-        # Wheel result: use provided result if present, otherwise spin fresh
-        wheel_result = request.quiz_result.wheel_result
-        if not wheel_result:
-            wheel_result = spin_wheels(race=race_id)
-
-        # Seed legitimacy
-        wheel_result = WheelsWheelResult(**wheel_result.dict())
         legitimacy = recalc_legitimacy(stats.dict(), wheel_result)
 
         # Race constraint validation (now covers all forbidden forms for Zythera)
@@ -237,9 +280,42 @@ async def create_nation(request: CreateNationRequest):
 
         # Generate leader name for non-anarchy nations
         leader_name = None
+        co_leader_name = None
+        diarchy_senior = None
+        leader_sex = None
+        dynasty_surname = None
         if wheel_result.government_form != "anarchy":
             leader_basis = wheel_result.government_subtype or gov_type.value
-            leader_name = generate_leader_name(race_id, leader_basis)
+            qr = request.quiz_result
+            chosen = (qr.leader_name or "").strip() if qr else ""
+            leader_sex = (qr.leader_sex if qr else None) or None
+            dynasty_surname = (qr.dynasty_surname if qr else None) or None
+            if chosen:
+                leader_name = chosen
+                if not dynasty_surname and " " in chosen:
+                    dynasty_surname = chosen.split()[-1]
+            else:
+                leader_name = generate_leader_name(
+                    race_id, leader_basis, sex=leader_sex, surname=dynasty_surname
+                )
+            if is_monarch_subtype(wheel_result.government_subtype):
+                if not dynasty_surname and leader_name:
+                    parts = leader_name.replace("Queen ", "").split()
+                    if len(parts) > 1:
+                        dynasty_surname = parts[-1]
+            else:
+                dynasty_surname = dynasty_surname  # keep if they typed one; not required
+            if is_diarchy_subtype(wheel_result.government_subtype):
+                co_chosen = (qr.co_leader_name or "").strip() if qr else ""
+                co_sex = (qr.co_leader_sex if qr else None)
+                if co_chosen:
+                    co_leader_name = co_chosen
+                else:
+                    co_leader_name = generate_unique_leader_name(
+                        race_id, leader_basis, {leader_name}, sex=co_sex, surname=dynasty_surname
+                    )
+                if (wheel_result.style_modifier or "").startswith("Charismatic"):
+                    diarchy_senior = 1 if random.random() < 0.5 else 2
         # Assign unique territory position on map (ENSURE NO OVERLAP AND ON LAND)
         # Get world seed - check if joining a specific world
         world_seed = 123456  # Default seed
@@ -291,7 +367,7 @@ async def create_nation(request: CreateNationRequest):
         # Wheel subtype is the player-facing government identity, not the old compass type.
         try:
             advisor_basis = wheel_result.government_subtype or gov_type.value
-            advisors = generate_advisors(advisor_basis, race_id)
+            advisors = generate_advisors(advisor_basis, race_id, wheel_result.territorial_structure or "")
             logger.info(f"Generated {len(advisors)} advisors for {race_id} nation with wheel subtype: {advisor_basis}")
             logger.info(f"First advisor: {advisors[0].dict() if advisors else 'None'}")
         except Exception as e:
@@ -318,6 +394,10 @@ async def create_nation(request: CreateNationRequest):
             form_locked=True,
             legitimacy=legitimacy,
             leader_name=leader_name,
+            leader_sex=leader_sex,
+            dynasty_surname=dynasty_surname,
+            co_leader_name=co_leader_name,
+            diarchy_senior=diarchy_senior,
             stats=stats,
             stats_history=[StatsSnapshot(stats=stats)],
             advisors=advisors,
@@ -377,16 +457,25 @@ async def get_nation(nation_id: str):
         if apply_daily_ticks(nation):
             await db.nations.update_one(
                 {"_id": nation["_id"]},
-                {"$set": {
-                    "stats": nation.get("stats"),
-                    "advisors": nation.get("advisors"),
-                    "last_advisor_tick": nation.get("last_advisor_tick"),
-                }},
+                {
+                    "$set": {
+                        "stats": nation.get("stats"),
+                        "advisors": nation.get("advisors"),
+                        "last_advisor_tick": nation.get("last_advisor_tick"),
+                    },
+                    "$push": {
+                        "stats_history": {
+                            "$each": [{"timestamp": datetime.utcnow(), "stats": nation.get("stats")}],
+                            "$slice": -120,
+                        }
+                    },
+                },
             )
         
         nation["id"] = str(nation["_id"])
         nation["_id"] = str(nation["_id"])  # Convert ObjectId to string for JSON serialization
-        nation["advisors"] = publicize_advisors(nation.get("advisors") or [])
+        nation["advisors"] = publicize_advisors(nation.get("advisors") or [], nation)
+        apply_titles(nation)
         nation["task_used_today"] = task_used_today(nation["advisors"])
         
         # Always recalculate government type based on current stats
@@ -425,17 +514,37 @@ async def get_nation(nation_id: str):
 
         # Generate leader name if it doesn't exist (anarchy nations have no leader)
         if not nation.get("leader_name") and nation.get("government_form") != "anarchy":
-            # Prefer wheel subtype for titles (President, Queen, Chairman, etc.)
             leader_basis = nation.get("government_subtype") or "Democracy"
             leader_name = generate_leader_name(nation.get("race"), leader_basis)
             nation["leader_name"] = leader_name
-            # Save it to the database
+            patch = {"leader_name": leader_name}
+            if is_diarchy_subtype(nation.get("government_subtype")):
+                co = generate_unique_leader_name(nation.get("race"), leader_basis, {leader_name})
+                nation["co_leader_name"] = co
+                patch["co_leader_name"] = co
+                if (nation.get("style_modifier") or "").startswith("Charismatic"):
+                    senior = 1 if random.random() < 0.5 else 2
+                    nation["diarchy_senior"] = senior
+                    patch["diarchy_senior"] = senior
             await db.nations.update_one(
                 {"_id": ObjectId(nation_id)},
-                {"$set": {"leader_name": leader_name}}
+                {"$set": patch}
             )
         elif nation.get("government_form") == "anarchy":
             nation["leader_name"] = None
+            nation["co_leader_name"] = None
+            nation["diarchy_senior"] = None
+        elif is_diarchy_subtype(nation.get("government_subtype")) and not nation.get("co_leader_name"):
+            leader_basis = nation.get("government_subtype") or "Democracy"
+            taken = {nation.get("leader_name") or ""}
+            co = generate_unique_leader_name(nation.get("race"), leader_basis, taken)
+            nation["co_leader_name"] = co
+            patch = {"co_leader_name": co}
+            if (nation.get("style_modifier") or "").startswith("Charismatic") and not nation.get("diarchy_senior"):
+                senior = 1 if random.random() < 0.5 else 2
+                nation["diarchy_senior"] = senior
+                patch["diarchy_senior"] = senior
+            await db.nations.update_one({"_id": ObjectId(nation_id)}, {"$set": patch})
         
         # Calculate realistic GDP values
         population = nation["stats"]["population"]
@@ -462,19 +571,42 @@ async def google_auth_status():
 
 @api_router.post("/auth/google")
 async def auth_google(request: dict):
-    """Exchange a Google ID token for a SovereignHex session.
-
-    Verifies the token via Google's tokeninfo endpoint (no client secret needed
-    for ID-token validation). Finds or creates an account by google_sub, links
-    the account if an existing logged-in user is passed, returns a JWT.
-    """
+    """Exchange a Google ID token or GIS popup auth code for a session."""
     import urllib.request as urlreq
     import urllib.parse as urlparse
     import json as _json
 
     id_token = (request.get("id_token") or "").strip()
+    code = (request.get("code") or "").strip()
+    cid = (os.environ.get("GOOGLE_CLIENT_ID") or "").strip()
+    secret = (os.environ.get("GOOGLE_CLIENT_SECRET") or "").strip()
+
+    if code and not id_token:
+        if not cid or not secret:
+            raise HTTPException(status_code=500, detail="Google client secret is not configured")
+        body = urlparse.urlencode({
+            "code": code,
+            "client_id": cid,
+            "client_secret": secret,
+            "redirect_uri": "postmessage",
+            "grant_type": "authorization_code",
+        }).encode()
+        req = urlreq.Request(
+            "https://oauth2.googleapis.com/token",
+            data=body,
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+            method="POST",
+        )
+        try:
+            with urlreq.urlopen(req, timeout=15) as resp:
+                tok = _json.loads(resp.read().decode("utf-8"))
+        except Exception as e:
+            logger.error(f"Google code exchange failed: {e}")
+            raise HTTPException(status_code=401, detail="Google code exchange failed")
+        id_token = (tok.get("id_token") or "").strip()
+
     if not id_token:
-        raise HTTPException(status_code=400, detail="id_token required")
+        raise HTTPException(status_code=400, detail="id_token or code required")
 
     try:
         url = "https://oauth2.googleapis.com/tokeninfo?id_token=" + urlparse.quote(id_token, safe="")
@@ -497,7 +629,8 @@ async def auth_google(request: dict):
         user = await accounts.get_user_by_email(db, email)
 
     if user:
-        # Link google_sub to this account if not already
+        if user.get("is_banned"):
+            raise HTTPException(status_code=403, detail=user.get("ban_reason") or "This account is banned.")
         await db.users.update_one({"id": user["id"]}, {"$set": {"google_sub": google_sub}})
         user["google_sub"] = google_sub
     else:
@@ -615,11 +748,104 @@ async def admin_set_admin(user_id: str, request: dict, _admin=Depends(require_ad
 async def admin_worlds(_admin=Depends(require_admin)):
     out = []
     async for w in db.worlds.find({}):
-        w["id"] = str(w.get("id") or w.get("_id"))
-        w["_id"] = w["id"]
+        wid = str(w.get("id") or w.get("_id"))
+        w["id"] = wid
+        w["_id"] = wid
         w["official"] = bool(w.get("official"))
+        w["is_active"] = bool(w.get("is_active", True))
+        ncount = await db.nations.count_documents({"world_id": {"$in": [wid, str(w.get("_id", wid))]}})
+        user_ids = await db.nations.distinct("user_id", {"world_id": {"$in": [wid]}})
+        players = [u for u in user_ids if u and not str(u).startswith("test_npc")]
+        w["nation_count"] = ncount
+        w["player_count"] = len(players)
         out.append(w)
+    out.sort(key=lambda x: (not x.get("official"), -int(x.get("player_count") or 0)))
     return {"success": True, "worlds": out}
+
+
+@api_router.get("/admin/worlds/{world_id}")
+async def admin_world_detail(world_id: str, _admin=Depends(require_admin)):
+    world = await db.worlds.find_one(_world_query(world_id))
+    if not world:
+        raise HTTPException(status_code=404, detail="World not found")
+    wid = str(world.get("id") or world.get("_id"))
+    world["id"] = wid
+    world["_id"] = wid
+    world["official"] = bool(world.get("official"))
+    world["is_active"] = bool(world.get("is_active", True))
+    nations = await db.nations.find({"world_id": {"$in": [world_id, wid]}}).to_list(length=500)
+    user_ids = [n.get("user_id") for n in nations if n.get("user_id")]
+    users: dict = {}
+    if user_ids:
+        async for u in db.users.find({"id": {"$in": user_ids}}):
+            users[str(u.get("id") or u.get("_id"))] = u
+    players = []
+    for n in nations:
+        uid = n.get("user_id")
+        u = users.get(uid) if uid else None
+        stats = n.get("stats") or {}
+        players.append({
+            "nation_id": str(n.get("_id") or n.get("id")),
+            "nation_name": n.get("name"),
+            "display_name": n.get("display_name"),
+            "user_id": uid,
+            "email": (u or {}).get("email"),
+            "username": (u or {}).get("username"),
+            "is_admin": bool((u or {}).get("is_admin")),
+            "is_banned": bool((u or {}).get("is_banned")),
+            "race": n.get("race") or "human",
+            "leader_name": n.get("leader_name"),
+            "population": stats.get("population"),
+        })
+    players.sort(key=lambda p: (-float(p.get("population") or 0), p.get("nation_name") or ""))
+    world["player_count"] = len(players)
+    world["nation_count"] = len(players)
+    return {"success": True, "world": world, "players": players}
+
+
+@api_router.post("/admin/users/{user_id}/ban")
+async def admin_ban_user(user_id: str, request: dict, admin=Depends(require_admin)):
+    if user_id == admin.get("id"):
+        raise HTTPException(status_code=400, detail="You cannot ban yourself.")
+    target = await accounts.get_user_by_id(db, user_id)
+    if not target:
+        raise HTTPException(status_code=404, detail="User not found")
+    if target.get("is_admin"):
+        raise HTTPException(status_code=400, detail="Cannot ban an admin. Demote them first.")
+    banned = bool(request.get("banned", True))
+    reason = request.get("reason") or "Banned by admin."
+    user = await accounts.set_banned(db, user_id, banned, reason if banned else None)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return {"success": True, "user": accounts.public_user(user)}
+
+
+@api_router.post("/admin/worlds/{world_id}/active")
+async def admin_set_world_active(world_id: str, request: dict, _admin=Depends(require_admin)):
+    active = bool(request.get("is_active"))
+    res = await db.worlds.update_one(_world_query(world_id), {"$set": {"is_active": active}})
+    if res.matched_count == 0:
+        raise HTTPException(status_code=404, detail="World not found")
+    return {"success": True, "is_active": active}
+
+
+@api_router.delete("/admin/nations/{nation_id}")
+async def admin_delete_nation(nation_id: str, admin=Depends(require_admin)):
+    from bson import ObjectId
+    try:
+        nation = await db.nations.find_one({"_id": ObjectId(nation_id)})
+    except Exception:
+        nation = await db.nations.find_one({"id": nation_id})
+    if not nation:
+        raise HTTPException(status_code=404, detail="Nation not found")
+    nid = str(nation.get("_id") or nation_id)
+    await db.issues.delete_many({"nation_id": nid})
+    await db.nations.delete_one({"_id": nation["_id"]})
+    owner = nation.get("user_id")
+    if owner:
+        await db.users.update_one({"id": owner}, {"$unset": {"founding_wheels": ""}})
+    logger.info(f"Admin {admin.get('email')} deleted nation {nid}")
+    return {"success": True}
 
 
 @api_router.post("/admin/worlds/{world_id}/official")
@@ -637,6 +863,60 @@ async def admin_set_official(world_id: str, request: dict, _admin=Depends(requir
     return {"success": True, "official": official}
 
 
+def _world_query(world_id: str):
+    from bson import ObjectId
+    q = {"$or": [{"id": world_id}]}
+    try:
+        q["$or"].append({"_id": ObjectId(world_id)})
+    except Exception:
+        pass
+    return q
+
+
+@api_router.delete("/admin/users/{user_id}")
+async def admin_delete_user(user_id: str, admin=Depends(require_admin)):
+    if user_id == admin.get("id"):
+        raise HTTPException(status_code=400, detail="You cannot delete your own account from here.")
+    target = await accounts.get_user_by_id(db, user_id)
+    if not target:
+        raise HTTPException(status_code=404, detail="User not found")
+    if target.get("is_admin"):
+        admins = await db.users.count_documents({"is_admin": True})
+        if admins <= 1:
+            raise HTTPException(status_code=400, detail="Cannot delete the last admin.")
+    nations = await db.nations.find({"user_id": user_id}).to_list(length=200)
+    nation_ids = [str(n.get("_id") or n.get("id")) for n in nations]
+    if nation_ids:
+        await db.issues.delete_many({"nation_id": {"$in": nation_ids}})
+        await db.nations.delete_many({"user_id": user_id})
+    removed = await accounts.delete_user(db, user_id)
+    if not removed:
+        raise HTTPException(status_code=404, detail="User not found")
+    logger.info(f"Admin {admin.get('email')} deleted account {user_id} ({len(nation_ids)} nations)")
+    return {"success": True, "nations_deleted": len(nation_ids)}
+
+
+@api_router.delete("/admin/worlds/{world_id}")
+async def admin_delete_world(world_id: str, admin=Depends(require_admin)):
+    from bson import ObjectId
+    world = await db.worlds.find_one(_world_query(world_id))
+    if not world:
+        raise HTTPException(status_code=404, detail="World not found")
+    wid = str(world.get("id") or world.get("_id"))
+    nations = await db.nations.find({"world_id": {"$in": [world_id, wid]}}).to_list(length=500)
+    nation_ids = [str(n.get("_id") or n.get("id")) for n in nations]
+    if nation_ids:
+        await db.issues.delete_many({"nation_id": {"$in": nation_ids}})
+        await db.nations.delete_many({"_id": {"$in": [n["_id"] for n in nations if n.get("_id")]}})
+    await db.worlds.delete_one(_world_query(world_id))
+    try:
+        await db.worlds.delete_one({"_id": ObjectId(world_id)})
+    except Exception:
+        pass
+    logger.info(f"Admin {admin.get('email')} deleted world {wid} ({len(nation_ids)} nations)")
+    return {"success": True, "nations_deleted": len(nation_ids)}
+
+
 @api_router.get("/nations/user/{user_id}")
 async def get_user_nation(user_id: str):
     """Get nation by user ID."""
@@ -648,16 +928,25 @@ async def get_user_nation(user_id: str):
         if apply_daily_ticks(nation):
             await db.nations.update_one(
                 {"_id": nation["_id"]},
-                {"$set": {
-                    "stats": nation.get("stats"),
-                    "advisors": nation.get("advisors"),
-                    "last_advisor_tick": nation.get("last_advisor_tick"),
-                }},
+                {
+                    "$set": {
+                        "stats": nation.get("stats"),
+                        "advisors": nation.get("advisors"),
+                        "last_advisor_tick": nation.get("last_advisor_tick"),
+                    },
+                    "$push": {
+                        "stats_history": {
+                            "$each": [{"timestamp": datetime.utcnow(), "stats": nation.get("stats")}],
+                            "$slice": -120,
+                        }
+                    },
+                },
             )
         
         nation["id"] = str(nation["_id"])
         nation["_id"] = str(nation["_id"])  # Convert ObjectId to string for JSON serialization
-        nation["advisors"] = publicize_advisors(nation.get("advisors") or [])
+        nation["advisors"] = publicize_advisors(nation.get("advisors") or [], nation)
+        apply_titles(nation)
         nation["task_used_today"] = task_used_today(nation["advisors"])
         
         # Calculate realistic GDP values
@@ -700,6 +989,13 @@ async def regenerate_description(nation_id: str):
         
         # Check if we should regenerate based on last update
         last_description_update = nation_data.get("last_description_update")
+        if isinstance(last_description_update, str):
+            try:
+                last_description_update = datetime.fromisoformat(
+                    last_description_update.replace("Z", "")
+                )
+            except Exception:
+                last_description_update = None
         should_regenerate = False
         
         if last_description_update:
@@ -712,52 +1008,53 @@ async def regenerate_description(nation_id: str):
             should_regenerate = True
         
         description = nation_data.get("description", "")
-        
-        if should_regenerate:
-            # Convert _id to id string before creating Nation object
-            nation_data["id"] = str(nation_data["_id"])
-            nation = Nation(**nation_data)
-            description = await ai_service.generate_nation_description(nation, db=db)
-            
-            await db.nations.update_one(
-                {"_id": ObjectId(nation_id)},
-                {"$set": {
-                    "description": description,
-                    "last_description_update": now
-                }}
-            )
-            last_description_update = now
-        
-        # Calculate timer display - time until next refresh
+        timer_display = "Due now"
+
         if last_description_update:
             next_refresh_time = last_description_update + timedelta(days=REFRESH_INTERVAL_DAYS)
             seconds_remaining = (next_refresh_time - now).total_seconds()
-        else:
-            # Fallback - 7 days from now
-            seconds_remaining = REFRESH_INTERVAL_DAYS * 24 * 3600
-        
-        # Cap at 7 days maximum
-        max_seconds = REFRESH_INTERVAL_DAYS * 24 * 3600
-        if seconds_remaining > max_seconds:
-            seconds_remaining = max_seconds
-        
-        if seconds_remaining <= 0:
-            timer_display = "Refreshing..."
-        else:
-            days = int(seconds_remaining // (24 * 3600))
-            hours = int((seconds_remaining % (24 * 3600)) // 3600)
-            
-            if days > 0:
-                timer_display = f"{days}d {hours}h"
+            max_seconds = REFRESH_INTERVAL_DAYS * 24 * 3600
+            if seconds_remaining > max_seconds:
+                seconds_remaining = max_seconds
+            if seconds_remaining <= 0:
+                timer_display = "Due now"
             else:
-                minutes = int((seconds_remaining % 3600) // 60)
-                timer_display = f"{hours}h {minutes}m"
-        
+                days = int(seconds_remaining // (24 * 3600))
+                hours = int((seconds_remaining % (24 * 3600)) // 3600)
+                if days > 0:
+                    timer_display = f"{days}d {hours}h"
+                else:
+                    minutes = int((seconds_remaining % 3600) // 60)
+                    timer_display = f"{hours}h {minutes}m"
+
+        # Never block the timer on the LLM. Refresh in the background when due.
+        just_refreshed = False
+        if should_regenerate:
+            try:
+                nation_data["id"] = str(nation_data["_id"])
+                nation = Nation(**nation_data)
+                description = await asyncio.wait_for(
+                    ai_service.generate_nation_description(nation, db=db),
+                    timeout=12,
+                )
+                await db.nations.update_one(
+                    {"_id": ObjectId(nation_id)},
+                    {"$set": {
+                        "description": description,
+                        "last_description_update": now
+                    }}
+                )
+                last_description_update = now
+                just_refreshed = True
+                timer_display = "6d 23h"
+            except Exception as gen_err:
+                logger.error(f"Description refresh deferred: {gen_err}")
+
         return {
-            "success": True, 
+            "success": True,
             "description": description,
             "timer_display": timer_display,
-            "just_refreshed": should_regenerate
+            "just_refreshed": just_refreshed,
         }
     except Exception as e:
         logger.error(f"Error regenerating description: {e}")
@@ -783,6 +1080,10 @@ async def delete_nation(nation_id: str):
     from bson import ObjectId
     try:
         # Delete the nation
+        nation = await db.nations.find_one({"_id": ObjectId(nation_id)})
+        if not nation:
+            raise HTTPException(status_code=404, detail="Nation not found")
+        owner = nation.get("user_id")
         result = await db.nations.delete_one({"_id": ObjectId(nation_id)})
         
         if result.deleted_count == 0:
@@ -790,6 +1091,8 @@ async def delete_nation(nation_id: str):
         
         # Delete all issues associated with this nation
         await db.issues.delete_many({"nation_id": nation_id})
+        if owner:
+            await db.users.update_one({"id": owner}, {"$unset": {"founding_wheels": ""}})
         
         logger.info(f"Nation {nation_id} permanently deleted")
         
@@ -837,27 +1140,37 @@ async def get_wheels_config(race: Optional[str] = None):
     return {"success": True, **wheels_config(race)}
 
 
-# In-memory idempotency cache for spin tokens (per-process; OK for single-host LAN).
-_spin_cache: dict[str, dict] = {}
+@api_router.get("/wheels/progress")
+async def get_wheels_progress(user=Depends(current_user)):
+    saved = dict(user.get("founding_wheels") or {})
+    saved.pop("updated_at", None)
+    nxt = founding_next_wheel(saved)
+    return {"success": True, "result": saved, "next": nxt or "done"}
 
 
 @api_router.post("/wheels/spin")
-async def post_spin_wheels(request: SpinWheelsRequest):
-    """Server-side one-shot wheel spin.
+async def post_spin_wheels(request: SpinWheelsRequest, user=Depends(current_user)):
+    """Spin one founding wheel and persist it on the account. Reloads cannot re-roll."""
+    wheel_id = (request.wheel_id or "").strip()
+    if wheel_id not in WHEEL_FIELD:
+        raise HTTPException(status_code=400, detail="wheel_id must be form, subtype, territorial, or style")
 
-    If a spin_token is provided and already has a stored result, return it.
-    Race is optional; if provided it constrains Wheel 1 (Zythera only).
-    """
-    token = request.spin_token
-    if token and token in _spin_cache:
-        cached = _spin_cache[token]
-        return {"success": True, "result": cached, "cached": True}
+    saved = dict(user.get("founding_wheels") or {})
+    saved.pop("updated_at", None)
+    field = WHEEL_FIELD[wheel_id]
+    if saved.get(field):
+        return {"success": True, "result": saved, "cached": True, "next": founding_next_wheel(saved) or "done"}
 
-    result = spin_wheels(seed=None, race=request.race)
-    result_dict = result.dict()
-    if token:
-        _spin_cache[token] = result_dict
-    return {"success": True, "result": result_dict}
+    try:
+        updated = spin_one_wheel(wheel_id, saved, race=request.race)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    updated["updated_at"] = datetime.utcnow()
+    await db.users.update_one({"id": user["id"]}, {"$set": {"founding_wheels": updated}})
+    public = dict(updated)
+    public.pop("updated_at", None)
+    return {"success": True, "result": public, "cached": False, "next": founding_next_wheel(public) or "done"}
 
 
 @api_router.post("/nations/{nation_id}/crisis-respin")
@@ -950,9 +1263,29 @@ async def crisis_respin(nation_id: str, request: CrisisRespinRequest):
     # Anarchy nations have no leader; formed states get a new leader
     if new_result.government_form == "anarchy":
         update["leader_name"] = None
+        update["co_leader_name"] = None
+        update["diarchy_senior"] = None
+        update["leader_sex"] = None
     else:
         leader_basis = new_result.government_subtype or "Democracy"
-        update["leader_name"] = generate_leader_name(nation.get("race"), leader_basis)
+        house = nation.get("dynasty_surname") if is_monarch_subtype(new_result.government_subtype) else None
+        keep_sex = nation.get("leader_sex") if house else None
+        update["leader_name"] = generate_leader_name(
+            nation.get("race"), leader_basis, sex=keep_sex, surname=house
+        )
+        if house:
+            update["dynasty_surname"] = house
+        if is_diarchy_subtype(new_result.government_subtype):
+            update["co_leader_name"] = generate_unique_leader_name(
+                nation.get("race"), leader_basis, {update["leader_name"]}, surname=house
+            )
+            if (new_result.style_modifier or "").startswith("Charismatic"):
+                update["diarchy_senior"] = 1 if random.random() < 0.5 else 2
+            else:
+                update["diarchy_senior"] = None
+        else:
+            update["co_leader_name"] = None
+            update["diarchy_senior"] = None
 
     await db.nations.update_one(
         {"_id": ObjectId(nation_id)},
@@ -1104,7 +1437,57 @@ async def get_daily_issues(nation_id: str, force_generate: bool = False):
             tz_doc["_id"] = str(tz_ins.inserted_id)
             current_issues.append(tz_doc)
 
-        
+        # Neighbor / vote ripples were written to pending_* collections and never
+        # became playable issues. Promote them into the queue first.
+        room = MAX_PENDING_ISSUES - len(current_issues)
+        if room > 0:
+            pending_docs = []
+            for coll, kind in (
+                ("pending_chain_issues", "chain"),
+                ("pending_international_issues", "international"),
+            ):
+                docs = await db[coll].find(
+                    {"nation_id": nation_id, "processed": False}
+                ).to_list(length=room)
+                for d in docs:
+                    d["_pending_coll"] = coll
+                    d["_pending_kind"] = kind
+                    pending_docs.append(d)
+            for p in pending_docs[:room]:
+                src = p.get("source_nation_name") or "A neighboring nation"
+                title = (p.get("issue_template") or p.get("title") or f"{src} at the border")[:80]
+                desc = p.get("issue_context") or p.get("description") or title
+                issue = Issue(
+                    nation_id=nation_id,
+                    title=title,
+                    description=desc,
+                    kind=p.get("_pending_kind"),
+                    choices=[
+                        IssueChoice(
+                            text="Lean into it",
+                            effects={"gdp": 3, "international_approval": 4, "happiness": -2, "corruption": 2},
+                            description="You ride their wave. Some at home resent the copy.",
+                        ),
+                        IssueChoice(
+                            text="Wall it off",
+                            effects={"gdp": -2, "happiness": 3, "international_approval": -3, "crime_rate": -1},
+                            description="The border stiffens. Trade cools.",
+                        ),
+                    ],
+                )
+                issue_dict = issue.dict()
+                ins = await db.issues.insert_one(issue_dict)
+                issue_dict["id"] = str(ins.inserted_id)
+                issue_dict["_id"] = str(ins.inserted_id)
+                current_issues.append(issue_dict)
+                await db[p["_pending_coll"]].update_one(
+                    {"_id": p["_id"]},
+                    {"$set": {"processed": True}},
+                )
+                room -= 1
+                if room <= 0:
+                    break
+
         now = datetime.utcnow()
         generated_now = False
         
@@ -1125,8 +1508,8 @@ async def get_daily_issues(nation_id: str, force_generate: bool = False):
                     # Generate up to the number of periods passed, but cap at available slots
                     issues_to_generate = min(periods_passed, available_slots)
             else:
-                # No timestamp - this is a new nation, generate 1 issue to start
-                issues_to_generate = 1
+                # First load — fill the queue (3 pending).
+                issues_to_generate = available_slots
             
             if issues_to_generate > 0:
                 logger.info(f"Generating {issues_to_generate} issues for nation {nation_id} (available slots: {available_slots})")
@@ -1147,6 +1530,12 @@ async def get_daily_issues(nation_id: str, force_generate: bool = False):
                     {"_id": ObjectId(nation_id)},
                     {"$set": {"last_issue_generated_at": now}}
                 )
+                chain = nation_data.get("issue_chain") or {}
+                if int(chain.get("step") or 0) >= 3:
+                    await db.nations.update_one(
+                        {"_id": ObjectId(nation_id)},
+                        {"$set": {"issue_chain": None}},
+                    )
                 generated_now = True
         
         # Calculate timer display for frontend
@@ -1221,6 +1610,9 @@ async def submit_decision(request: SubmitDecisionRequest):
         
         if request.choice_index >= len(issue.choices):
             raise HTTPException(status_code=400, detail="Invalid choice index")
+        choice = issue.choices[request.choice_index]
+        if getattr(choice, "vetoed", False) or "(vetoed)" in (choice.text or "").lower():
+            raise HTTPException(status_code=400, detail="That option is vetoed")
         
         # Get nation
         nation_data = await db.nations.find_one({"_id": ObjectId(request.nation_id)})
@@ -1228,7 +1620,6 @@ async def submit_decision(request: SubmitDecisionRequest):
             raise HTTPException(status_code=404, detail="Nation not found")
         
         # Apply stat changes
-        choice = issue.choices[request.choice_index]
         current_stats = nation_data["stats"]
         tz_count = choice.effects.get("timezone_count")
         for stat_name, change in choice.effects.items():
@@ -1239,6 +1630,12 @@ async def submit_decision(request: SubmitDecisionRequest):
         
         # Normalize budget to ensure it sums to 100%
         current_stats = normalize_budget(current_stats)
+        try:
+            corr = float(current_stats.get("corruption", 50) or 50)
+            tax = float(current_stats.get("tax_rate", 25) or 25)
+            current_stats["tax_revenue"] = max(0.0, min(80.0, tax * max(0.28, min(0.98, 1.0 - corr / 160.0))))
+        except Exception:
+            pass
         
         # Recalculate government type based on new stats (race-aware for Zythera)
         new_gov_type = classify_government(
@@ -1265,20 +1662,29 @@ async def submit_decision(request: SubmitDecisionRequest):
         law_description = None
         is_timezone = (getattr(issue, "kind", None) == "timezone") or "clockwork of the realm" in (issue.title or "").lower()
         category = None if is_timezone else detect_policy(issue.title, choice.text, choice.effects)
+
+        from policy_flags import apply_flags, detect_flags
+        from effect_copy import narrate
+        flag_hits = [] if is_timezone else detect_flags(issue.title, choice.text, choice.description or "")
+        if flag_hits:
+            nation_set_flags = apply_flags(nation_data.get("policy_flags") or {}, flag_hits, issue.title)
+        else:
+            nation_set_flags = None
+        result_lines = narrate(choice.effects, choice.description)
         
         if category:
             logger.info(f"Policy detected for category: {category}")
             
             # Generate AI law name and description with FULL context
             try:
-                from image_service import generate_policy_law
-                law_name, law_description = await generate_policy_law(
+                law_name, law_description = await ai_service.generate_policy_law(
                     category=category,
                     nation_name=nation_data["name"],
+                    government=nation_data.get("display_name") or nation_data.get("government_subtype") or "",
                     issue_title=issue.title,
                     issue_description=issue.description,
                     choice_text=choice.text,
-                    stat_effects=choice.effects
+                    choice_description=choice.description or "",
                 )
             except Exception as e:
                 logger.error(f"Error generating law: {e}")
@@ -1311,9 +1717,39 @@ async def submit_decision(request: SubmitDecisionRequest):
         if tz_count is not None:
             geo_max = int(nation_data.get("timezone_geo_max") or 1)
             nation_set["timezone_count"] = max(1, min(geo_max, int(tz_count)))
+        if nation_set_flags is not None:
+            nation_set["policy_flags"] = nation_set_flags
         # Also refresh display name if wheel fields exist
         if nation_data.get("government_form"):
             nation_set["display_name"] = build_government_name(nation_data)
+        try:
+            import secrets as _sec
+            step = int(getattr(issue, "chain_step", 0) or 0)
+            follow = (getattr(issue, "chains_into", None) or "").strip()
+            cid = getattr(issue, "chain_id", None)
+            if follow and step < 3:
+                nation_set["issue_chain"] = {
+                    "id": cid or _sec.token_hex(8),
+                    "topic": follow,
+                    "step": max(step, 1),
+                    "max": 3,
+                }
+            elif step >= 3 or (step and not follow):
+                nation_set["issue_chain"] = None
+        except Exception:
+            pass
+        hits = dict(nation_data.get("stat_last_hit") or {})
+        nxt = int(nation_data.get("total_decisions") or 0) + 1
+        for stat_name, change in (choice.effects or {}).items():
+            if stat_name == "timezone_count":
+                continue
+            try:
+                if abs(float(change or 0)) < 0.4:
+                    continue
+            except (TypeError, ValueError):
+                continue
+            hits[stat_name] = nxt
+        nation_set["stat_last_hit"] = hits
         await db.nations.update_one(
             {"_id": ObjectId(request.nation_id)},
             {
@@ -1490,6 +1926,8 @@ async def submit_decision(request: SubmitDecisionRequest):
             "stat_changes": choice.effects,
             "new_stats": current_stats,
             "policy_created": policy_created,
+            "result_lines": result_lines,
+            "flags_set": flag_hits,
             "international_vote_id": international_vote_id if 'international_vote_id' in dir() else None,
             "is_international": is_international if 'is_international' in dir() else False,
             "faction_warning": warning_msg,  # Null if compliant or not in faction
@@ -1752,7 +2190,7 @@ async def generate_advisors_for_existing():
                 # Generate advisors based on wheel subtype and race
                 race = nation.get("race", "human")
                 advisor_basis = nation.get("government_subtype") or "Democracy"
-                advisors = generate_advisors(advisor_basis, race)
+                advisors = generate_advisors(advisor_basis, race, nation.get("territorial_structure") or "")
                 
                 # Convert advisors to dict format for MongoDB
                 advisors_dict = [advisor.dict() for advisor in advisors]
@@ -2196,7 +2634,8 @@ async def probe_advisor_trust(nation_id: str, request: dict):
         {"_id": nation["_id"]},
         {"$set": {"advisors": advisors}},
     )
-    nation["advisors"] = publicize_advisors(advisors)
+    nation["advisors"] = publicize_advisors(advisors, nation)
+    apply_titles(nation)
     target = next((a for a in nation["advisors"] if int(a.get("slot") or 0) == int(target_slot)), None)
     return {
         "success": True,
@@ -4449,7 +4888,7 @@ async def create_world(request: dict, user=Depends(current_user)):
             "description": request.get("description", ""),
             "seed": request.get("seed", 123456),
             "max_players": request.get("max_players", 50),
-            "enabled_races": request.get("enabled_races", ["human", "zythera"]),
+            "enabled_races": [r for r in (request.get("enabled_races") or ["human"]) if is_race_enabled(r)] or ["human"],
             "allows_migration": request.get("allows_migration", True),
             "noise_settings": request.get("noise_settings") or {},
             "owner_nation_id": request.get("creator_nation_id"),
@@ -4527,7 +4966,10 @@ async def update_world(world_id: str, request: dict):
         allowed_fields = ["name", "description", "max_players", "enabled_races"]
         for field in allowed_fields:
             if field in request:
-                update_fields[field] = request[field]
+                val = request[field]
+                if field == "enabled_races":
+                    val = [r for r in (val or []) if is_race_enabled(str(r))] or ["human"]
+                update_fields[field] = val
         
         if update_fields:
             update_fields["last_activity"] = datetime.utcnow()
@@ -4741,7 +5183,7 @@ async def migrate_to_world(world_id: str, request: dict):
         
         # Check if nation's race is enabled in target world
         nation_race = nation.get("race", "human")
-        enabled_races = target_world.get("enabled_races", ["human", "zythera"])
+        enabled_races = target_world.get("enabled_races", ["human"])
         if nation_race not in enabled_races:
             raise HTTPException(status_code=403, detail=f"Your race ({nation_race}) is not allowed in the target world")
         

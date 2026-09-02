@@ -6,12 +6,9 @@ import {
   TouchableOpacity,
   ScrollView,
   RefreshControl,
-  Modal,
   TextInput,
-  ActivityIndicator,
   Platform,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { api } from '../utils/api';
@@ -19,7 +16,10 @@ import { useNationStore } from '../store/nationStore';
 import { getRaceTheme } from '../utils/raceColors';
 import { leaningColor } from '../utils/politicalCompass';
 import ScreenHeader, { HeaderIcon } from '../components/ScreenHeader';
-import { glassAlert, glassConfirm } from '../components/GlassModal';
+import ScreenCanvas from '../components/ScreenCanvas';
+import LiquidGlass from '../components/LiquidGlass';
+import { GlassModal, glassAlert, glassConfirm } from '../components/GlassModal';
+import StatusDots, { ButtonBusy } from '../components/StatusDots';
 
 interface Pact {
   alliance_id: string;
@@ -265,7 +265,7 @@ export default function NonAggressionPacts() {
     <View key={request.id} style={styles.requestCard}>
       <View style={styles.requestHeader}>
         <Text style={styles.requestDirection}>
-          {isIncoming ? '📥 From' : '📤 To'}
+          {isIncoming ? 'From' : 'To'}
         </Text>
         <Text style={styles.requestNation}>
           {isIncoming ? request.from_nation_name : request.to_nation_name}
@@ -332,7 +332,8 @@ export default function NonAggressionPacts() {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['bottom']}>
+    <ScreenCanvas>
+    <View style={styles.container}>
       {/* Header */}
       <ScreenHeader
         title="Alliances"
@@ -386,7 +387,7 @@ export default function NonAggressionPacts() {
       {/* Content */}
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={themeColor} />
+          <StatusDots status="Loading" color={themeColor} />
           <Text style={styles.loadingText}>Loading pacts...</Text>
         </View>
       ) : (
@@ -483,30 +484,18 @@ export default function NonAggressionPacts() {
       )}
 
       {/* Send Request Modal */}
-      <Modal
-        visible={showRequestModal}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowRequestModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Request Non-Aggression Pact</Text>
-            <Text style={styles.modalSubtitle}>
-              Send pact request to {selectedNation?.name}
-            </Text>
-            
-            <TextInput
-              style={styles.messageInput}
-              placeholder="Add a message (optional)"
-              placeholderTextColor="rgba(243,246,250,0.48)"
-              value={requestMessage}
-              onChangeText={setRequestMessage}
-              multiline
-              maxLength={200}
-            />
-            <Text style={styles.charCount}>{requestMessage.length}/200</Text>
-            
+      <GlassModal
+        open={showRequestModal}
+        onOpenChange={(open) => {
+          setShowRequestModal(open);
+          if (!open) {
+            setSelectedNation(null);
+            setRequestMessage('');
+          }
+        }}
+        title="Request Non-Aggression Pact"
+        description={selectedNation ? `Send pact request to ${selectedNation.name}` : undefined}
+        footer={
             <View style={styles.modalButtons}>
               <TouchableOpacity
                 style={styles.cancelButton}
@@ -524,27 +513,34 @@ export default function NonAggressionPacts() {
                 onPress={sendRequest}
                 disabled={sending}
               >
-                {sending ? (
-                  <ActivityIndicator size="small" color="#FFF" />
-                ) : (
-                  <>
-                    <Ionicons name="send" size={16} color="#FFF" />
-                    <Text style={styles.sendButtonText}>Send</Text>
-                  </>
-                )}
+                <ButtonBusy busy={sending} color="#081014">
+                  <Ionicons name="send" size={16} color="#FFF" />
+                  <Text style={styles.sendButtonText}>Send</Text>
+                </ButtonBusy>
               </TouchableOpacity>
             </View>
-          </View>
-        </View>
-      </Modal>
-    </SafeAreaView>
+        }
+      >
+            <TextInput
+              style={styles.messageInput}
+              placeholder="Add a message (optional)"
+              placeholderTextColor="rgba(243,246,250,0.48)"
+              value={requestMessage}
+              onChangeText={setRequestMessage}
+              multiline
+              maxLength={200}
+            />
+            <Text style={styles.charCount}>{requestMessage.length}/200</Text>
+      </GlassModal>
+    </View>
+    </ScreenCanvas>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0B0F14',
+    backgroundColor: 'transparent',
   },
   header: {
     flexDirection: 'row',
@@ -594,13 +590,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 4,
     paddingVertical: 10,
-    backgroundColor: '#11171F',
+    backgroundColor: 'rgba(255,255,255,0.04)',
     borderRadius: 8,
   },
   activeTab: {
-    backgroundColor: '#1E3A5F',
+    backgroundColor: 'rgba(255,255,255,0.08)',
     borderWidth: 1,
-    borderColor: '#00E0C7',
+    borderColor: '#2EE6C5',
   },
   tabText: {
     fontSize: 12,
@@ -655,7 +651,7 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   allyCard: {
-    backgroundColor: '#11171F',
+    backgroundColor: 'rgba(255,255,255,0.04)',
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
@@ -685,7 +681,7 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   requestCard: {
-    backgroundColor: '#11171F',
+    backgroundColor: 'rgba(255,255,255,0.04)',
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
@@ -746,7 +742,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#11171F',
+    backgroundColor: 'rgba(255,255,255,0.04)',
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
@@ -776,7 +772,7 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   modalContent: {
-    backgroundColor: '#11171F',
+    backgroundColor: 'rgba(255,255,255,0.04)',
     borderRadius: 16,
     padding: 24,
     width: '100%',
@@ -796,7 +792,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   messageInput: {
-    backgroundColor: '#0B0F14',
+    backgroundColor: 'transparent',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.08)',
     borderRadius: 8,
@@ -837,6 +833,7 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingVertical: 14,
     borderRadius: 8,
+    overflow: 'hidden',
   },
   sendButtonText: {
     fontSize: 15,
@@ -846,7 +843,7 @@ const styles = StyleSheet.create({
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#11171F',
+    backgroundColor: 'rgba(255,255,255,0.04)',
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 8,

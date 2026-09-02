@@ -49,6 +49,13 @@ html, body, #root {
   z-index: 2;
 }
 
+.liquid-glass.sheet {
+  background: rgba(8, 8, 10, 0.94);
+  background-blend-mode: normal;
+  backdrop-filter: blur(28px) saturate(1.2);
+  -webkit-backdrop-filter: blur(28px) saturate(1.2);
+}
+
 .serif-accent {
   font-family: 'Instrument Serif', Georgia, serif;
   font-style: italic;
@@ -109,8 +116,15 @@ html, body, #root {
 }
 `;
 
-export function hexToRgbTriplet(hex: string): string {
-  const h = (hex || '#ffffff').replace('#', '');
+export function hexToRgbTriplet(color: string): string {
+  if (!color) return '255, 255, 255';
+  // Handle rgb(r,g,b) format
+  const rgbMatch = color.match(/rgb\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i);
+  if (rgbMatch) {
+    return `${rgbMatch[1]}, ${rgbMatch[2]}, ${rgbMatch[3]}`;
+  }
+  // Handle #hex format
+  const h = color.replace('#', '');
   const n = h.length === 3 ? h.split('').map((c) => c + c).join('') : h;
   const r = parseInt(n.slice(0, 2), 16) || 255;
   const g = parseInt(n.slice(2, 4), 16) || 255;

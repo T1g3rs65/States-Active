@@ -7,6 +7,8 @@ from race_service import get_race_ai_description, get_race_display_info
 from typing import List, Dict
 import json
 import os
+import random
+import secrets
 from datetime import datetime
 
 class AIService:
@@ -48,7 +50,41 @@ class AIService:
         ]
         parts = [p for p in parts if p and p != "None (clean result)"]
         return " ".join(parts) or "Unknown"
-        
+
+    @staticmethod
+    def _qual_band(value: float, lo: float, hi: float) -> str:
+        span = hi - lo if hi != lo else 1.0
+        t = max(0.0, min(1.0, (float(value) - lo) / span))
+        if t < 0.20:
+            return "very low"
+        if t < 0.40:
+            return "low"
+        if t < 0.60:
+            return "moderate"
+        if t < 0.80:
+            return "high"
+        return "very high"
+
+    @classmethod
+    def _qual_stat(cls, field: str, value) -> str:
+        d = STAT_DEFINITIONS.get(field)
+        if not d or value is None or value == "?":
+            return "unknown"
+        try:
+            v = float(value)
+        except (TypeError, ValueError):
+            return "unknown"
+        return cls._qual_band(v, d["min"], d["max"])
+
+    _PROSE_RULE = (
+        "PROSE RULE (strict): Never write numeric stat values in titles, descriptions, "
+        "choice text, or nation lore. Do not say '77 advancement', '34 happiness', "
+        "'27.8 approval', or any score/percent of a stat. Refer to conditions only in "
+        "words: very low, low, moderate, high, very high — or plain English like "
+        "'low happiness', 'weak international standing', 'advanced research'. "
+        "JSON effect numbers are the only place digits for stats are allowed."
+    )
+
     async def generate_issues(self, nation: Nation, count: int = 3, db=None) -> List[Issue]:
         """Generate daily issues based on nation's current state."""
         
@@ -85,14 +121,70 @@ class AIService:
                         gdp = s.get("gdp", "?")
                         mil = s.get("military_strength", "?")
                         pop = s.get("population", "?")
-                        lines.append(f"  - {nm} ({gov_display}): GDP {gdp}, Military {mil}, Pop {pop}k, Happiness {s.get('happiness','?')}")
+                        lines.append(
+                            f"  - {nm} ({gov_display}): GDP {self._qual_stat('gdp', gdp)}, "
+                            f"military {self._qual_stat('military_strength', mil)}, "
+                            f"happiness {self._qual_stat('happiness', s.get('happiness'))}"
+                        )
                     neighbors_info = "\nNEIGHBORING / NEARBY NATIONS (for reference — use sparingly in issues):\n" + "\n".join(lines) + "\n"
             except Exception as e:
                 print(f"Warning: could not fetch neighbors: {e}")
         
         # Build context about the nation
         context = self._build_nation_context(nation, db=db, neighbors_info=neighbors_info)
-        
+        try:
+            from wheel_friction import issue_themes
+            themes = issue_themes(nation)
+            theme_line = ", ".join(themes) if themes else "ordinary political and social life"
+        except Exception:
+            theme_line = "ordinary political and social life"
+        try:
+            from issue_gates import prompt_block as _gate_block
+            gate_block = _gate_block(nation)
+        except Exception:
+            gate_block = ""
+
+        chain = getattr(nation, "issue_chain", None) or {}
+        if isinstance(nation, dict):
+            chain = nation.get("issue_chain") or {}
+        step = int((chain or {}).get("step") or 0)
+        topic = ((chain or {}).get("topic") or "").strip()
+        cid = (chain or {}).get("id")
+        if step >= 3 and topic:
+            chain_block = (
+                f"- CHAIN STATUS: CLOSED. Do not write another issue about “{topic}”. "
+                "Fresh one-off subjects only. Omit chains_into on every issue."
+            )
+        elif topic and step > 0:
+            nxt = step + 1
+            end = " This is the last beat — close the story. Omit chains_into." if nxt >= 3 else " After this, the thread ends soon."
+            chain_block = (
+                f"- CHAIN STATUS: Beat {nxt} of 3 about “{topic}”. "
+                f"At most ONE issue may continue that thread.{end} "
+                "Every other issue must be an unrelated one-off."
+            )
+        else:
+            chain_block = (
+                "- CHAIN STATUS: None. Default to one-off issues. "
+                "chains_into on at most one issue, and only if a short 2–3 beat story is truly warranted."
+            )
+
+        recent_block = ""
+        recent_titles = []
+        if db is not None:
+            try:
+                nid = getattr(nation, "id", None) or (nation.get("id") if isinstance(nation, dict) else None)
+                cursor = db.issues.find({"nation_id": nid}).sort("generated_at", -1).limit(10)
+                docs = await cursor.to_list(length=10)
+                recent_titles = [d.get("title") for d in docs if d.get("title")]
+            except Exception:
+                recent_titles = []
+        if recent_titles:
+            listed = "; ".join(recent_titles[:8])
+            recent_block = (
+                f"- RECENT ISSUES (do not sequel these unless CHAIN STATUS says so): {listed}"
+            )
+
         # Create system message for issue generation
         system_message = f"""You are the issue generator for 'SovereignHex', a nation simulation game.
 
@@ -105,6 +197,8 @@ Your task is to generate realistic, nuanced policy dilemmas that:
 
 Current Nation Context:
 {context}
+
+{self._PROSE_RULE}
 
 Generate {count} issues in the following JSON format:
 {{
@@ -121,16 +215,18 @@ Generate {count} issues in the following JSON format:
           }},
           "description": "What happens if this is chosen (15-30 words)"
         }},
-        // EXACTLY 4 choices per issue - no more, no less
+        // 2 to 4 choices. Maximum 4. Mix the count.
       ],
-      "chains_into": "Optional: short title for a follow-up issue that results from this one. Omit entirely for most issues; only include ~20% of the time."
+      "chains_into": "Rare. Omit on one-offs. At most one issue in the batch."
     }}
   ]
 }}
 
 IMPORTANT RULES:
 - Use realistic effect sizes: small changes (±2-5), moderate (±5-15), large (±15-30)
-- Each choice must affect at least 3-8 different stats
+- CHOICES: 2, 3, or 4 options per issue. Never 1. Never more than 4. Vary the count — some issues are binary, some have three ways out, some have four. Do not pad a simple dilemma to four.
+- VETOED OPTIONS: If this government's structure would block an option (member veto, isolationist closed ports, praetorian guard, junta, holy ban, etc.), you MAY still include that option so the player can see it. Mark it with "vetoed": true and append " (vetoed)" to the choice text. Grey-out is the UI. At most one vetoed choice. Always leave at least TWO pickable (not vetoed) choices.
+- Each choice must affect at least 2-6 different stats
 - Create genuine trade-offs - rarely should all effects be positive or negative
 
 VALID STAT NAMES (use ONLY these exact names):
@@ -150,11 +246,15 @@ INTERNATIONAL: international_approval
 - Use diverse stats - don't just stick to gdp/happiness/civil_rights
 - Include military, science, environment, crime stats in issues
 - IMPORTANT: Most choices should have a small population effect (±0.05 to ±0.5 thousand) to show nation growth/decline
-- Make descriptions engaging and consequences believable
+- Make descriptions engaging and consequences believable. Never quote stat scores in prose.
 - Vary issue types: economy, social, environment, international, crime, military, technology, education, etc.
 - GEOGRAPHY LOCK: The geography and resources listed in the nation context are REFERENCE ONLY — use them to keep issues believable (don't invent a coastline if landlocked), but do NOT make resource/terrain topics the focus of most issues. Most issues should be about politics, society, economy, culture, crime, diplomacy, military, technology, or daily life — not about wheat, timber, or mining quotas.
+- THEMATIC WEIGHT: Lean toward these kinds of issues (about half the batch). Still include other kinds so the deck is not a single note: {theme_line}
+{gate_block}
 - NEIGHBORS: If nearby/bordering nations are listed in the context, you may reference them in issues (trade disputes, border incidents, refugee flows, diplomatic overtures) but do not force every issue to involve a neighbor.
-- CHAIN ISSUES: About 1 in 5 issues (roughly 20% chance) may end with a "chains_into" field — a short title for a follow-up issue that would logically result from the player's choice. This is optional; most issues should NOT have chains_into. Only include it when a choice would clearly lead to a consequential next dilemma.
+- CHAIN ISSUES: MOST issues are one-offs. Do not write a sequel to the last issue unless the CHAIN STATUS block below tells you to. Never more than 3 beats in one story. If this is beat 3, the issue MUST close the thread — no further sequel. At most ONE issue in this batch may include chains_into; the rest must omit it.
+{chain_block}
+{recent_block}
 - Reference past decisions occasionally to create narrative continuity
 - Issues can change government type by shifting key stats (civil_rights, gdp, political_freedom, environment, military_strength, scientific_advancement, crime_rate)
 - Population growth represents immigration, birth rate, and overall national vitality"""
@@ -187,31 +287,72 @@ INTERNATIONAL: international_approval
             # Convert to Issue objects
             issues = []
             for issue_data in data.get("issues", []):
-                choices = [
-                    IssueChoice(
-                        text=choice["text"],
-                        effects=choice["effects"],
-                        description=choice["description"]
+                raw_choices = issue_data.get("choices") or []
+                choices = []
+                for choice in raw_choices[:4]:
+                    text = (choice.get("text") or "").strip()
+                    if not text:
+                        continue
+                    vetoed = bool(choice.get("vetoed")) or "(vetoed)" in text.lower()
+                    if vetoed and "(vetoed)" not in text.lower():
+                        text = f"{text} (vetoed)"
+                    choices.append(
+                        IssueChoice(
+                            text=text,
+                            effects=choice.get("effects") or {},
+                            description=choice.get("description") or "",
+                            vetoed=vetoed,
+                        )
                     )
-                    for choice in issue_data["choices"][:4]  # Limit to exactly 4 choices
-                ]
+                pickable = [c for c in choices if not c.vetoed]
+                if len(pickable) < 2:
+                    continue
                 
                 issue = Issue(
                     nation_id=nation.id,
                     title=issue_data["title"],
                     description=issue_data["description"],
                     choices=choices,
-                    chains_into=issue_data.get("chains_into"),  # Optional follow-up title
+                    chains_into=issue_data.get("chains_into"),
                 )
                 issues.append(issue)
             
-            return issues
+            return self._cap_chains(issues, chain)
             
         except Exception as e:
             print(f"Error generating issues: {e}")
             # Return fallback issues
             return self._get_fallback_issues(nation)
-    
+
+    def _cap_chains(self, issues: List[Issue], chain: dict | None) -> List[Issue]:
+        """Most issues are one-offs. A thread is at most 3 beats."""
+        chain = chain or {}
+        step = int(chain.get("step") or 0)
+        cid = chain.get("id") or secrets.token_hex(8)
+        continuing = bool((chain.get("topic") or "").strip()) and 0 < step < 3
+        closed = step >= 3
+        kept_starter = False
+        for i, iss in enumerate(issues):
+            follow = (iss.chains_into or "").strip() or None
+            iss.chains_into = None
+            iss.chain_id = None
+            iss.chain_step = 0
+            if closed:
+                continue
+            if continuing:
+                if i == 0:
+                    iss.chain_id = cid
+                    iss.chain_step = step + 1
+                    if iss.chain_step < 3:
+                        iss.chains_into = follow or chain.get("topic")
+                continue
+            if follow and not kept_starter and random.random() < 0.12:
+                iss.chain_id = secrets.token_hex(8)
+                iss.chain_step = 1
+                iss.chains_into = follow
+                kept_starter = True
+        return issues
+
     async def generate_nation_description(self, nation: Nation, db=None) -> str:
         """Generate dynamic nation description based on current stats."""
         
@@ -228,7 +369,9 @@ The description should:
 3. Mention notable strengths and challenges
 4. Include specific details about culture, economy, and society
 5. Use evocative language and concrete examples
-6. Evolve based on stat thresholds (e.g. describe differently if civil_rights > 85 vs < 20)
+6. Evolve based on qualitative levels (e.g. describe differently if civil rights are very high vs very low)
+
+{self._PROSE_RULE}
 
 Current Nation Context:
 {context}
@@ -251,7 +394,69 @@ Write in third person, present tense. Make it feel like a living, breathing nati
         except Exception as e:
             print(f"Error generating description: {e}")
             return self._get_fallback_description(nation)
-    
+
+    async def generate_policy_law(
+        self,
+        *,
+        category: str,
+        nation_name: str,
+        government: str,
+        issue_title: str,
+        issue_description: str,
+        choice_text: str,
+        choice_description: str = "",
+    ) -> tuple:
+        """Write a standing law from an issue decision. Same AI path as issues."""
+        system_message = f"""You write statutes for SovereignHex.
+
+{self._PROSE_RULE}
+
+Return ONLY JSON:
+{{
+  "name": "short statute title, 3-8 words, no year, no generic '... Act' unless the name is specific",
+  "description": "2-4 sentences of what the law actually does. Who it binds. How it is enforced. No marketing. No banned words (nestled, tapestry, testament, bustling, vibrant, landscape, harmony)."
+}}
+
+The name must describe THIS choice, not the category. Never output '{category.replace('_', ' ').title()} Act'."""
+
+        user_message = UserMessage(
+            text=(
+                f"Nation: {nation_name}\n"
+                f"Government: {government}\n"
+                f"Category hint: {category}\n"
+                f"Issue: {issue_title}\n"
+                f"Situation: {issue_description}\n"
+                f"The chamber chose: {choice_text}\n"
+                f"What that meant: {choice_description}\n"
+                "Write the statute JSON."
+            )
+        )
+        chat = LlmChat(
+            api_key=self.api_key,
+            session_id=f"policy_{nation_name}_{datetime.utcnow().timestamp()}",
+            system_message=system_message,
+        )
+        try:
+            response = await chat.send_message(user_message)
+            text = response or ""
+            if "```json" in text:
+                text = text.split("```json")[1].split("```")[0]
+            elif "```" in text:
+                text = text.split("```")[1].split("```")[0]
+            data = json.loads(text.strip())
+            name = str(data.get("name") or "").strip()
+            desc = str(data.get("description") or "").strip()
+            if not name or name.lower().endswith(" act") and len(name.split()) <= 3:
+                name = choice_text.strip()[:72] or f"{issue_title} law"
+            if not desc:
+                desc = (choice_description or choice_text or issue_description or "").strip()[:400]
+            return name[:90], desc[:800]
+        except Exception as e:
+            print(f"Error generating policy law: {e}")
+            name = (choice_text or issue_title or "Standing order").strip()[:72]
+            desc = (choice_description or issue_description or choice_text or "").strip()[:400]
+            return name, desc or f"{nation_name} adopted the choice as standing law."
+
     def _build_nation_context(self, nation: Nation, db=None, neighbors_info: str = "") -> str:
         """Build detailed context about the nation for AI prompts."""
         
@@ -291,9 +496,9 @@ Government Subtype: {getattr(nation, 'government_subtype', 'unknown')}
 Territorial Structure: {getattr(nation, 'territorial_structure', 'unknown')}
 Style Modifier: {getattr(nation, 'style_modifier', 'unknown')}
 Species/Race: {race_info['name']}
-Age: {(datetime.utcnow() - nation.created_at).days} days old
-Total Decisions Made: {nation.total_decisions}
-Population: {stats.population:.1f}k citizens
+Age: {'fledgling' if (datetime.utcnow() - nation.created_at).days < 14 else 'established'}
+Total Decisions Made: {'few' if nation.total_decisions < 8 else 'several' if nation.total_decisions < 25 else 'many'}
+Population: {self._qual_stat('population', stats.population)}
 
 ABOUT THIS SPECIES:
 {race_ai_desc}
@@ -321,26 +526,28 @@ RECENT POLICIES (Major Laws):"""
         if neighbors_info:
             context += neighbors_info
 
-        context += "\nTop Performing Stats:\n"
+        context += "\nStrongest conditions:\n"
         for stat_name, data in top_stats:
-            context += f"  - {data['name']}: {data['value']:.1f}\n"
-        
-        context += "\nLowest Performing Stats:\n"
+            context += f"  - {data['name']}: {self._qual_stat(stat_name, data['value'])}\n"
+
+        context += "\nWeakest / most strained conditions:\n"
         for stat_name, data in bottom_stats:
-            context += f"  - {data['name']}: {data['value']:.1f}\n"
-        
-        context += f"\nALL STATS (you can reference any of these in the description):\n"
-        context += f"  Economy: GDP {stats.gdp:.1f}, Growth {stats.economy_growth:.1f}%, Unemployment {stats.unemployment:.1f}%, Inflation {stats.inflation:.1f}%\n"
-        context += f"  Society: Happiness {stats.happiness:.1f}, Life Expectancy {stats.life_expectancy:.1f}yrs, Literacy {stats.literacy_rate:.1f}%\n"
-        context += f"  Rights: Civil Rights {stats.civil_rights:.1f}, Political Freedom {stats.political_freedom:.1f}, Free Speech {stats.freedom_speech:.1f}\n"
-        context += f"  Environment: Environment {stats.environment:.1f}, Pollution {stats.pollution:.1f}, Biodiversity {stats.biodiversity:.1f}\n"
-        context += f"  Security: Military {stats.military_strength:.1f}, Crime Rate {stats.crime_rate:.1f}, Law Enforcement {stats.law_enforcement:.1f}\n"
-        context += f"  Equality: Income Equality {stats.income_equality:.1f}, Gini {stats.gini_coefficient:.1f}\n"
-        context += f"  Infrastructure: Scientific Advancement {stats.scientific_advancement:.1f}, Healthcare {stats.healthcare_quality:.1f}\n"
-        context += f"  Population: {stats.population:.1f}k, Growth {stats.population_growth:.1f}%\n"
-        context += f"  Budget: Education {stats.budget_education:.1f}%, Defense {stats.budget_defense:.1f}%, Healthcare {stats.budget_healthcare:.1f}%\n"
-        context += f"  Taxes: Tax Rate {stats.tax_rate:.1f}%, National Debt {stats.national_debt:.1f}\n"
-        
+            context += f"  - {data['name']}: {self._qual_stat(stat_name, data['value'])}\n"
+
+        q = self._qual_stat
+        context += f"\nALL CONDITIONS (qualitative only — never quote scores in prose):\n"
+        context += f"  Economy: GDP {q('gdp', stats.gdp)}, growth {q('economy_growth', stats.economy_growth)}, unemployment {q('unemployment', stats.unemployment)}, inflation {q('inflation', stats.inflation)}\n"
+        context += f"  Society: happiness {q('happiness', stats.happiness)}, life expectancy {q('life_expectancy', stats.life_expectancy)}, literacy {q('literacy_rate', stats.literacy_rate)}\n"
+        context += f"  Rights: civil rights {q('civil_rights', stats.civil_rights)}, political freedom {q('political_freedom', stats.political_freedom)}, free speech {q('freedom_speech', stats.freedom_speech)}\n"
+        context += f"  Environment: environmental health {q('environment', stats.environment)}, pollution {q('pollution', stats.pollution)}, biodiversity {q('biodiversity', stats.biodiversity)}\n"
+        context += f"  Security: military {q('military_strength', stats.military_strength)}, crime {q('crime_rate', stats.crime_rate)}, law enforcement {q('law_enforcement', stats.law_enforcement)}\n"
+        context += f"  Equality: income equality {q('income_equality', stats.income_equality)}\n"
+        context += f"  Infrastructure: scientific advancement {q('scientific_advancement', stats.scientific_advancement)}, healthcare {q('healthcare_quality', stats.healthcare_quality)}\n"
+        context += f"  Population: {q('population', stats.population)}, growth {q('population_growth', stats.population_growth)}\n"
+        context += f"  Budget: education {q('budget_education', stats.budget_education)}, defense {q('budget_defense', stats.budget_defense)}, healthcare {q('budget_healthcare', stats.budget_healthcare)}\n"
+        context += f"  Taxes: tax rate {q('tax_rate', stats.tax_rate)}, national debt {q('national_debt', stats.national_debt)}\n"
+        context += f"  International: approval {q('international_approval', getattr(stats, 'international_approval', 50))}\n"
+
         return context
 
     def _build_geography_context(self, nation: Nation) -> str:

@@ -21,6 +21,21 @@ function resolveApiUrl(): string {
 
 const API_URL = resolveApiUrl();
 
+function authHeaders(extra: Record<string, string> = {}) {
+  let token: string | null = null;
+  try {
+    const { useAccountStore } = require('../store/accountStore');
+    token = useAccountStore.getState().token;
+  } catch {
+    token = null;
+  }
+  return {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...extra,
+  };
+}
+
 export const api = {
   // Quiz
   getQuiz: async () => {
@@ -32,6 +47,48 @@ export const api = {
   getRaces: async () => {
     const response = await fetch(`${API_URL}/api/races`);
     return response.json();
+  },
+
+  // Wheels (GH-93)
+  getWheelsConfig: async () => {
+    const response = await fetch(`${API_URL}/api/wheels/config`);
+    return response.json();
+  },
+
+  getWheelsProgress: async () => {
+    const response = await fetch(`${API_URL}/api/wheels/progress`, { headers: authHeaders() });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.detail || 'Could not load wheel progress');
+    return data;
+  },
+
+  spinWheels: async (opts: { wheelId: string; race?: string }) => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
+    try {
+      const response = await fetch(`${API_URL}/api/wheels/spin`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({
+          wheel_id: opts.wheelId,
+          ...(opts.race ? { race: opts.race } : {}),
+        }),
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+      if (!response.ok) {
+        let detail = `HTTP error! status: ${response.status}`;
+        try {
+          const err = await response.json();
+          if (err?.detail) detail = typeof err.detail === 'string' ? err.detail : JSON.stringify(err.detail);
+        } catch (_) {}
+        throw new Error(detail);
+      }
+      return response.json();
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+      throw error;
+    }
   },
   
   // Nation
@@ -46,7 +103,7 @@ export const api = {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           user_id: userId,
-          quiz_result: quizResult,
+          quiz_result: quizResult, // wheel_result already embedded by the founding flow (quiz.tsx)
           race,
           world_id: worldId,
           ...(capital ? { capital_col: capital.col, capital_row: capital.row } : {}),
@@ -335,13 +392,162 @@ export const api = {
     creator_nation_name?: string;
     allows_migration?: boolean;
     noise_settings?: Record<string, number>;
+    official?: boolean;
   }) => {
     const response = await fetch(`${API_URL}/api/worlds`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders(),
       body: JSON.stringify(worldData),
     });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error((data as any).detail || 'Failed to create world');
+    return data;
+  },
+
+  registerAccount: async (email: string, password: string, username?: string, legacyUserId?: string) => {
+    const response = await fetch(`${API_URL}/api/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password, username, legacy_user_id: legacyUserId }),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.detail || 'Could not create account');
+    return data;
+  },
+
+  loginAccount: async (email: string, password: string) => {
+    const response = await fetch(`${API_URL}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.detail || 'Sign in failed');
+    return data;
+  },
+
+  me: async () => {
+    const response = await fetch(`${API_URL}/api/auth/me`, { headers: authHeaders() });
     return response.json();
+  },
+
+  verifyEmail: async (token: string) => {
+    const response = await fetch(`${API_URL}/api/auth/verify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token }),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.detail || 'Verification failed');
+    return data;
+  },
+
+  googleStatus: async () => {
+    const response = await fetch(`${API_URL}/api/auth/google/status`);
+    return response.json();
+  },
+
+  googleLogin: async (idToken?: string, code?: string) => {
+    const response = await fetch(`${API_URL}/api/auth/google`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id_token: idToken || undefined, code: code || undefined }),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.detail || 'Google sign in failed');
+    return data;
+  },
+
+  adminOverview: async () => {
+    const response = await fetch(`${API_URL}/api/admin/overview`, { headers: authHeaders() });
+    return response.json();
+  },
+
+  adminUsers: async () => {
+    const response = await fetch(`${API_URL}/api/admin/users`, { headers: authHeaders() });
+    return response.json();
+  },
+
+  setUserAdmin: async (userId: string, isAdmin: boolean) => {
+    const response = await fetch(`${API_URL}/api/admin/users/${userId}/admin`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({ is_admin: isAdmin }),
+    });
+    return response.json();
+  },
+
+  adminWorlds: async () => {
+    const response = await fetch(`${API_URL}/api/admin/worlds`, { headers: authHeaders() });
+    return response.json();
+  },
+
+  adminWorld: async (worldId: string) => {
+    const response = await fetch(`${API_URL}/api/admin/worlds/${worldId}`, { headers: authHeaders() });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error((data as any).detail || 'World not found');
+    return data;
+  },
+
+  adminBanUser: async (userId: string, banned: boolean, reason?: string) => {
+    const response = await fetch(`${API_URL}/api/admin/users/${userId}/ban`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({ banned, reason }),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error((data as any).detail || 'Could not update ban');
+    return data;
+  },
+
+  adminSetWorldActive: async (worldId: string, isActive: boolean) => {
+    const response = await fetch(`${API_URL}/api/admin/worlds/${worldId}/active`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({ is_active: isActive }),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error((data as any).detail || 'Could not update world');
+    return data;
+  },
+
+  adminDeleteNation: async (nationId: string) => {
+    const response = await fetch(`${API_URL}/api/admin/nations/${nationId}`, {
+      method: 'DELETE',
+      headers: authHeaders(),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error((data as any).detail || 'Could not delete nation');
+    return data;
+  },
+
+  setWorldOfficial: async (worldId: string, official: boolean) => {
+    const response = await fetch(`${API_URL}/api/admin/worlds/${worldId}/official`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({ official }),
+    });
+    return response.json();
+  },
+
+  adminDeleteUser: async (userId: string) => {
+    const response = await fetch(`${API_URL}/api/admin/users/${userId}`, {
+      method: 'DELETE',
+      headers: authHeaders(),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error((data as any).detail || 'Could not delete account');
+    return data;
+  },
+
+  adminDeleteWorld: async (worldId: string) => {
+    const response = await fetch(`${API_URL}/api/admin/worlds/${worldId}`, {
+      method: 'DELETE',
+      headers: authHeaders(),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error((data as any).detail || 'Could not delete world');
+    return data;
   },
   
   // Update world settings
@@ -461,7 +667,12 @@ export const api = {
         sponsor_statement: sponsorStatement
       }),
     });
-    return response.json();
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      const detail = (data as any)?.detail;
+      throw new Error(typeof detail === 'string' ? detail : 'Failed to cast vote');
+    }
+    return data;
   },
   
   // Get pending international issues for a nation

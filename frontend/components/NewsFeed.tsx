@@ -5,7 +5,6 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  ActivityIndicator,
   RefreshControl,
   Modal,
 } from 'react-native';
@@ -13,6 +12,8 @@ import { useRouter } from 'expo-router';
 import { api } from '../utils/api';
 import { DecisionFeedItem } from '../types';
 import { Ionicons } from '@expo/vector-icons';
+import StatusDots from './StatusDots';
+import LiquidGlass from './LiquidGlass';
 import { getRaceTheme, getRaceIcon } from '../utils/raceColors';
 import { getPoliticalCompassTheme } from '../utils/politicalCompass';
 import { useNationStore } from '../store/nationStore';
@@ -118,7 +119,7 @@ export default function NewsFeed({ themeColor }: NewsFeedProps) {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="small" color={themeColor} />
+        <StatusDots status="Loading" color={themeColor} compact />
       </View>
     );
   }
@@ -158,48 +159,41 @@ export default function NewsFeed({ themeColor }: NewsFeedProps) {
               };
               
               return (
-                <TouchableOpacity 
-                  key={item.id || index} 
+                <TouchableOpacity
+                  key={item.id || index}
                   style={styles.feedItemWrapper}
                   onPress={handleWarTap}
-                  activeOpacity={item.war_id ? 0.7 : 1}
+                  activeOpacity={item.war_id ? 0.85 : 1}
                   disabled={!item.war_id}
                 >
-                  <View style={[styles.warBanner, { backgroundColor: warColor }]}>
-                    <Ionicons name="warning" size={14} color="#FFF" />
-                    <Text style={styles.breakingText}>WAR EVENT</Text>
-                  </View>
-
-                  <View
-                    style={[
-                      styles.feedItem,
-                      styles.warItem,
-                      { borderLeftColor: warColor, borderLeftWidth: 4 }
-                    ]}
-                  >
-                    <View style={styles.feedHeader}>
-                      <View style={styles.nationInfo}>
-                        <Ionicons name={warIcon as any} size={16} color={warColor} style={{ marginRight: 8 }} />
-                        <Text style={[styles.warTitle, { color: warColor }]}>
-                          {item.title || 'War Event'}
-                        </Text>
-                      </View>
-                      <View style={styles.actionIcons}>
-                        <Text style={styles.timeAgo}>{getTimeAgo(item.timestamp)}</Text>
-                        {item.war_id && (
-                          <Ionicons name="chevron-forward" size={20} color={warColor} />
-                        )}
-                      </View>
+                  <LiquidGlass radius={22} style={styles.feedGlass}>
+                    <View style={[styles.warBanner, { backgroundColor: warColor }]}>
+                      <Ionicons name="warning" size={14} color="#FFF" />
+                      <Text style={styles.breakingText}>WAR EVENT</Text>
                     </View>
-
-                    <Text style={styles.warDescription}>
-                      {item.description || 'War event details unavailable.'}
-                    </Text>
-                    
-                    {item.war_id && (
-                      <Text style={[styles.tapHint, { color: warColor }]}>Tap to view war details</Text>
-                    )}
-                  </View>
+                    <View style={styles.feedItem}>
+                      <View style={styles.feedHeader}>
+                        <View style={styles.nationInfo}>
+                          <Ionicons name={warIcon as any} size={16} color={warColor} style={{ marginRight: 8 }} />
+                          <Text style={[styles.warTitle, { color: warColor }]}>
+                            {item.title || 'War Event'}
+                          </Text>
+                        </View>
+                        <View style={styles.actionIcons}>
+                          <Text style={styles.timeAgo}>{getTimeAgo(item.timestamp)}</Text>
+                          {item.war_id && (
+                            <Ionicons name="chevron-forward" size={20} color={warColor} />
+                          )}
+                        </View>
+                      </View>
+                      <Text style={styles.warDescription}>
+                        {item.description || 'War event details unavailable.'}
+                      </Text>
+                      {item.war_id && (
+                        <Text style={[styles.tapHint, { color: warColor }]}>Tap to view war details</Text>
+                      )}
+                    </View>
+                  </LiquidGlass>
                 </TouchableOpacity>
               );
             }
@@ -223,86 +217,81 @@ export default function NewsFeed({ themeColor }: NewsFeedProps) {
 
             return (
               <View key={item.id || index} style={styles.feedItemWrapper}>
-                {/* Breaking News Banner for International Issues */}
-                {item.is_international && (
-                  <View style={[styles.breakingBanner, { backgroundColor: '#FF5A65' }]}>
-                    <Ionicons name="alert-circle" size={14} color="#FFF" />
-                    <Text style={styles.breakingText}>BREAKING: INTERNATIONAL IMPACT</Text>
-                  </View>
-                )}
-
-                <TouchableOpacity
-                  style={[
-                    styles.feedItem,
-                    { borderLeftColor: nationColor, borderLeftWidth: 4 }
-                  ]}
-                  onPress={() => handleNationTap(item)}
-                  activeOpacity={0.7}
-                >
-                  <View style={styles.feedHeader}>
-                    <View style={styles.nationInfo}>
-                      {inSameFaction && (
-                        <Ionicons name="star" size={14} color="#00E0C7" style={{ marginRight: 4 }} />
-                      )}
-                      <Ionicons name={raceIcon as any} size={14} color={nationColor} style={{ marginRight: 6 }} />
-                      <Text style={[styles.nationName, { color: nationColor }]}>
-                        {item.nation_name}
-                      </Text>
-                      {item.faction_tag && (
-                        <View style={[styles.factionTag, { backgroundColor: item.faction_color || '#00E0C7' }]}>
-                          <Text style={styles.factionTagText}>{item.faction_tag}</Text>
-                        </View>
-                      )}
-                      <Text style={[styles.govType, { color: politicalTheme.color }]}>{item.government_subtype || item.display_name || item.nation_name}</Text>
-                    </View>
-                    <View style={styles.actionIcons}>
-                      <Text style={styles.timeAgo}>{getTimeAgo(item.timestamp)}</Text>
-                      <Ionicons name="chevron-forward" size={20} color={nationColor} />
-                    </View>
-                  </View>
-
-                  <Text style={styles.issueTitle}>{item.issue_title}</Text>
-                  <Text style={styles.choiceText} numberOfLines={2}>{item.choice_text}</Text>
-
-                  {item.policy_created && (
-                    <TouchableOpacity
-                      style={[styles.policyBadge, { backgroundColor: nationColor + '22', borderColor: nationColor }]}
-                      onPress={(e) => {
-                        e.stopPropagation();
-                        setSelectedPolicy(item);
-                      }}
-                    >
-                      <Ionicons name="document-text" size={14} color={nationColor} />
-                      <Text style={[styles.policyText, { color: nationColor }]}>
-                        New Law: {item.policy_created}
-                      </Text>
-                      <Ionicons name="arrow-forward" size={14} color={nationColor} />
-                    </TouchableOpacity>
-                  )}
-
-                  {item.stat_changes && Object.keys(item.stat_changes).length > 0 && (
-                    <View style={styles.statChanges}>
-                      {Object.entries(item.stat_changes).slice(0, 3).map(([stat, change]) => (
-                        <View key={stat} style={styles.statChange}>
-                          <Ionicons 
-                            name={getStatIcon(stat)} 
-                            size={12} 
-                            color={change > 0 ? '#27D17A' : '#FF5A65'} 
-                          />
-                          <Text style={[
-                            styles.statChangeText,
-                            { color: change > 0 ? '#27D17A' : '#FF5A65' }
-                          ]}>
-                            {stat.replace('_', ' ')}: {change > 0 ? '+' : ''}{change.toFixed(1)}
+                <TouchableOpacity onPress={() => handleNationTap(item)} activeOpacity={0.85}>
+                  <LiquidGlass radius={22} style={styles.feedGlass}>
+                    {item.is_international && (
+                      <View style={[styles.breakingBanner, { backgroundColor: '#FF5A65' }]}>
+                        <Ionicons name="alert-circle" size={14} color="#FFF" />
+                        <Text style={styles.breakingText}>BREAKING: INTERNATIONAL IMPACT</Text>
+                      </View>
+                    )}
+                    <View style={styles.feedItem}>
+                      <View style={styles.feedHeader}>
+                        <View style={styles.nationInfo}>
+                          {inSameFaction && (
+                            <Ionicons name="star" size={14} color={themeColor} style={{ marginRight: 4 }} />
+                          )}
+                          <Ionicons name={raceIcon as any} size={14} color={nationColor} style={{ marginRight: 6 }} />
+                          <Text style={[styles.nationName, { color: nationColor }]}>
+                            {item.nation_name}
                           </Text>
+                          {item.faction_tag && (
+                            <View style={[styles.factionTag, { backgroundColor: item.faction_color || themeColor }]}>
+                              <Text style={styles.factionTagText}>{item.faction_tag}</Text>
+                            </View>
+                          )}
+                          <Text style={[styles.govType, { color: politicalTheme.color }]}>{item.government_subtype || item.display_name || item.nation_name}</Text>
                         </View>
-                      ))}
-                    </View>
-                  )}
+                        <View style={styles.actionIcons}>
+                          <Text style={styles.timeAgo}>{getTimeAgo(item.timestamp)}</Text>
+                          <Ionicons name="chevron-forward" size={20} color={nationColor} />
+                        </View>
+                      </View>
 
-                  <Text style={styles.tapHint}>
-                    {item.is_international ? 'Tap to vote on this decision' : 'Tap to compare nations'}
-                  </Text>
+                      <Text style={styles.issueTitle}>{item.issue_title}</Text>
+                      <Text style={styles.choiceText} numberOfLines={2}>{item.choice_text}</Text>
+
+                      {item.policy_created && (
+                        <TouchableOpacity
+                          style={[styles.policyBadge, { borderColor: nationColor }]}
+                          onPress={(e) => {
+                            e.stopPropagation();
+                            setSelectedPolicy(item);
+                          }}
+                        >
+                          <Ionicons name="document-text" size={14} color={nationColor} />
+                          <Text style={[styles.policyText, { color: nationColor }]}>
+                            New Law: {item.policy_created}
+                          </Text>
+                          <Ionicons name="arrow-forward" size={14} color={nationColor} />
+                        </TouchableOpacity>
+                      )}
+
+                      {item.stat_changes && Object.keys(item.stat_changes).length > 0 && (
+                        <View style={styles.statChanges}>
+                          {Object.entries(item.stat_changes).slice(0, 3).map(([stat, change]) => (
+                            <View key={stat} style={styles.statChange}>
+                              <Ionicons
+                                name={getStatIcon(stat)}
+                                size={12}
+                                color={change > 0 ? '#27D17A' : '#FF5A65'}
+                              />
+                              <Text style={[
+                                styles.statChangeText,
+                                { color: change > 0 ? '#27D17A' : '#FF5A65' }
+                              ]}>
+                                {stat.replace('_', ' ')}: {change > 0 ? '+' : ''}{change.toFixed(1)}
+                              </Text>
+                            </View>
+                          ))}
+                        </View>
+                      )}
+
+                      <Text style={styles.tapHint}>
+                        {item.is_international ? 'Tap to vote on this decision' : 'Tap to compare nations'}
+                      </Text>
+                    </View>
+                  </LiquidGlass>
                 </TouchableOpacity>
               </View>
             );
@@ -322,26 +311,27 @@ export default function NewsFeed({ themeColor }: NewsFeedProps) {
           activeOpacity={1}
           onPress={() => setSelectedPolicy(null)}
         >
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Ionicons name="newspaper" size={24} color={themeColor} />
-              <Text style={styles.modalTitle}>Law Details</Text>
-              <TouchableOpacity onPress={() => setSelectedPolicy(null)}>
-                <Ionicons name="close" size={24} color="rgba(243,246,250,0.70)" />
-              </TouchableOpacity>
-            </View>
-            
-            {selectedPolicy && (
-              <>
-                <Text style={styles.policyName}>{selectedPolicy.policy_created}</Text>
-                <Text style={styles.policyFullDescription}>
-                  {selectedPolicy.policy_description || 'No description available'}
-                </Text>
-                <Text style={styles.nationInfoText}>
-                  Enacted by: {selectedPolicy.nation_name}
-                </Text>
-              </>
-            )}
+          <View onStartShouldSetResponder={() => true}>
+            <LiquidGlass radius={24} style={styles.modalGlass}>
+              <View style={styles.modalHeader}>
+                <Ionicons name="newspaper" size={24} color={themeColor} />
+                <Text style={styles.modalTitle}>Law Details</Text>
+                <TouchableOpacity onPress={() => setSelectedPolicy(null)}>
+                  <Ionicons name="close" size={24} color="rgba(243,246,250,0.70)" />
+                </TouchableOpacity>
+              </View>
+              {selectedPolicy && (
+                <>
+                  <Text style={styles.policyName}>{selectedPolicy.policy_created}</Text>
+                  <Text style={styles.policyFullDescription}>
+                    {selectedPolicy.policy_description || 'No description available'}
+                  </Text>
+                  <Text style={styles.nationInfoText}>
+                    Enacted by: {selectedPolicy.nation_name}
+                  </Text>
+                </>
+              )}
+            </LiquidGlass>
           </View>
         </TouchableOpacity>
       </Modal>
@@ -384,6 +374,9 @@ const styles = StyleSheet.create({
   feedItemWrapper: {
     marginBottom: 12,
   },
+  feedGlass: {
+    overflow: 'hidden',
+  },
   breakingBanner: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -410,8 +403,9 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 12,
     gap: 6,
   },
-  warItem: {
-    backgroundColor: '#1A1A1A',
+  warItem: {},
+  feedItem: {
+    padding: 16,
   },
   warTitle: {
     fontSize: 16,
@@ -422,13 +416,6 @@ const styles = StyleSheet.create({
     color: 'rgba(243,246,250,0.70)',
     lineHeight: 20,
     marginTop: 8,
-  },
-  feedItem: {
-    backgroundColor: '#11171F',
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
   },
   feedHeader: {
     flexDirection: 'row',
@@ -530,16 +517,12 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.8)',
+    backgroundColor: 'rgba(0,0,0,0.88)',
     justifyContent: 'center',
     padding: 24,
   },
-  modalContent: {
-    backgroundColor: '#11171F',
-    borderRadius: 16,
-    padding: 24,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+  modalGlass: {
+    padding: 20,
   },
   modalHeader: {
     flexDirection: 'row',

@@ -1,5 +1,6 @@
 import { View, Text, StyleSheet } from 'react-native';
-import DotLoader from './DotLoader';
+import type { ReactNode } from 'react';
+import VoronoiLoader from './VoronoiLoader';
 
 const IMPORTING = [
   [0, 2, 4, 6, 20, 34, 48, 46, 44, 42, 28, 14, 8, 22, 36, 38, 40, 26, 12, 10, 16, 30, 24, 18, 32],
@@ -67,22 +68,19 @@ export function shortLoadLabel(raw: string): string {
   if (s.includes('fix') || s.includes('repair')) return 'Repair';
   if (s.includes('reload')) return 'Reload';
   if (s.includes('border')) return 'Borders';
-  if (s.includes('nation')) return 'Nations';
   if (s.includes('sync')) return 'Sync';
   if (s.includes('carv') || s.includes('generat') || s.includes('terrain') || s.includes('voronoi')) return 'Carve';
   if (s.includes('cache')) return 'Cache';
-  if (s.includes('world') || s.includes('seed')) return 'World';
-  if (s.includes('sign') || s.includes('user') || s.includes('saved')) return 'Saved';
-  if (s.includes('init') || s.includes('boot') || s.includes('check')) return 'Boot';
+  if (s.includes('world') || s.includes('seed') || s.includes('nation')) return 'World';
+  if (s.includes('sign') || s.includes('user') || s.includes('saved') || s.includes('init') || s.includes('boot') || s.includes('check') || s.includes('waking') || s.includes('prepar')) return 'Boot';
   const first = (raw || 'Loading').trim().split(/\s+/)[0] || 'Loading';
   return first.replace(/[^a-zA-Z]/g, '') || 'Loading';
 }
 
 function framesFor(label: string): number[][] {
   const s = label.toLowerCase();
-  if (s === 'carve' || s === 'founding') return IMPORTING;
+  if (s === 'carve' || s === 'founding' || s === 'boot' || s === 'loading') return IMPORTING;
   if (s === 'sync' || s === 'cache' || s === 'borders') return SYNCING;
-  if (s === 'nations' || s === 'world' || s === 'saved' || s === 'boot') return SEARCHING;
   if (s === 'failed' || s === 'repair') return HEART;
   return SEARCHING;
 }
@@ -90,34 +88,113 @@ function framesFor(label: string): number[][] {
 export default function StatusDots({
   status,
   color,
+  compact = false,
+  pattern,
+  cover = 'parent',
+  fill = false,
 }: {
   status: string;
   color: string;
+  compact?: boolean;
+  pattern?: 'carve' | 'sync' | 'search' | 'heart';
+  cover?: 'parent' | 'viewport';
+  fill?: boolean;
 }) {
   const title = shortLoadLabel(status);
+  const frames =
+    pattern === 'carve' ? IMPORTING :
+    pattern === 'sync' ? SYNCING :
+    pattern === 'heart' ? HEART :
+    pattern === 'search' ? SEARCHING :
+    framesFor(title);
+  const duration = pattern === 'carve' || title === 'Carve' || title === 'Boot' ? 90 : 130;
+  const pinViewport = cover === 'viewport';
+  if (fill) {
+    return (
+      <View pointerEvents="none" style={styles.fill}>
+        <VoronoiLoader frames={frames} color={color} duration={duration} cellPx={10} />
+      </View>
+    );
+  }
+  if (compact) {
+    return (
+      <View style={styles.compact}>
+        <VoronoiLoader frames={frames} color={color} duration={duration} cellPx={10} compact />
+      </View>
+    );
+  }
   return (
-    <View style={styles.row}>
-      <DotLoader frames={framesFor(title)} color={color} duration={title === 'Carve' ? 90 : 130} />
+    <View style={(pinViewport ? viewportStage : parentStage) as any}>
+      <VoronoiLoader
+        frames={frames}
+        color={color}
+        duration={duration}
+        cellPx={18}
+        pinViewport={pinViewport}
+      />
       <Text style={[styles.title, { color }]}>{title}</Text>
     </View>
   );
 }
 
+/** Overlay a carve loader that fills the parent button. Parent should set overflow: 'hidden'. */
+export function ButtonBusy({
+  busy,
+  color = '#081014',
+  children,
+}: {
+  busy: boolean;
+  color?: string;
+  children: ReactNode;
+}) {
+  return (
+    <>
+      <View style={{ opacity: busy ? 0 : 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+        {children}
+      </View>
+      {busy ? <StatusDots status="Loading" color={color} fill /> : null}
+    </>
+  );
+}
+
+const viewportStage = {
+  position: 'fixed' as const,
+  top: 0,
+  left: 0,
+  right: 0,
+  bottom: 0,
+  width: '100vw',
+  height: '100vh',
+  zIndex: 40,
+  justifyContent: 'center' as const,
+  alignItems: 'center' as const,
+};
+
+const parentStage = {
+  ...StyleSheet.absoluteFill,
+  zIndex: 5,
+  overflow: 'hidden' as const,
+  justifyContent: 'center' as const,
+  alignItems: 'center' as const,
+};
+
 const styles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 20,
-    backgroundColor: '#08090A',
-    paddingHorizontal: 22,
-    paddingVertical: 18,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+  fill: {
+    ...StyleSheet.absoluteFill,
+    overflow: 'hidden',
+  },
+  compact: {
+    width: 44,
+    height: 44,
+    overflow: 'hidden',
+    borderRadius: 10,
   },
   title: {
     fontSize: 28,
     fontWeight: '600',
     letterSpacing: 0.3,
+    textShadowColor: 'rgba(0,0,0,0.65)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 6,
   },
 });

@@ -91,6 +91,8 @@ def apply_daily_ticks(nation: dict, now: Optional[datetime] = None) -> bool:
     if not advisors:
         from timezone_effects import apply_timezone_tick
         apply_timezone_tick(nation)
+        from stat_sim import apply_macro_tick
+        apply_macro_tick(nation)
         nation["last_advisor_tick"] = today
         return True
 
@@ -100,6 +102,8 @@ def apply_daily_ticks(nation: dict, now: Optional[datetime] = None) -> bool:
         approval = int(adv.get("approval") or 50)
         trust = int(adv.get("trustworthiness") or 50)
         m = _m(ability, approval)
+        from wheel_friction import slot_mult
+        m *= slot_mult(nation, slot)
         betrayed = False
         if trust < 40 and random.random() < (40 - trust) / 200.0:
             betrayed = True
@@ -149,18 +153,49 @@ def apply_daily_ticks(nation: dict, now: Optional[datetime] = None) -> bool:
         adv["role_blurb"] = ROLE.get(slot, {}).get("today")
         adv["task_hint"] = ROLE.get(slot, {}).get("task_hint")
 
+    # Deposits actually pay, modulated by the wheels.
+    from wheel_friction import industry_mods, DIRTY, FUEL
+    extract_m, poll_m, mil_fuel = industry_mods(nation)
+    counts = nation.get("resource_counts") or {}
+    tiles = 0.0
+    dirty = 0.0
+    fuel = 0.0
+    for rid, n in counts.items():
+        try:
+            c = float(n or 0)
+        except Exception:
+            continue
+        tiles += c
+        key = str(rid).lower()
+        if key in DIRTY:
+            dirty += c
+        if key in FUEL:
+            fuel += c
+    if tiles > 0:
+        import math
+        richness = math.log1p(tiles)
+        _clamp_stat(stats, "gdp", 0.04 * extract_m * richness)
+        if dirty:
+            _clamp_stat(stats, "pollution", 0.03 * poll_m * math.log1p(dirty))
+            _clamp_stat(stats, "environment", -0.02 * poll_m * math.log1p(dirty))
+        if mil_fuel and fuel:
+            _clamp_stat(stats, "military_strength", mil_fuel * 0.15 * math.log1p(fuel))
+
     nation["stats"] = stats
     nation["advisors"] = advisors
     from timezone_effects import apply_timezone_tick
     apply_timezone_tick(nation)
+    from stat_sim import apply_macro_tick
+    apply_macro_tick(nation)
     nation["last_advisor_tick"] = today
     return True
 
 
-def publicize_advisors(advisors: list) -> list:
+def publicize_advisors(advisors: list, nation: dict | None = None) -> list:
     """Strip live trust. Keep snapshot fields for the UI."""
     out = []
     now = datetime.utcnow()
+    from wheel_friction import slot_mult
     for raw in advisors or []:
         adv = deepcopy(raw) if isinstance(raw, dict) else dict(raw)
         slot = int(adv.get("slot") or 0)
@@ -169,6 +204,9 @@ def publicize_advisors(advisors: list) -> list:
         adv.setdefault("role_id", meta.get("id"))
         adv.setdefault("role_blurb", meta.get("today"))
         adv.setdefault("task_hint", meta.get("task_hint"))
+        mod = slot_mult(nation or {}, slot) if nation is not None else 1.0
+        adv["gov_mod"] = round(mod, 2)
+        adv["gov_mod_pct"] = int(round((mod - 1.0) * 100))
         known_at = adv.get("trust_known_at")
         sent = adv.get("last_task_sent")
         if isinstance(sent, datetime):

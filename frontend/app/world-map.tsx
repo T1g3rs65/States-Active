@@ -4,10 +4,10 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  ActivityIndicator,
   ScrollView,
   Dimensions,
   Modal,
+  Animated,
   Pressable,
   Image,
   GestureResponderEvent,
@@ -23,6 +23,8 @@ import ScreenHeader from '../components/ScreenHeader';
 import LiquidGlass from '../components/LiquidGlass';
 import GradientBorder from '../components/GradientBorder';
 import Svg, { Polygon, G, Text as SvgText, Rect, Circle , SvgXml } from 'react-native-svg';
+
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 import { Ionicons } from '@expo/vector-icons';
 import { SimplexNoise } from '../utils/noise';
 import { api } from '../utils/api';
@@ -53,7 +55,7 @@ import {
 import { glassAlert, glassConfirm } from '../components/GlassModal';
 
 const WORLD_SEED = 123456;
-const MAP_CACHE_KEY = `world_map_terrain_v17_bigpole_${WORLD_SEED}`;
+const MAP_CACHE_KEY = `world_map_terrain_v20_bigpole_${WORLD_SEED}`;
 const MAX_ZOOM = 8;
 
 function fitZoomFor(_width: number, height: number): number {
@@ -122,13 +124,15 @@ function goldStarPoints(cx: number, cy: number, r: number): string {
   return pts.join(' ');
 }
 
-export default async function WorldMap() {
+export default function WorldMap() {
   const router = useRouter();
   const { nation, saveNation } = useNationStore();
   const tint = leaningColor(nation);
   const params = useLocalSearchParams<{ place?: string }>();
   const [placing, setPlacing] = useState(params.place === '1' || params.place === 'true');
   const [placeConfirm, setPlaceConfirm] = useState<Territory | null>(null);
+  const pulseAnim = useRef(new Animated.Value(0.4)).current;
+  const pulseRing = useRef<Animated.CompositeAnimation | null>(null);
   const [placeError, setPlaceError] = useState<string | null>(null);
   const mapPressRef = useRef<View>(null);
   const [territories, setTerritories] = useState<Territory[]>([]);
@@ -141,6 +145,8 @@ export default async function WorldMap() {
   const [fitZoom, setFitZoom] = useState(1);
   const [viewport, setViewport] = useState({ w: 0, h: 0 });
   const userHasZoomed = useRef(false);
+  const zoomRef = useRef(1);
+  const fitZoomRef = useRef(1);
   const [mapMode, setMapMode] = useState<MapMode>('political');
   const [showModeDropdown, setShowModeDropdown] = useState(false);
   const [foundingCity, setFoundingCity] = useState(false);
@@ -251,8 +257,22 @@ export default async function WorldMap() {
     }, 100);
   };
 
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
+
   useEffect(() => {
     if (placing && !placeWorldId) return;
+    if (!mountedRef.current) return;
+    // Wait until we have a world id so we don't flash "no world" then remount-load.
+    if (!worldId && !placing) {
+      AsyncStorage.getItem('selected_world_id').then((id) => {
+        if (id) setPlaceWorldId(id);
+      });
+      return;
+    }
     loadMap();
   }, [worldId]);
 
@@ -324,18 +344,14 @@ export default async function WorldMap() {
         return terrainColor(territory.biome, terrainColors.get(territory.id) || territory.color);
         
       case 'resources':
-        // Color tiles based on resource presence and tier
         if (territory.resourceId) {
           const resource = RESOURCE_BY_ID.get(territory.resourceId);
-          if (resource) {
-            // Use resource's own color for the tile
-            return resource.color;
-          }
+          if (resource) return resource.color;
         }
-        // No resource - show muted/darker version of terrain
-        const baseColor = terrainColors.get(territory.id) || territory.color;
-        // Darken tiles without resources to make resources stand out
-        return darkenColor(baseColor, 0.5);
+        if (WATER_BIOMES.has(territory.biome) || territory.biome === 'river') {
+          return '#1E5AA8';
+        }
+        return '#9AA0A8';
         
       case 'faction':
         if (!territory.ownerId) {
@@ -408,6 +424,7 @@ export default async function WorldMap() {
   const MAP_MODES: { key: MapMode; label: string; icon: string }[] = [
     { key: 'political', label: 'Political', icon: 'flag' },
     { key: 'terrain', label: 'Terrain', icon: 'earth' },
+    { key: 'resources', label: 'Resources', icon: 'diamond-outline' },
     { key: 'faction', label: 'Faction', icon: 'people' },
     { key: 'timezone', label: 'Timezones', icon: 'time-outline' },
   ];
@@ -456,7 +473,7 @@ export default async function WorldMap() {
       }
       setWorldSeed(mapSeed);
 
-      const worldCacheKey = `world_map_terrain_v17_${terrainKey(mapSeed, terrainRef.current)}`;
+      const worldCacheKey = `world_map_terrain_v20_${terrainKey(mapSeed, terrainRef.current)}`;
       
       setLoadingStatus('Checking cache...');
       
@@ -543,9 +560,14 @@ export default async function WorldMap() {
   };
 
   // Generate the base terrain (biomes, colors) - deterministic based on seed
+  const yieldUi = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
+
   const generateBaseTerrain = (seed: number = WORLD_SEED): Territory[] => {
     setLoadingStatus('Carving 40,000 Voronoi territories...');
-    return generateVoronoiCells(seed, MAP_COLS, MAP_ROWS, VORONOI_CELLS, CELL_SCALE, terrainRef.current).map(cell => ({
+    // Yield to UI thread before heavy sync work
+    // (generateVoronoiCells is sync but we at least show status first)
+    const cells = generateVoronoiCells(seed, MAP_COLS, MAP_ROWS, VORONOI_CELLS, CELL_SCALE, terrainRef.current);
+    return cells.map(cell => ({
       ...cell,
       ownerId: null,
       ownerName: undefined,
@@ -599,7 +621,9 @@ export default async function WorldMap() {
       
       setLoadingStatus(`Loading ${allNations.length} nations...`);
 
-      for (const nationEntry of allNations) {
+      // Batch fetch nations in groups of 8 to avoid blocking the main thread
+    const BATCH = 8;
+    for (const nationEntry of allNations) {
         try {
           const nationResponse = await api.getNation(nationEntry.nation_id);
           if (!nationResponse.success) continue;
@@ -628,6 +652,7 @@ export default async function WorldMap() {
       }
 
       setLoadingStatus('Calculating borders...');
+      await yieldUi();
       
       nationSeeds.forEach((seed) => {
         seed.maxRadius = Math.max(5, Math.sqrt(seed.capacity) * 1.4);
@@ -673,7 +698,10 @@ export default async function WorldMap() {
       const noiseFn = (i: number) => borderNoise.noise2D(i * 0.017, i * 0.009);
       const isWater = (b: string) => WATER_BIOMES.has(b);
 
-      let claims = colonizeFromCapitals(cellInput, capitalSeeds, isWater, noiseFn);
+      let claims = await colonizeFromCapitals(cellInput, capitalSeeds, isWater, noiseFn, {
+        yieldFn: yieldUi,
+      });
+      await yieldUi();
 
       const cityByNation = new Map<string, { col: number; row: number }[]>();
       const playerId = nation?.id || nation?._id;
@@ -709,7 +737,14 @@ export default async function WorldMap() {
         const cities = cityByNation.get(seed.nationId) || [];
         anchors.set(seed.nationId, [{ col: seed.col, row: seed.row }, ...cities]);
       }
-      claims = colonizeFromCapitals(cellInput, capitalSeeds, isWater, noiseFn, { anchors });
+      const hasExtraCities = nationSeeds.some((s) => (cityByNation.get(s.nationId) || []).length > 0);
+      if (hasExtraCities) {
+        claims = await colonizeFromCapitals(cellInput, capitalSeeds, isWater, noiseFn, {
+          anchors,
+          yieldFn: yieldUi,
+        });
+        await yieldUi();
+      }
 
       const seedById = new Map(nationSeeds.map((s, i) => [s.nationId, i]));
       for (const territory of workingTerritories) {
@@ -730,8 +765,16 @@ export default async function WorldMap() {
       );
 
       const nextTz = new Map<string, { bands: number[]; count: number }>();
+      const ownedByNation = new Map<string, Territory[]>();
+      for (const t of workingTerritories) {
+        if (!t.ownerId) continue;
+        const list = ownedByNation.get(t.ownerId);
+        if (list) list.push(t);
+        else ownedByNation.set(t.ownerId, [t]);
+      }
       for (const seed of nationSeeds) {
-        const cols = workingTerritories.filter(t => t.ownerId === seed.nationId).map(t => t.col);
+        const owned = ownedByNation.get(seed.nationId) || [];
+        const cols = owned.map(t => t.col);
         const bands = contiguousOccupiedBands(cols);
         const geoMax = Math.max(1, bands.length);
         const count = Math.max(1, Math.min(geoMax, seed.timezoneCount ?? geoMax));
@@ -749,7 +792,9 @@ export default async function WorldMap() {
       // Build cluster markers anchored on the centroid of each nation's owned tiles
       for (let i = 0; i < nationSeeds.length; i++) {
         const seed = nationSeeds[i];
-        const owned = workingTerritories.filter(t => t.ownerId === seed.nationId);
+        setLoadingStatus(`Sync ${i + 1}/${nationSeeds.length}`);
+        await yieldUi();
+        const owned = ownedByNation.get(seed.nationId) || [];
         let centerCol = seed.col;
         let centerRow = seed.row;
         let discRadius = 0;
@@ -761,14 +806,12 @@ export default async function WorldMap() {
           const sy = owned.reduce((acc, t) => acc + Math.sin(t.col * tau), 0);
           centerCol = Math.round(((Math.atan2(sy, sx) / tau) + MAP_COLS) % MAP_COLS);
           centerRow = Math.round(owned.reduce((acc, t) => acc + t.row, 0) / owned.length);
-          discRadius = Math.max(
-            1,
-            Math.ceil(
-              Math.sqrt(
-                Math.max(...owned.map(t => wrapDx(t.col - centerCol) ** 2 + (t.row - centerRow) ** 2))
-              )
-            )
-          );
+          let maxD = 0;
+          for (const t of owned) {
+            const d = wrapDx(t.col - centerCol) ** 2 + (t.row - centerRow) ** 2;
+            if (d > maxD) maxD = d;
+          }
+          discRadius = Math.max(1, Math.ceil(Math.sqrt(maxD)));
           const pct = (arr: number[], q: number) => {
             if (!arr.length) return 1;
             const s = [...arr].sort((a, b) => a - b);
@@ -802,36 +845,45 @@ export default async function WorldMap() {
     }
     
     setTerritories(workingTerritories);
-    setLoading(false);
+    if (!workingTerritories.length) setLoading(false);
   };
 
   // Sync territory counts to backend for each nation
   const syncTerritoryCounts = async (
-    territories: Territory[], 
+    territories: Territory[],
     nationSeeds: { nationId: string; name: string }[]
   ) => {
-    for (const seed of nationSeeds) {
-      // Count territories by biome for this nation
-      const nationTerritories = territories.filter(t => t.ownerId === seed.nationId);
-      const territoryCounts: Record<string, number> = {};
-      const resourceCounts: Record<string, number> = {};
-      
-      for (const territory of nationTerritories) {
-        const biome = territory.biome;
-        territoryCounts[biome] = (territoryCounts[biome] || 0) + 1;
-        
-        // Count resources
-        if (territory.resourceId) {
-          resourceCounts[territory.resourceId] = (resourceCounts[territory.resourceId] || 0) + 1;
-        }
+    const byOwner = new Map<string, { biomes: Record<string, number>; resources: Record<string, number>; total: number }>();
+    let n = 0;
+    for (const t of territories) {
+      n += 1;
+      if (n % 5000 === 0) await yieldUi();
+      if (!t.ownerId) continue;
+      let bucket = byOwner.get(t.ownerId);
+      if (!bucket) {
+        bucket = { biomes: {}, resources: {}, total: 0 };
+        byOwner.set(t.ownerId, bucket);
       }
-      
-      const totalTerritories = nationTerritories.length;
-      
-      // Sync to backend including resources
+      bucket.total += 1;
+      bucket.biomes[t.biome] = (bucket.biomes[t.biome] || 0) + 1;
+      if (t.resourceId) {
+        bucket.resources[t.resourceId] = (bucket.resources[t.resourceId] || 0) + 1;
+      }
+    }
+
+    const total = nationSeeds.length || 1;
+    for (let i = 0; i < nationSeeds.length; i++) {
+      const seed = nationSeeds[i];
+      setLoadingStatus(`Syncing ${i + 1}/${total}...`);
+      await yieldUi();
+      const bucket = byOwner.get(seed.nationId);
       try {
-        await api.updateTerritoryCounts(seed.nationId, territoryCounts, totalTerritories, resourceCounts);
-        console.log(`Synced territory for ${seed.name}: ${totalTerritories} tiles, ${Object.keys(resourceCounts).length} resource types`);
+        await api.updateTerritoryCounts(
+          seed.nationId,
+          bucket?.biomes || {},
+          bucket?.total || 0,
+          bucket?.resources || {}
+        );
       } catch (error) {
         console.error(`Failed to sync territory counts for ${seed.name}:`, error);
       }
@@ -852,34 +904,61 @@ export default async function WorldMap() {
   // Rasterize 40k cells to a bitmap — hillshade, coasts, grain (not flat fills).
   useEffect(() => {
     if (!territories.length) return;
-    const uri = rasterizeWorldMap({
-      territories,
-      mapWidth: MAP_WIDTH,
-      mapHeight: MAP_HEIGHT,
-      fillFor: (t) => getTerritoryColor(t as Territory),
-      isNationBorder: (t) => isBorderTerritory(t as Territory),
-      mapMode,
-      resourceColor: (id) => RESOURCE_BY_ID.get(id)?.color,
-    });
-    if (uri) setMapImageUri(uri);
+    let cancelled = false;
+    (async () => {
+      const uri = await rasterizeWorldMap({
+        territories,
+        mapWidth: MAP_WIDTH,
+        mapHeight: MAP_HEIGHT,
+        fillFor: (t) => getTerritoryColor(t as Territory),
+        isNationBorder: (t) => isBorderTerritory(t as Territory),
+        mapMode,
+        resourceColor: (id) => RESOURCE_BY_ID.get(id)?.color,
+      });
+      if (cancelled) return;
+      if (uri) setMapImageUri(uri);
+      setLoading(false);
+    })();
+    return () => { cancelled = true; };
   }, [territories, mapMode, diplomaticData, terrainColors, nation]);
 
   const pickTerritoryAt = (lx: number, ly: number) => {
     let mx = (lx / zoom) % MAP_WIDTH;
     if (mx < 0) mx += MAP_WIDTH;
     const my = ly / zoom;
-    let best: Territory | null = null;
-    let bestD = Infinity;
+
+    const scored: { t: Territory; d: number }[] = [];
     for (const t of territories) {
       const dx = wrapDx((t.x - mx) / CELL_SCALE) * CELL_SCALE;
       const dy = t.y - my;
-      const d = dx * dx + dy * dy;
-      if (d < bestD) {
-        bestD = d;
-        best = t;
-      }
+      scored.push({ t, d: dx * dx + dy * dy });
     }
-    if (best) handleTerritoryPress(best);
+    scored.sort((a, b) => a.d - b.d);
+
+    const pointInPoly = (px: number, py: number, poly?: number[][]) => {
+      if (!poly || poly.length < 3) return false;
+      let inside = false;
+      for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+        const xi = poly[i][0];
+        const yi = poly[i][1];
+        const xj = poly[j][0];
+        const yj = poly[j][1];
+        const intersect =
+          yi > py !== yj > py &&
+          px < ((xj - xi) * (py - yi)) / ((yj - yi) || 1e-9) + xi;
+        if (intersect) inside = !inside;
+      }
+      return inside;
+    };
+
+    const hitPoly = scored.slice(0, 48).find(({ t }) => pointInPoly(mx, my, t.polygon))?.t;
+    const hit =
+      hitPoly ||
+      (placing
+        ? scored.find(({ t }) => t && !WATER_BIOMES.has(t.biome))?.t
+        : scored[0]?.t) ||
+      scored[0]?.t;
+    if (hit) handleTerritoryPress(hit);
   };
 
   const handleMapPress = (event: GestureResponderEvent) => {
@@ -913,6 +992,58 @@ export default async function WorldMap() {
       return next;
     });
   };
+
+  useEffect(() => {
+    zoomRef.current = zoom;
+  }, [zoom]);
+  useEffect(() => {
+    fitZoomRef.current = fitZoom;
+  }, [fitZoom]);
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    const pane = document.getElementById('states-map-pane');
+    if (!pane) return;
+
+    const clampZoom = (z: number) => Math.min(MAX_ZOOM, Math.max(fitZoomRef.current, z));
+    const apply = (z: number) => {
+      userHasZoomed.current = true;
+      setZoom(clampZoom(z));
+    };
+
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const factor = e.deltaY < 0 ? 1.12 : 1 / 1.12;
+      apply(zoomRef.current * factor);
+    };
+
+    let startDist = 0;
+    let startZoom = 1;
+    const touchDist = (a: Touch, b: Touch) => Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+
+    const onTouchStart = (e: TouchEvent) => {
+      if (e.touches.length === 2) {
+        startDist = touchDist(e.touches[0], e.touches[1]);
+        startZoom = zoomRef.current;
+      }
+    };
+    const onTouchMove = (e: TouchEvent) => {
+      if (e.touches.length === 2 && startDist > 8) {
+        e.preventDefault();
+        apply(startZoom * (touchDist(e.touches[0], e.touches[1]) / startDist));
+      }
+    };
+
+    pane.style.touchAction = 'pan-x pan-y';
+    pane.addEventListener('wheel', onWheel, { passive: false });
+    pane.addEventListener('touchstart', onTouchStart, { passive: true });
+    pane.addEventListener('touchmove', onTouchMove, { passive: false });
+    return () => {
+      pane.removeEventListener('wheel', onWheel);
+      pane.removeEventListener('touchstart', onTouchStart);
+      pane.removeEventListener('touchmove', onTouchMove);
+    };
+  }, [loading]);
 
   const onMapViewportLayout = (event: LayoutChangeEvent) => {
     const { width, height } = event.nativeEvent.layout;
@@ -956,14 +1087,31 @@ export default async function WorldMap() {
       await glassAlert({ title: 'Cannot found here', message: err });
       return;
     }
+    const ok = await glassConfirm({
+      title: 'Found a city here?',
+      message: `${territory.biome.replace(/_/g, ' ')} — it will pull nearby land toward you.`,
+    });
+    if (!ok) return;
     placingBusy.current = true;
-    await glassAlert({ title: String('Found a city here?'), message: `${territory.biome.replace(/_/g, ' ')} — it will pull nearby land toward you.` });
+    try {
+      const res = await api.addCity(playerId, territory.col, territory.row);
+      const cities = res?.cities || [...(mine?.cities || []), { col: territory.col, row: territory.row }];
+      saveNation({ ...nation, cities });
+      setFoundingCity(false);
+      await loadMap();
+    } catch (e: any) {
+      await glassAlert({ title: 'Could not found city', message: e?.message || 'Try another tile.' });
+    } finally {
+      placingBusy.current = false;
+    }
   };
 
   const confirmCapital = async (territory: Territory) => {
     if (placingBusy.current) return;
     if (WATER_BIOMES.has(territory.biome)) {
+      setPlaceConfirm(null);
       setPlaceError('That tile is water. Tap land.');
+      pulseRing.current?.stop();
       return;
     }
     if (territory.ownerId) {
@@ -972,6 +1120,15 @@ export default async function WorldMap() {
     }
     setPlaceError(null);
     setPlaceConfirm(territory);
+    // Start pulsing
+    pulseRing.current?.stop();
+    pulseRing.current = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, { toValue: 0.8, duration: 600, useNativeDriver: false }),
+        Animated.timing(pulseAnim, { toValue: 0.4, duration: 600, useNativeDriver: false }),
+      ]),
+    );
+    pulseRing.current.start();
   };
 
   const commitCapital = async (territory: Territory) => {
@@ -1053,7 +1210,7 @@ export default async function WorldMap() {
     return (
       <ScreenCanvas>
         <View style={styles.loadingContainer}>
-          <StatusDots status={loadingStatus} color={tint} />
+          <StatusDots status={loadingStatus} color={tint} cover="viewport" />
         </View>
       </ScreenCanvas>
     );
@@ -1202,16 +1359,19 @@ export default async function WorldMap() {
         </TouchableOpacity>
       </View>
 
-      <View style={{ flex: 1 }} onLayout={onMapViewportLayout}>
+      <View
+        nativeID="states-map-pane"
+        style={{ flex: 1, ...(typeof document !== 'undefined' ? { touchAction: 'pan-x pan-y' } : null) } as any}
+        onLayout={onMapViewportLayout}
+      >
       <ScrollView
         ref={horizontalScrollRef}
         horizontal
+        nestedScrollEnabled
         style={{ flex: 1 }}
         contentContainerStyle={{
           minWidth: mapWidth * zoom * 3,
-          minHeight: Math.max(viewport.h, mapHeight * zoom),
-          justifyContent: 'center',
-          alignItems: 'flex-start',
+          height: Math.max(viewport.h, 1),
         }}
         showsHorizontalScrollIndicator={true}
         onScroll={(e) => {
@@ -1228,11 +1388,11 @@ export default async function WorldMap() {
       >
         <ScrollView
           ref={verticalScrollRef}
-          style={{ flex: 1 }}
+          nestedScrollEnabled
+          style={{ height: Math.max(viewport.h, 1), width: mapWidth * zoom * 3 }}
           contentContainerStyle={{
-            minHeight: Math.max(viewport.h, mapHeight * zoom),
-            justifyContent: 'center',
-            alignItems: 'center',
+            minHeight: mapHeight * zoom,
+            width: mapWidth * zoom * 3,
           }}
           showsVerticalScrollIndicator={true}
         >
@@ -1287,6 +1447,18 @@ export default async function WorldMap() {
                 </SvgText>
               );
             })}
+            {/* Pulsing highlight on selected capital tile */}
+            {placeConfirm && (
+              <AnimatedCircle
+                cx={placeConfirm.x * zoom}
+                cy={placeConfirm.y * zoom}
+                r={Math.max(CELL_SCALE * zoom * 3, 12)}
+                fill="none"
+                stroke={tint}
+                strokeWidth={3}
+                opacity={pulseAnim}
+              />
+            )}
             {/* Nation territory discs - make territories visible at global zoom */}
             {nationClusters.map((cluster) => {
               const centerTerritory = territories.find(
@@ -1444,13 +1616,13 @@ export default async function WorldMap() {
               <View style={styles.placeRow}>
                 <TouchableOpacity
                   style={styles.placeCancel}
-                  onPress={async () => { setPlaceConfirm(null); setPlaceError(null); }}
+                  onPress={async () => { setPlaceConfirm(null); setPlaceError(null); pulseRing.current?.stop(); }}
                 >
                   <Text style={styles.placeCancelText}>Cancel</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.placeGo, { backgroundColor: tint }]}
-                  onPress={() => void commitCapital(placeConfirm)}
+                  onPress={() => { pulseRing.current?.stop(); void commitCapital(placeConfirm); }}
                 >
                   <Text style={styles.placeGoText}>Found here</Text>
                 </TouchableOpacity>
@@ -1471,10 +1643,10 @@ export default async function WorldMap() {
                   {nationClusters.some((c) =>
                     c.nationId === selectedTerritory.ownerId &&
                     Math.hypot(wrapDx(selectedTerritory.col - c.capitalCol), selectedTerritory.row - c.capitalRow) < 2.4
-                  ) ? '  ★ Capital' : nationClusters.some((c) =>
+                  ) ? '  Capital' : nationClusters.some((c) =>
                     c.nationId === selectedTerritory.ownerId &&
                     (c.cities || []).some((city) => Math.hypot(wrapDx(selectedTerritory.col - city.col), selectedTerritory.row - city.row) < 2.2)
-                  ) ? '  ✦ City' : ''}
+                  ) ? '  City' : ''}
                 </Text>
                 <Text style={styles.infoCoords}>
                   ({selectedTerritory.col}, {selectedTerritory.row})

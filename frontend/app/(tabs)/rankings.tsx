@@ -5,7 +5,6 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  ActivityIndicator,
   RefreshControl,
   Image,
 } from 'react-native';
@@ -23,6 +22,7 @@ import LiquidGlass from '../../components/LiquidGlass';
 import FadeUp from '../../components/FadeUp';
 import { glassAlert, glassConfirm } from '../../components/GlassModal';
 import { LeaderboardPodium, LeaderboardList } from '../../components/LeaderboardPodium';
+import StatusDots from '../../components/StatusDots';
 
 interface AllyInfo {
   ally_id: string;
@@ -187,7 +187,7 @@ export default function Rankings() {
     console.log('War button clicked!', defenderId, defenderName);
     
     // Direct confirmation without complex alert
-    await glassAlert({ title: '⚔️ Declare War?', message: `Attack ${defenderName}? Choose reason:` });
+    await glassAlert({ title: 'Declare War?', message: `Attack ${defenderName}? Choose reason:` });
   };
 
   const confirmWar = async (defenderId: string, defenderName: string, casusBelli: string) => {
@@ -202,13 +202,6 @@ export default function Rankings() {
     } catch (error: any) {
       await glassAlert({ title: 'Error', message: error.message || 'Failed to declare war' });
     }
-  };
-
-  const getMedalEmoji = (rank: number) => {
-    if (rank === 1) return '🥇';
-    if (rank === 2) return '🥈';
-    if (rank === 3) return '🥉';
-    return `#${rank}`;
   };
 
   const renderFlag = (flagBase64: string | null | undefined) => {
@@ -279,9 +272,8 @@ export default function Rankings() {
       </View>
 
       {loading ? (
-        <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color={themeColor} />
-          <Text style={styles.loadingText}>Loading rankings...</Text>
+        <View style={styles.loaderFill}>
+          <StatusDots status="Loading" color={themeColor} pattern="carve" />
         </View>
       ) : (
         <ScrollView style={{flex:1}} contentContainerStyle={{flexGrow:1, paddingBottom:80}}
@@ -289,6 +281,7 @@ export default function Rankings() {
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={themeColor} />
           }
         >
+          <FadeUp key={`rankings-${visit}-${viewMode}-${selectedCategory}`}>
           {/* Podium for top 3 */}
           <LeaderboardPodium
             entries={rankings.slice(0, 3).map((entry: any) => ({
@@ -324,6 +317,7 @@ export default function Rankings() {
             themeColor={themeColor}
             onEntryPress={(nid) => router.push(`/compare?nationId=${nid}`)}
           />
+          </FadeUp>
         </ScrollView>
       )}
       </View>
@@ -467,6 +461,11 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  loaderFill: {
+    flex: 1,
+    position: 'relative',
+    overflow: 'hidden',
   },
   loadingText: {
     marginTop: 16,

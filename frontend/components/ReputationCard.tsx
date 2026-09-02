@@ -4,10 +4,10 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { api } from '../utils/api';
+import StatusDots from './StatusDots';
 
 interface ReputationEvent {
   id: string;
@@ -87,7 +87,7 @@ export const ReputationCard: React.FC<ReputationCardProps> = ({
   if (loading) {
     return (
       <View style={[styles.container, compact && styles.containerCompact]}>
-        <ActivityIndicator size="small" color={themeColor} />
+        <StatusDots status="Loading" color={themeColor} compact />
       </View>
     );
   }

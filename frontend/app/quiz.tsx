@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
-  ActivityIndicator,
   Modal,
 } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -14,22 +13,19 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { api } from '../utils/api';
 import { useNationStore } from '../store/nationStore';
-import { QuizQuestion, QuizAnswer } from '../types';
+import { useAccountStore } from '../store/accountStore';
+import { QuizQuestion, QuizAnswer, WheelResult } from '../types';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import FlagCreator from '../components/FlagCreator';
 import { Ionicons } from '@expo/vector-icons';
 import { glassAlert, glassConfirm } from '../components/GlassModal';
+import StatusDots from '../components/StatusDots';
+import { shortNameError } from '../utils/nationName';
 
-interface Race {
-  id: string;
-  name: string;
-  description: string;
-  lore?: string;
-}
-
-export default async function Quiz() {
+export default function Quiz() {
   const router = useRouter();
   const { setNation, saveNation } = useNationStore();
+  const { user, token, loadSession } = useAccountStore();
   
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [currentQuestion, setCurrentQuestion] = useState(0);
@@ -39,19 +35,29 @@ export default async function Quiz() {
   const [currency, setCurrency] = useState('Credits');
   const [nationalAnimal, setNationalAnimal] = useState('Eagle');
   const [flagBase64, setFlagBase64] = useState('');
+  const [wheelResult, setWheelResult] = useState<WheelResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [showRaceSelection, setShowRaceSelection] = useState(false);
   const [showFinalForm, setShowFinalForm] = useState(false);
   const [showFlagCreator, setShowFlagCreator] = useState(false);
-  
-  // Race selection state
-  const [races, setRaces] = useState<Race[]>([]);
-  const [selectedRace, setSelectedRace] = useState<string>('human');
-  const [loadingRaces, setLoadingRaces] = useState(false);
 
   useEffect(() => {
-    loadQuiz();
+    (async () => {
+      await loadSession();
+      const session = useAccountStore.getState();
+      if (!session.token || !session.user?.id) {
+        router.replace('/signin');
+        return;
+      }
+      // The wheels come first — read the rolled government from the wheels screen.
+      const rawWheel = await AsyncStorage.getItem('pending_wheel_result');
+      if (rawWheel) {
+        try {
+          setWheelResult(JSON.parse(rawWheel));
+        } catch (_) {}
+      }
+      loadQuiz();
+    })();
   }, []);
 
   const loadQuiz = async () => {
@@ -65,25 +71,6 @@ export default async function Quiz() {
     }
   };
 
-  const loadRaces = async () => {
-    setLoadingRaces(true);
-    try {
-      const response = await api.getRaces();
-      if (response.success && response.races) {
-        setRaces(response.races);
-        if (response.races.length > 0) {
-          setSelectedRace(response.races[0].id);
-        }
-      }
-    } catch (error) {
-      console.error('Error loading races:', error);
-      // Fallback to human if races can't be loaded
-      setRaces([{ id: 'human', name: 'Human', description: 'Adaptable and ambitious.' }]);
-    } finally {
-      setLoadingRaces(false);
-    }
-  };
-
   const handleAnswer = (answerIndex: number) => {
     const newAnswers = [
       ...answers,
@@ -94,20 +81,19 @@ export default async function Quiz() {
     if (currentQuestion < questions.length - 1) {
       setCurrentQuestion(currentQuestion + 1);
     } else {
-      // Show race selection after quiz
-      setShowRaceSelection(true);
-      loadRaces();
+      // Quiz done → nation name + flag form. Race is chosen on a later screen.
+      setShowFinalForm(true);
     }
-  };
-
-  const handleRaceSelected = () => {
-    setShowRaceSelection(false);
-    setShowFinalForm(true);
   };
 
   const submitQuiz = async () => {
     if (!nationName.trim()) {
       await glassAlert({ title: 'Required', message: 'Please enter a nation name' });
+      return;
+    }
+    const nameErr = shortNameError(nationName);
+    if (nameErr) {
+      await glassAlert({ title: 'Short name only', message: nameErr });
       return;
     }
 
@@ -119,26 +105,34 @@ export default async function Quiz() {
     setSubmitting(true);
     
     try {
-      // Generate unique user ID
-      const userId = 'user_' + Date.now() + '_' + Math.random().toString(36).substring(7);
+      await loadSession();
+      const account = useAccountStore.getState().user;
+      if (!account?.id) {
+        await glassAlert({ title: 'Sign in required', message: 'Create an account before founding a nation.' });
+        router.replace('/signin');
+        setSubmitting(false);
+        return;
+      }
+      const userId = account.id;
       const selectedWorldId = await AsyncStorage.getItem('selected_world_id');
       const quizResult = {
         answers,
-        nation_name: nationName,
+        nation_name: nationName.trim(),
         motto: motto || undefined,
         flag_base64: flagBase64 || undefined,
         currency: currency || 'Credits',
         national_animal: nationalAnimal || 'Eagle',
+        ...(wheelResult ? { wheel_result: wheelResult } : {}),
       };
       await AsyncStorage.setItem('pending_nation', JSON.stringify({
         userId,
         quizResult,
-        race: selectedRace,
         worldId: selectedWorldId || undefined,
       }));
-      router.replace('/world-map?place=1');
+      await AsyncStorage.removeItem('pending_wheel_result');
+      router.replace('/race');
     } catch (error: any) {
-      console.error('Error creating nation:', error);
+      console.error('Error saving quiz:', error);
       await glassAlert({ title: 'Error', message: `Failed to start founding: ${error.message || 'Unknown error'}` });
       setSubmitting(false);
     }
@@ -148,79 +142,13 @@ export default async function Quiz() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#00E0C7" />
+        <StatusDots status="Loading" color="#00E0C7" />
         <Text style={styles.loadingText}>Loading quiz...</Text>
       </View>
     );
   }
 
-  // Race Selection Screen
-  if (showRaceSelection) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <LinearGradient colors={['#0B0F14', '#11171F']} style={styles.gradient}>
-          <ScrollView contentContainerStyle={styles.scrollContent}>
-            <Text style={styles.title}>Choose Your Species</Text>
-            <Text style={styles.subtitle}>Select the race for your nation</Text>
-            
-            {loadingRaces ? (
-              <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#00E0C7" />
-                <Text style={styles.loadingText}>Loading races...</Text>
-              </View>
-            ) : (
-              <View style={styles.raceContainer}>
-                {races.map((race) => (
-                  <TouchableOpacity
-                    key={race.id}
-                    style={[
-                      styles.raceCard,
-                      selectedRace === race.id && styles.raceCardSelected
-                    ]}
-                    onPress={() => setSelectedRace(race.id)}
-                  >
-                    <View style={styles.raceHeader}>
-                      <View style={styles.raceIconContainer}>
-                        <Ionicons 
-                          name={race.id === 'human' ? 'person' : 'bug'} 
-                          size={32} 
-                          color={selectedRace === race.id ? '#00E0C7' : 'rgba(243,246,250,0.48)'} 
-                        />
-                      </View>
-                      <View style={styles.raceTitleContainer}>
-                        <Text style={[
-                          styles.raceName,
-                          selectedRace === race.id && styles.raceNameSelected
-                        ]}>
-                          {race.name}
-                        </Text>
-                        {selectedRace === race.id && (
-                          <Ionicons name="checkmark-circle" size={20} color="#00E0C7" />
-                        )}
-                      </View>
-                    </View>
-                    <Text style={styles.raceDescription}>{race.description}</Text>
-                    {race.lore && (
-                      <Text style={styles.raceLore}>{race.lore}</Text>
-                    )}
-                  </TouchableOpacity>
-                ))}
-                
-                <TouchableOpacity
-                  style={styles.continueButton}
-                  onPress={handleRaceSelected}
-                >
-                  <Text style={styles.continueButtonText}>Continue</Text>
-                  <Ionicons name="arrow-forward" size={20} color="#FFF" />
-                </TouchableOpacity>
-              </View>
-            )}
-          </ScrollView>
-        </LinearGradient>
-      </SafeAreaView>
-    );
-  }
-
+  // Race selection moved to a dedicated /race screen (after the quiz).
   if (showFinalForm) {
     return (
       <SafeAreaView style={styles.container}>
@@ -230,7 +158,7 @@ export default async function Quiz() {
             
             {submitting && (
               <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#00E0C7" />
+                <StatusDots status="Loading" color="#00E0C7" />
                 <Text style={styles.loadingText}>Creating your nation...</Text>
                 <Text style={styles.loadingSubtext}>This may take 15-20 seconds</Text>
               </View>
@@ -238,14 +166,18 @@ export default async function Quiz() {
             
             {!submitting && (
               <View style={styles.formContainer}>
-                <Text style={styles.label}>Nation Name *</Text>
+                <Text style={styles.label}>Short name *</Text>
                 <TextInput
                   style={styles.input}
                   value={nationName}
                   onChangeText={setNationName}
-                  placeholder="The United Republic of..."
+                  placeholder="Sigracia"
                   placeholderTextColor="rgba(243,246,250,0.48)"
+                  maxLength={32}
                 />
+                <Text style={styles.hint}>
+                  Place name only — Germany, not The Federal Republic of Germany. Wheels add the title.
+                </Text>
 
                 <Text style={styles.label}>National Motto (Optional)</Text>
                 <TextInput
@@ -280,7 +212,7 @@ export default async function Quiz() {
                   onPress={() => setShowFlagCreator(true)}
                 >
                   <Text style={styles.flagButtonText}>
-                    {flagBase64 ? '✓ Flag Designed' : '🏁 Design Your Flag'}
+                    {flagBase64 ? 'Flag designed' : 'Design your flag'}
                   </Text>
                 </TouchableOpacity>
 
@@ -313,7 +245,6 @@ export default async function Quiz() {
                     setFlagBase64(flag);
                     setShowFlagCreator(false);
                   }}
-                  race={selectedRace}
                 />
               </View>
             </Modal>
@@ -452,6 +383,13 @@ const styles = StyleSheet.create({
     padding: 16,
     fontSize: 16,
     color: '#F3F6FA',
+  },
+  hint: {
+    color: 'rgba(243,246,250,0.55)',
+    fontSize: 13,
+    lineHeight: 18,
+    marginTop: -4,
+    marginBottom: 8,
   },
   flagButton: {
     backgroundColor: 'rgba(255,255,255,0.08)',

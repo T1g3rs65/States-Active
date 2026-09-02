@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   RefreshControl,
   Dimensions,
-  ActivityIndicator,
 } from 'react-native';
 import { useRouter , useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -22,6 +21,7 @@ import ScreenCanvas from '../../components/ScreenCanvas';
 import FadeUp from '../../components/FadeUp';
 import EmptyNation from '../../components/EmptyNation';
 import { LeaderboardPodium, LeaderboardList } from '../../components/LeaderboardPodium';
+import StatusDots from '../../components/StatusDots';
 import {
   RESOURCES,
   RESOURCE_BY_ID,
@@ -31,6 +31,7 @@ import {
   NationIndustryStats,
   ResourceDefinition,
 } from '../../utils/resources';
+import { industryExtractMult } from '../../utils/wheelFriction';
 
 export default function Industry() {
   const router = useRouter();
@@ -113,7 +114,12 @@ export default function Industry() {
         gdp: nation.stats?.gdp || 50
       };
       
-      const stats = calculateIndustryStats(resourceCounts, totalTiles, nationStats);
+      const stats = calculateIndustryStats(
+        resourceCounts,
+        totalTiles,
+        nationStats,
+        industryExtractMult(nation),
+      );
       setIndustryStats(stats);
 
       // Load leaderboard data
@@ -408,9 +414,8 @@ export default function Industry() {
   if (loading) {
     return (
       <View style={styles.container}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={themeColor} />
-          <Text style={styles.loadingText}>Loading industry data...</Text>
+        <View style={styles.loaderFill}>
+          <StatusDots status="Loading" color={themeColor} pattern="carve" />
         </View>
       </View>
     );
@@ -454,6 +459,7 @@ export default function Industry() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#00E0C7" />
         }
       >
+        <FadeUp key={`industry-${visit}-${selectedTab}`}>
         {selectedTab === 'overview' && renderOverview()}
         {selectedTab === 'resources' && renderResources()}
         {selectedTab === 'leaderboard' && renderLeaderboard()}
@@ -477,6 +483,7 @@ export default function Industry() {
             </View>
           </View>
         )}
+        </FadeUp>
 
         <View style={{ height: 100 }} />
       </ScrollView>
@@ -564,6 +571,11 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  loaderFill: {
+    flex: 1,
+    position: 'relative',
+    overflow: 'hidden',
   },
   loadingText: {
     color: colors.text.secondary,

@@ -6,23 +6,21 @@ import {
   TouchableOpacity,
   ScrollView,
   TextInput,
-  ActivityIndicator,
   Switch,
   Modal,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { api } from '../utils/api';
 import { useNationStore } from '../store/nationStore';
 import { getRaceTheme } from '../utils/raceColors';
 import { leaningColor } from '../utils/politicalCompass';
+import ScreenHeader from '../components/ScreenHeader';
+import ScreenCanvas from '../components/ScreenCanvas';
+import LiquidGlass from '../components/LiquidGlass';
 import { glassAlert, glassConfirm } from '../components/GlassModal';
-
-const ALLIANCE_COLORS = [
-  '#00E0C7', '#FF5A65', '#27D17A', '#F2C94C', '#00E0C7', 
-  '#00B8B8', '#00E0C7', '#F97316', '#6366F1', '#84CC16'
-];
+import RgbColorPicker from '../components/RgbColorPicker';
+import StatusDots, { ButtonBusy } from '../components/StatusDots';
 
 const AVAILABLE_RACES = ['human', 'zythera'];
 
@@ -49,7 +47,7 @@ const IDEOLOGY_QUADRANTS = [
   { id: 'minarchist', name: 'Minarchist', color: '#EAB308', description: 'Free Market Capitalist' },
 ];
 
-export default async function FactionSettingsScreen() {
+export default function FactionSettingsScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const allianceId = params.id as string;
@@ -69,7 +67,7 @@ export default async function FactionSettingsScreen() {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [motto, setMotto] = useState('');
-  const [color, setColor] = useState('#00E0C7');
+  const [color, setColor] = useState('#2EE6C5');
   const [isPublic, setIsPublic] = useState(true);
   const [requiresApproval, setRequiresApproval] = useState(true);
   const [minReputation, setMinReputation] = useState('0');
@@ -109,7 +107,7 @@ export default async function FactionSettingsScreen() {
         setName(a.name || '');
         setDescription(a.description || '');
         setMotto(a.motto || '');
-        setColor(a.color || '#00E0C7');
+        setColor(a.color || '#2EE6C5');
         setIsPublic(a.is_public ?? true);
         setRequiresApproval(a.requires_approval ?? true);
         setMinReputation(String(a.min_reputation || 0));
@@ -255,48 +253,46 @@ export default async function FactionSettingsScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <ScreenCanvas>
+      <View style={styles.container}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={themeColor} />
+          <StatusDots status="Loading" color={themeColor} />
           <Text style={styles.loadingText}>Loading faction settings...</Text>
         </View>
-      </SafeAreaView>
+      </View>
+      </ScreenCanvas>
     );
   }
 
   if (!alliance || !canEdit) {
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color={themeColor} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Faction Settings</Text>
-          <View style={{ width: 40 }} />
-        </View>
+      <ScreenCanvas>
+      <View style={styles.container}>
+        <ScreenHeader title="Faction Settings" onBack={() => router.back()} />
         <View style={styles.errorContainer}>
           <Ionicons name="lock-closed" size={48} color="rgba(243,246,250,0.48)" />
           <Text style={styles.errorText}>You{'\u2019'} don{'\u2019'}t have permission to edit this faction</Text>
         </View>
-      </SafeAreaView>
+      </View>
+      </ScreenCanvas>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={themeColor} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Faction Settings</Text>
-        <TouchableOpacity onPress={handleSave} disabled={saving}>
-          {saving ? (
-            <ActivityIndicator size="small" color={themeColor} />
-          ) : (
-            <Text style={[styles.saveButton, { color: themeColor }]}>Save</Text>
-          )}
-        </TouchableOpacity>
-      </View>
+    <ScreenCanvas>
+    <View style={styles.container}>
+      <ScreenHeader
+        title="Faction Settings"
+        subtitle="Blocs and vassals"
+        onBack={() => router.back()}
+        right={
+          <TouchableOpacity onPress={handleSave} disabled={saving} style={{ overflow: 'hidden', borderRadius: 8, paddingVertical: 8, paddingHorizontal: 12 }}>
+            <ButtonBusy busy={saving} color={themeColor}>
+              <Text style={[styles.saveButton, { color: themeColor }]}>Save</Text>
+            </ButtonBusy>
+          </TouchableOpacity>
+        }
+      />
 
       <ScrollView style={styles.content}>
         {/* Basic Info */}
@@ -335,20 +331,7 @@ export default async function FactionSettingsScreen() {
             maxLength={50}
           />
           
-          <Text style={styles.inputLabel}>Color</Text>
-          <View style={styles.colorPicker}>
-            {ALLIANCE_COLORS.map(c => (
-              <TouchableOpacity
-                key={c}
-                style={[
-                  styles.colorOption,
-                  { backgroundColor: c },
-                  color === c && styles.colorOptionSelected
-                ]}
-                onPress={() => setColor(c)}
-              />
-            ))}
-          </View>
+          <RgbColorPicker label="Color" value={color} onChange={setColor} />
         </View>
 
         {/* Access Settings */}
@@ -588,16 +571,15 @@ export default async function FactionSettingsScreen() {
                     Full voting rights, can participate in all faction activities
                   </Text>
                 </View>
+                <Ionicons name="chevron-forward" size={20} color="rgba(243,246,250,0.48)" />
                 {processingRequestId === selectedRequest?.id ? (
-                  <ActivityIndicator size="small" color="#27D17A" />
-                ) : (
-                  <Ionicons name="chevron-forward" size={20} color="rgba(243,246,250,0.48)" />
-                )}
+                  <StatusDots status="Loading" color="#27D17A" fill />
+                ) : null}
               </TouchableOpacity>
               
               {/* Vassal Option */}
               <TouchableOpacity
-                style={[styles.roleOption, { borderColor: '#00E0C7' }]}
+                style={[styles.roleOption, { borderColor: '#2EE6C5' }]}
                 onPress={() => processJoinRequest(selectedRequest?.id, true, 'vassal')}
                 disabled={processingRequestId === selectedRequest?.id}
               >
@@ -610,11 +592,10 @@ export default async function FactionSettingsScreen() {
                     Subordinate member. Auto-promotes to full member at 500K population
                   </Text>
                 </View>
+                <Ionicons name="chevron-forward" size={20} color="rgba(243,246,250,0.48)" />
                 {processingRequestId === selectedRequest?.id ? (
-                  <ActivityIndicator size="small" color="#00E0C7" />
-                ) : (
-                  <Ionicons name="chevron-forward" size={20} color="rgba(243,246,250,0.48)" />
-                )}
+                  <StatusDots status="Loading" color="#00E0C7" fill />
+                ) : null}
               </TouchableOpacity>
             </View>
             
@@ -630,7 +611,8 @@ export default async function FactionSettingsScreen() {
           </View>
         </View>
       </Modal>
-    </SafeAreaView>
+    </View>
+    </ScreenCanvas>
   );
 }
 
@@ -646,7 +628,7 @@ const getRoleColor = (role: string) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0B0F14',
+    backgroundColor: 'transparent',
   },
   header: {
     flexDirection: 'row',
@@ -716,7 +698,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   input: {
-    backgroundColor: '#11171F',
+    backgroundColor: 'rgba(255,255,255,0.04)',
     borderRadius: 8,
     padding: 12,
     color: '#F3F6FA',
@@ -775,7 +757,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#11171F',
+    backgroundColor: 'rgba(255,255,255,0.04)',
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderRadius: 8,
@@ -794,7 +776,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: '#11171F',
+    backgroundColor: 'rgba(255,255,255,0.04)',
     paddingHorizontal: 12,
     paddingVertical: 12,
     borderRadius: 8,
@@ -817,7 +799,7 @@ const styles = StyleSheet.create({
   memberRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#11171F',
+    backgroundColor: 'rgba(255,255,255,0.04)',
     padding: 12,
     borderRadius: 8,
     marginBottom: 8,
@@ -845,7 +827,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    backgroundColor: '#0B0F14',
+    backgroundColor: 'transparent',
   },
   youBadge: {
     backgroundColor: 'rgba(255,255,255,0.08)',
@@ -876,7 +858,7 @@ const styles = StyleSheet.create({
     color: '#FFF',
   },
   requestCard: {
-    backgroundColor: '#11171F',
+    backgroundColor: 'rgba(255,255,255,0.04)',
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
@@ -918,7 +900,7 @@ const styles = StyleSheet.create({
   },
   vassalEligibleText: {
     fontSize: 11,
-    color: '#00E0C7',
+    color: '#2EE6C5',
     fontWeight: '500',
   },
   requestMessage: {
@@ -946,7 +928,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     borderColor: '#FF5A65',
-    backgroundColor: '#0B0F14',
+    backgroundColor: 'transparent',
   },
   rejectButtonText: {
     fontSize: 14,
@@ -976,7 +958,7 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   modalContent: {
-    backgroundColor: '#11171F',
+    backgroundColor: 'rgba(255,255,255,0.04)',
     borderRadius: 16,
     padding: 24,
     width: '100%',
@@ -1018,7 +1000,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: '#0B0F14',
+    backgroundColor: 'transparent',
     padding: 16,
     borderRadius: 12,
     borderWidth: 2,
@@ -1027,7 +1009,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#11171F',
+    backgroundColor: 'rgba(255,255,255,0.04)',
     alignItems: 'center',
     justifyContent: 'center',
   },

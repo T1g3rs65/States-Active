@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useNationStore } from '../store/nationStore';
+import { useAccountStore } from '../store/accountStore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import FlagCreator from '../components/FlagCreator';
 import { api } from '../utils/api';
@@ -25,9 +26,10 @@ import ScreenCanvas from '../components/ScreenCanvas';
 import LiquidGlass from '../components/LiquidGlass';
 import { glassAlert, glassConfirm } from '../components/GlassModal';
 
-export default async function Profile() {
+export default function Profile() {
   const router = useRouter();
   const { nation, clearNation, setNation } = useNationStore();
+  const { user, clearSession } = useAccountStore();
   const [userId, setUserId] = useState('');
   const [showFlagCreator, setShowFlagCreator] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
@@ -132,6 +134,24 @@ export default async function Profile() {
     }
   };
 
+  const handleSignOut = async () => {
+    const ok = await glassConfirm({
+      title: 'Sign out?',
+      message: 'This device will forget the session. Your nation and account stay. Sign in again to come back.',
+      confirmText: 'Sign out',
+      cancelText: 'Stay',
+    });
+    if (!ok) return;
+    try {
+      await clearSession();
+      await clearNation();
+      router.replace('/');
+    } catch (error) {
+      console.error('Sign out error:', error);
+      await glassAlert({ title: 'Sign out failed', message: 'Could not clear the session. Try again.' });
+    }
+  };
+
   const handleDeleteNation = async () => {
     const ok = await glassConfirm({
       title: 'Delete nation?',
@@ -177,15 +197,17 @@ export default async function Profile() {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>User ID</Text>
+          <Text style={styles.sectionTitle}>Account</Text>
           <LiquidGlass radius={22} style={styles.userIdCard}>
-            <Text style={styles.userIdLabel}>Your User ID:</Text>
-            <Text style={styles.userId}>{userId || 'Not available'}</Text>
-            <Text style={styles.userIdNote}>Save this to login from other devices</Text>
-            <TouchableOpacity style={[styles.copyButton, { backgroundColor: themeColor }]} onPress={copyUserId}>
-              <Text style={[styles.copyButtonText, { color: '#000' }]}>View ID</Text>
-            </TouchableOpacity>
+            <Text style={styles.userIdLabel}>Signed in as</Text>
+            <Text style={styles.userId}>{user?.email || 'Account'}</Text>
+            <Text style={styles.userIdNote}>Use Sign in / Create account on another device.</Text>
           </LiquidGlass>
+          <TouchableOpacity style={styles.settingButton} onPress={handleSignOut}>
+            <Ionicons name="log-out-outline" size={24} color={themeColor} />
+            <Text style={styles.settingButtonText}>Sign out</Text>
+            <Ionicons name="chevron-forward" size={20} color="rgba(243,246,250,0.48)" />
+          </TouchableOpacity>
         </View>
 
         {/* Reputation Section */}
@@ -213,28 +235,6 @@ export default async function Profile() {
           }}>
             <Ionicons name="create-outline" size={24} color={themeColor} />
             <Text style={styles.settingButtonText}>Edit Currency & Animal</Text>
-            <Ionicons name="chevron-forward" size={20} color="rgba(243,246,250,0.48)" />
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Multiplayer</Text>
-          
-          <TouchableOpacity style={styles.settingButton} onPress={() => router.push('/faction-browser')}>
-            <Ionicons name="people" size={24} color="#00E0C7" />
-            <Text style={styles.settingButtonText}>Factions</Text>
-            <Ionicons name="chevron-forward" size={20} color="rgba(243,246,250,0.48)" />
-          </TouchableOpacity>
-          
-          <TouchableOpacity style={styles.settingButton} onPress={() => router.push('/world-news')}>
-            <Ionicons name="newspaper" size={24} color="#F2C94C" />
-            <Text style={styles.settingButtonText}>World News & Voting</Text>
-            <Ionicons name="chevron-forward" size={20} color="rgba(243,246,250,0.48)" />
-          </TouchableOpacity>
-          
-          <TouchableOpacity style={styles.settingButton} onPress={() => router.push('/servers')}>
-            <Ionicons name="globe" size={24} color="#27D17A" />
-            <Text style={styles.settingButtonText}>Server Browser</Text>
             <Ionicons name="chevron-forward" size={20} color="rgba(243,246,250,0.48)" />
           </TouchableOpacity>
         </View>

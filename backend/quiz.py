@@ -2,7 +2,7 @@
 
 from typing import List, Dict
 from models import QuizAnswer, NationStats, GovernmentType
-from stats_config import classify_government
+from stats_config import classify_government, STAT_DEFINITIONS
 
 # The 15-question quiz (inspired by NationStates, Political Compass, 8values)
 QUIZ_QUESTIONS = [
@@ -271,16 +271,12 @@ def calculate_starting_stats(answers: List[QuizAnswer]) -> NationStats:
                 if hasattr(stats, stat_name):
                     current_value = getattr(stats, stat_name)
                     new_value = current_value + change
-                    
-                    # Clamp values to reasonable ranges
-                    if stat_name == "gini_coefficient":
+                    spec = STAT_DEFINITIONS.get(stat_name)
+                    if spec:
+                        new_value = max(spec["min"], min(spec["max"], new_value))
+                    elif stat_name == "gini_coefficient":
                         new_value = max(0.2, min(0.7, new_value))
-                    elif stat_name in ["life_expectancy"]:
-                        new_value = max(40, min(100, new_value))
-                    elif stat_name in ["literacy_rate", "population"]:
-                        new_value = max(0, min(100, new_value))
                     else:
-                        # Most stats are 0-100
                         new_value = max(0, min(100, new_value))
                     
                     setattr(stats, stat_name, new_value)

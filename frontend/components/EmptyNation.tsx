@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import ScreenCanvas from './ScreenCanvas';
 import LiquidGlass from './LiquidGlass';
+import StatusDots from './StatusDots';
 import { useNationStore } from '../store/nationStore';
 import { leaningColor } from '../utils/politicalCompass';
 import { TabChrome } from './ScreenHeader';
@@ -63,14 +64,11 @@ export default function EmptyNation({
               disabled={busy}
               activeOpacity={0.85}
             >
-              {busy ? (
-                <ActivityIndicator color="#000" />
-              ) : (
-                <>
-                  <Ionicons name="refresh" size={18} color="#000" style={{ marginRight: 8 }} />
-                  <Text style={styles.primaryText}>Reload nation</Text>
-                </>
-              )}
+              <View style={{ flexDirection: 'row', alignItems: 'center', opacity: busy ? 0 : 1 }}>
+                <Ionicons name="refresh" size={18} color="#000" style={{ marginRight: 8 }} />
+                <Text style={styles.primaryText}>Reload nation</Text>
+              </View>
+              {busy ? <StatusDots status="Loading" color="#081014" fill /> : null}
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -139,6 +137,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 22,
     borderRadius: 999,
     marginBottom: 12,
+    overflow: 'hidden',
   },
   primaryText: {
     color: '#000',

@@ -18,6 +18,8 @@ import { colors, typography, spacing, radii } from '../../utils/theme';
 import { getNationSizeClass } from '../../utils/nationSize';
 import { getPoliticalCompassTheme, leaningColor, leaningWash, mixIntoDark } from '../../utils/politicalCompass';
 import { getRaceTheme } from '../../utils/raceColors';
+import { statCauses } from '../../utils/statCauses';
+import { glassAlert } from '../../components/GlassModal';
 import { TabChrome } from '../../components/ScreenHeader';
 import ScreenCanvas from '../../components/ScreenCanvas';
 import GradientBorder from '../../components/GradientBorder';
@@ -136,7 +138,6 @@ export default function Overview() {
     science: [
       { key: 'scientific_advancement', label: 'Science', value: stats.scientific_advancement, unit: '/100' },
       { key: 'university_attendance', label: 'University', value: stats.university_attendance, unit: '%' },
-      { key: 'science_literacy', label: 'Literacy', value: stats.literacy_rate, unit: '%' },
       { key: 'budget_education', label: 'Education Budget', value: stats.budget_education, unit: '%' },
     ],
     budget: [
@@ -150,6 +151,7 @@ export default function Overview() {
     ],
     finance: [
       { key: 'tax_rate', label: 'Tax Rate', value: stats.tax_rate, unit: '%' },
+      { key: 'tax_revenue', label: 'Tax Take', value: stats.tax_revenue ?? stats.tax_rate * 0.7, unit: '% GDP' },
       { key: 'national_debt', label: 'National Debt', value: stats.national_debt, unit: '% GDP' },
       { key: 'income_equality', label: 'Income Equality', value: stats.income_equality, unit: '/100' },
       { key: 'gini_coefficient', label: 'Gini Coefficient', value: stats.gini_coefficient, unit: '' },
@@ -172,19 +174,27 @@ export default function Overview() {
     });
   };
 
-  const renderStatCard = (stat, statKey, index) => (
+  const renderStatCard = (stat, statKey, index) => {
+    const causes = statCauses(stat.key, stats);
+    return (
     <TouchableOpacity 
       key={`${stat.key}_${index}`} 
       style={styles.allStatCard}
       onPress={() => navigateToStatDetail(statKey, stat.label)}
+      onLongPress={() => {
+        if (causes.length) glassAlert({ title: stat.label, message: causes.join('\n') });
+      }}
     >
       <Text style={styles.allStatLabel}>{stat.label}</Text>
       <Text style={[styles.allStatValue, { color: themeColor }]}>
         {stat.isRealistic ? stat.value : `${stat.value.toFixed(1)}${stat.unit}`}
       </Text>
-      <Text style={styles.allStatHint}>Tap for graph</Text>
+      <Text style={styles.allStatHint} numberOfLines={2}>
+        {causes[0] || 'Tap for graph'}
+      </Text>
     </TouchableOpacity>
-  );
+    );
+  };
 
   const renderFlag = () => {
     if (!nation.flag_base64) return null;

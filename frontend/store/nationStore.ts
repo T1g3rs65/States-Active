@@ -89,17 +89,13 @@ export const useNationStore = create<NationStore>((set, get) => ({
   // GH-90: recover nation on deep link / hard refresh when store is empty
   recoverNation: async () => {
     try {
-      // 1. Try local cache first (fast path)
-      const savedNation = await AsyncStorage.getItem('nation');
-      if (savedNation) {
-        const parsed = JSON.parse(savedNation);
-        if (parsed?.id || parsed?._id) {
-          set({ nation: parsed });
-          return true;
-        }
+      // Never revive a wiped nation from local cache. Account session is required.
+      const token = await AsyncStorage.getItem('auth_token');
+      if (!token) {
+        await AsyncStorage.removeItem('nation');
+        set({ nation: null });
+        return false;
       }
-
-      // 2. Try user_id → API
       let userId = await AsyncStorage.getItem('user_id');
       if (!userId && (globalThis as any).__sh_last_user_id) {
         userId = (globalThis as any).__sh_last_user_id;
@@ -116,6 +112,8 @@ export const useNationStore = create<NationStore>((set, get) => ({
           return true;
         }
       }
+      await AsyncStorage.removeItem('nation');
+      set({ nation: null });
       return false;
     } catch (e) {
       console.error('recoverNation failed:', e);

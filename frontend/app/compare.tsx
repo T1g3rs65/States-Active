@@ -1,320 +1,426 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  ActivityIndicator,
+  Image,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { SvgXml } from 'react-native-svg';
+import { Ionicons } from '@expo/vector-icons';
+import { format } from 'date-fns';
 import { useNationStore } from '../store/nationStore';
 import { api } from '../utils/api';
-import { Ionicons } from '@expo/vector-icons';
-import { getRaceTheme } from '../utils/raceColors';
+import { getRaceTheme, getRaceName } from '../utils/raceColors';
+import { leaningColor } from '../utils/politicalCompass';
+import { govOperatingBlurb } from '../utils/govOperating';
+import { govFrictionRows } from '../utils/wheelFriction';
+import { leaderTitle } from '../utils/governmentTitles';
+import { colors, typography, spacing, radii } from '../utils/theme';
+import ScreenHeader from '../components/ScreenHeader';
+import ScreenCanvas from '../components/ScreenCanvas';
+import LiquidGlass from '../components/LiquidGlass';
+import StatusDots from '../components/StatusDots';
+import EmptyNation from '../components/EmptyNation';
+import { exchangeRate, formatFx, currencyLabel } from '../utils/exchangeRate';
+
+type Tab = 'nation' | 'stats';
+
+const COMPARE_GROUPS: { title: string; keys: { key: string; label: string; inverse?: boolean; money?: boolean; digits?: number; suffix?: string }[] }[] = [
+  {
+    title: 'Economy',
+    keys: [
+      { key: 'gdp', label: 'GDP', money: true },
+      { key: 'economy_growth', label: 'Growth', suffix: '%' },
+      { key: 'unemployment', label: 'Unemployment', inverse: true, suffix: '%' },
+      { key: 'inflation', label: 'Inflation', inverse: true, suffix: '%' },
+    ],
+  },
+  {
+    title: 'Freedoms',
+    keys: [
+      { key: 'civil_rights', label: 'Civil Rights' },
+      { key: 'political_freedom', label: 'Political Freedom' },
+      { key: 'voting_rights', label: 'Voting Rights' },
+      { key: 'freedom_speech', label: 'Free Speech' },
+      { key: 'freedom_press', label: 'Free Press' },
+      { key: 'freedom_assembly', label: 'Assembly' },
+      { key: 'freedom_religion', label: 'Religion' },
+      { key: 'corruption', label: 'Corruption', inverse: true },
+      { key: 'political_apathy', label: 'Apathy', inverse: true },
+    ],
+  },
+  {
+    title: 'Society',
+    keys: [
+      { key: 'happiness', label: 'Happiness' },
+      { key: 'life_expectancy', label: 'Life Expectancy', suffix: ' yrs' },
+      { key: 'obesity_rate', label: 'Obesity', inverse: true, suffix: '%' },
+      { key: 'healthcare_quality', label: 'Healthcare' },
+      { key: 'literacy_rate', label: 'Literacy', suffix: '%' },
+      { key: 'income_equality', label: 'Equality' },
+      { key: 'gini_coefficient', label: 'Gini', inverse: true, digits: 3 },
+    ],
+  },
+  {
+    title: 'Land',
+    keys: [
+      { key: 'environment', label: 'Environment' },
+      { key: 'pollution', label: 'Pollution', inverse: true },
+      { key: 'biodiversity', label: 'Biodiversity' },
+      { key: 'eco_footprint', label: 'Eco Footprint', inverse: true },
+    ],
+  },
+  {
+    title: 'Order',
+    keys: [
+      { key: 'crime_rate', label: 'Crime', inverse: true },
+      { key: 'law_enforcement', label: 'Law' },
+      { key: 'military_strength', label: 'Military' },
+      { key: 'international_approval', label: 'Approval' },
+    ],
+  },
+  {
+    title: 'Science',
+    keys: [
+      { key: 'scientific_advancement', label: 'Science' },
+      { key: 'university_attendance', label: 'University', suffix: '%' },
+    ],
+  },
+  {
+    title: 'People',
+    keys: [
+      { key: 'population', label: 'Population', suffix: 'k', digits: 1 },
+      { key: 'population_growth', label: 'Pop. Growth', suffix: '%' },
+    ],
+  },
+  {
+    title: 'Budget',
+    keys: [
+      { key: 'tax_rate', label: 'Tax Rate', suffix: '%' },
+      { key: 'tax_revenue', label: 'Tax Take', suffix: '% GDP' },
+      { key: 'national_debt', label: 'Debt', suffix: '% GDP' },
+      { key: 'budget_education', label: 'Education', suffix: '%' },
+      { key: 'budget_defense', label: 'Defense', suffix: '%' },
+      { key: 'budget_healthcare', label: 'Health spend', suffix: '%' },
+      { key: 'budget_welfare', label: 'Welfare', suffix: '%' },
+      { key: 'budget_environment', label: 'Green spend', suffix: '%' },
+      { key: 'budget_infrastructure', label: 'Infrastructure', suffix: '%' },
+      { key: 'budget_other', label: 'Other spend', suffix: '%' },
+    ],
+  },
+];
+
+function fmtStat(value: any, digits = 1, suffix = '', money = false) {
+  if (money) return value ?? '—';
+  const n = Number(value);
+  if (!Number.isFinite(n)) return '—';
+  return `${n.toFixed(digits)}${suffix}`;
+}
+
+function Flag({ flag, size = 120 }: { flag?: string | null; size?: number }) {
+  if (!flag) return null;
+  const h = Math.round(size * 0.66);
+  if (flag.includes('svg')) {
+    const b64 = flag.split('base64,')[1];
+    if (!b64) return null;
+    return <SvgXml xml={atob(b64)} width={size} height={h} />;
+  }
+  return <Image source={{ uri: flag }} style={{ width: size, height: h }} resizeMode="contain" />;
+}
 
 export default function Compare() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const { nation: myNation } = useNationStore();
-  
-  const [compareNation, setCompareNation] = useState<any>(null);
+  const [them, setThem] = useState<any>(null);
+  const [policies, setPolicies] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  
+  const [tab, setTab] = useState<Tab>('nation');
+  const [info, setInfo] = useState<string | null>(null);
+
+  const otherId = String(params.nationId || '');
+  const myTint = leaningColor(myNation);
+  const theirTint = leaningColor(them);
+
   useEffect(() => {
-    if (params.nationId) {
-      loadCompareNation(params.nationId as string);
-    }
-  }, [params.nationId]);
-  
-  const loadCompareNation = async (nationId: string) => {
-    try {
-      const response = await api.getNation(nationId);
-      if (response.success) {
-        setCompareNation(response.nation);
+    if (!otherId) return;
+    (async () => {
+      try {
+        const [n, p] = await Promise.all([
+          api.getNation(otherId),
+          api.getPolicies(otherId).catch(() => ({ policies: [] })),
+        ]);
+        if (n.success) setThem(n.nation);
+        setPolicies(p?.policies || []);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error('Error loading nation:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-  if (loading || !myNation || !compareNation) {
+    })();
+  }, [otherId]);
+
+  if (!myNation) return <EmptyNation />;
+  if (loading || !them) {
     return (
-      <View style={styles.container}>
-        <ActivityIndicator size="large" color="#00E0C7" />
-      </View>
+      <ScreenCanvas>
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+          <StatusDots status="Loading" color={myTint} />
+        </View>
+      </ScreenCanvas>
     );
   }
-  
-  const myStats = myNation.stats;
-  const theirStats = compareNation.stats;
-  
-  // Get race-based theme colors for both nations
+
   const myTheme = getRaceTheme(myNation.race);
-  const theirTheme = getRaceTheme(compareNation.race);
-  
-  const comparisonCategories = {
-    economy: [
-      { label: 'GDP', my: myNation.gdp_display, their: compareNation.gdp_display, isRealistic: true },
-      { label: 'Economy Growth', my: myStats.economy_growth, their: theirStats.economy_growth },
-      { label: 'Unemployment', my: myStats.unemployment, their: theirStats.unemployment, inverse: true },
-      { label: 'Inflation', my: myStats.inflation, their: theirStats.inflation, inverse: true },
-      { label: 'Income Equality', my: myStats.income_equality, their: theirStats.income_equality },
-      { label: 'Gini Coefficient', my: myStats.gini_coefficient, their: theirStats.gini_coefficient, inverse: true },
-      { label: 'Tax Rate', my: myStats.tax_rate, their: theirStats.tax_rate },
-      { label: 'National Debt', my: myStats.national_debt, their: theirStats.national_debt, inverse: true },
-    ],
-    civil: [
-      { label: 'Civil Rights', my: myStats.civil_rights, their: theirStats.civil_rights },
-      { label: 'Freedom of Speech', my: myStats.freedom_speech, their: theirStats.freedom_speech },
-      { label: 'Freedom of Press', my: myStats.freedom_press, their: theirStats.freedom_press },
-      { label: 'Freedom of Assembly', my: myStats.freedom_assembly, their: theirStats.freedom_assembly },
-      { label: 'Freedom of Religion', my: myStats.freedom_religion, their: theirStats.freedom_religion },
-      { label: 'Political Freedom', my: myStats.political_freedom, their: theirStats.political_freedom },
-      { label: 'Voting Rights', my: myStats.voting_rights, their: theirStats.voting_rights },
-      { label: 'Corruption', my: myStats.corruption, their: theirStats.corruption, inverse: true },
-      { label: 'Political Apathy', my: myStats.political_apathy, their: theirStats.political_apathy, inverse: true },
-    ],
-    social: [
-      { label: 'Happiness', my: myStats.happiness, their: theirStats.happiness },
-      { label: 'Life Expectancy', my: myStats.life_expectancy, their: theirStats.life_expectancy },
-      { label: 'Healthcare Quality', my: myStats.healthcare_quality, their: theirStats.healthcare_quality },
-      { label: 'Literacy Rate', my: myStats.literacy_rate, their: theirStats.literacy_rate },
-      { label: 'University Attendance', my: myStats.university_attendance, their: theirStats.university_attendance },
-      { label: 'Obesity Rate', my: myStats.obesity_rate, their: theirStats.obesity_rate, inverse: true },
-      { label: 'Crime Rate', my: myStats.crime_rate, their: theirStats.crime_rate, inverse: true },
-      { label: 'Law Enforcement', my: myStats.law_enforcement, their: theirStats.law_enforcement },
-    ],
-    environment: [
-      { label: 'Environment', my: myStats.environment, their: theirStats.environment },
-      { label: 'Pollution', my: myStats.pollution, their: theirStats.pollution, inverse: true },
-      { label: 'Biodiversity', my: myStats.biodiversity, their: theirStats.biodiversity },
-      { label: 'Eco Footprint', my: myStats.eco_footprint, their: theirStats.eco_footprint, inverse: true },
-    ],
-    military: [
-      { label: 'Military Strength', my: myStats.military_strength, their: theirStats.military_strength },
-      { label: 'Defense Budget', my: myStats.budget_defense, their: theirStats.budget_defense },
-    ],
-    science: [
-      { label: 'Scientific Advancement', my: myStats.scientific_advancement, their: theirStats.scientific_advancement },
-    ],
-    demographics: [
-      { label: 'Population', my: myStats.population, their: theirStats.population },
-      { label: 'Population Growth', my: myStats.population_growth, their: theirStats.population_growth },
-    ],
-    budget: [
-      { label: 'Education Budget', my: myStats.budget_education, their: theirStats.budget_education },
-      { label: 'Defense Budget', my: myStats.budget_defense, their: theirStats.budget_defense },
-      { label: 'Healthcare Budget', my: myStats.budget_healthcare, their: theirStats.budget_healthcare },
-      { label: 'Welfare Budget', my: myStats.budget_welfare, their: theirStats.budget_welfare },
-      { label: 'Environment Budget', my: myStats.budget_environment, their: theirStats.budget_environment },
-      { label: 'Infrastructure Budget', my: myStats.budget_infrastructure, their: theirStats.budget_infrastructure },
-      { label: 'Other Budget', my: myStats.budget_other, their: theirStats.budget_other },
-    ],
-    international: [
-      { label: 'International Approval', my: myStats.international_approval, their: theirStats.international_approval },
-      { label: 'Alliance Power', my: myStats.alliance_power, their: theirStats.alliance_power },
-    ],
+  const theirTheme = getRaceTheme(them.race);
+  const myStats: any = myNation.stats || {};
+  const theirStats: any = them.stats || {};
+
+  const showGov = () => {
+    const blurb =
+      govOperatingBlurb(them) ||
+      'No operating brief for this exact mix yet.';
+    const fric = govFrictionRows(them)
+      .map((r) => `${r.label}\n+ ${r.plus}\n− ${r.minus}`)
+      .join('\n\n');
+    setInfo(fric ? `${blurb}\n\n${fric}` : blurb);
   };
-  
+
+  const openGraph = (stat: string, label: string) => {
+    router.push({
+      pathname: '/stat-detail',
+      params: { stat, label, otherId, otherName: them.name },
+    });
+  };
+
+  const created = them.created_at ? new Date(them.created_at) : null;
+  const myCur = currencyLabel(myNation.name, myNation.currency);
+  const theirCur = currencyLabel(them.name, them.currency);
+  const fx = exchangeRate(
+    Number(myStats.gdp ?? 20),
+    Number(myStats.inflation ?? 2),
+    Number(theirStats.gdp ?? 20),
+    Number(theirStats.inflation ?? 2),
+  );
+  const fxLine = `1 ${myCur} ≈ ${formatFx(fx)} ${theirCur}`;
+  const fxRev = `1 ${theirCur} ≈ ${formatFx(fx > 0 ? 1 / fx : 0)} ${myCur}`;
+
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={myTheme.color} />
-        </TouchableOpacity>
-        <Text style={styles.title}>Compare Nations</Text>
-        <View style={{ width: 40 }} />
-      </View>
-      
-      <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.nationHeaders}>
-          <View style={[styles.nationHeader, { borderBottomWidth: 3, borderBottomColor: myTheme.color }]}>
-            <Text style={styles.nationName}>{myNation.name}</Text>
-            <Text style={[styles.govType, { color: myTheme.color }]}>{myNation.government_type}</Text>
-            <Text style={[styles.politicalLabel, { color: myTheme.color }]}>{myTheme.name}</Text>
-          </View>
-          <View style={styles.vsText}>
-            <Text style={styles.vs}>VS</Text>
-          </View>
-          <View style={[styles.nationHeader, { borderBottomWidth: 3, borderBottomColor: theirTheme.color }]}>
-            <Text style={styles.nationName}>{compareNation.name}</Text>
-            <Text style={[styles.govType, { color: theirTheme.color }]}>{compareNation.government_type}</Text>
-            <Text style={[styles.politicalLabel, { color: theirTheme.color }]}>{theirTheme.name}</Text>
-          </View>
+    <ScreenCanvas>
+      <View style={styles.wrap}>
+        <ScreenHeader
+          title={them.name}
+          subtitle={`vs ${myNation.name}`}
+        onBack={() => {
+          if (router.canGoBack()) router.back();
+          else router.replace('/(tabs)/nation');
+        }}
+        />
+        <View style={styles.tabs}>
+          {(['nation', 'stats'] as Tab[]).map((t) => (
+            <TouchableOpacity
+              key={t}
+              onPress={() => setTab(t)}
+              style={[styles.tab, tab === t && { backgroundColor: myTint }]}
+            >
+              <Text style={[styles.tabText, tab === t && styles.tabTextOn]}>
+                {t === 'nation' ? 'Nation' : 'Stats'}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </View>
-        
-        {Object.entries(comparisonCategories).map(([categoryKey, comparisons]) => (
-          <View key={categoryKey}>
-            <Text style={styles.categoryTitle}>
-              {categoryKey.charAt(0).toUpperCase() + categoryKey.slice(1)}
-            </Text>
-            {comparisons.map((comp) => {
-              // Safely handle undefined values
-              const myValue = comp.my ?? 0;
-              const theirValue = comp.their ?? 0;
-              
-              // For realistic values (like GDP), skip comparison logic
-              const myHigher = !comp.isRealistic 
-                ? (comp.inverse ? myValue < theirValue : myValue > theirValue)
-                : false;
-              const difference = !comp.isRealistic ? Math.abs(myValue - theirValue) : 0;
-              
-              return (
-                <View key={comp.label} style={styles.comparisonRow}>
-                  <View style={[
-                    styles.statBox, 
-                    { borderColor: myTheme.color },
-                    myHigher && { backgroundColor: myTheme.color + '22', borderWidth: 3 }
-                  ]}>
-                    <Text style={[
-                      styles.statValue, 
-                      { color: myTheme.color },
-                      myHigher && { fontWeight: 'bold' }
-                    ]}>
-                      {comp.isRealistic ? comp.my : (typeof myValue === 'number' ? myValue.toFixed(1) : '0')}
-                    </Text>
+
+        {tab === 'nation' ? (
+          <ScrollView contentContainerStyle={styles.body}>
+            <View style={styles.hero}>
+              <Flag flag={them.flag_base64} size={140} />
+              <Text style={styles.nationName}>{them.name}</Text>
+              <Text style={[styles.gov, { color: theirTint }]}>
+                {them.display_name || them.government_subtype || them.name}
+              </Text>
+              <Text style={styles.race}>{getRaceName(them.race)}</Text>
+              {them.motto ? <Text style={styles.motto}>“{them.motto}”</Text> : null}
+              <TouchableOpacity onPress={showGov} style={styles.govBtn}>
+                <Ionicons name="information-circle-outline" size={16} color={theirTint} />
+                <Text style={[styles.govBtnText, { color: theirTint }]}>Government info</Text>
+              </TouchableOpacity>
+            </View>
+
+            {them.government_form !== 'anarchy' && them.leader_name ? (
+              <LiquidGlass radius={22} style={styles.block}>
+                <Text style={styles.blockLabel}>Leader</Text>
+                <Text style={styles.leaderTitle}>
+                  {leaderTitle({
+                    subtype: them.government_subtype,
+                    territorial: them.territorial_structure,
+                    race: them.race,
+                    leaderName: them.leader_name,
+                  })}
+                </Text>
+                <Text style={styles.leaderName}>{them.leader_name}</Text>
+                {them.co_leader_name ? (
+                  <Text style={styles.leaderName}>Co-leader: {them.co_leader_name}</Text>
+                ) : null}
+              </LiquidGlass>
+            ) : null}
+
+            {them.description ? (
+              <LiquidGlass radius={22} style={styles.block}>
+                <Text style={styles.blockLabel}>National description</Text>
+                <Text style={styles.desc}>{them.description}</Text>
+              </LiquidGlass>
+            ) : null}
+
+            <LiquidGlass radius={22} style={styles.block}>
+              <Text style={styles.blockLabel}>Realm</Text>
+              <Text style={styles.meta}>Currency: {them.currency || '—'}</Text>
+              <Text style={styles.meta}>
+                Inflation: {Number(theirStats.inflation ?? 0).toFixed(1)}% · yours {Number(myStats.inflation ?? 0).toFixed(1)}%
+              </Text>
+              <Text style={styles.meta}>{fxLine}</Text>
+              <Text style={styles.meta}>{fxRev}</Text>
+              <Text style={styles.hint}>
+                Rate from income (GDP per person) and inflation. Richer / lower inflation → stronger unit. Same word like Credits is still two different moneys.
+              </Text>
+              <Text style={styles.meta}>Animal: {them.national_animal || '—'}</Text>
+              {created ? <Text style={styles.meta}>Founded: {format(created, 'MMM d, yyyy')}</Text> : null}
+              <Text style={styles.meta}>Decisions: {them.total_decisions ?? 0}</Text>
+            </LiquidGlass>
+
+            <LiquidGlass radius={22} style={styles.block}>
+              <Text style={styles.blockLabel}>Policies</Text>
+              {policies.length === 0 ? (
+                <Text style={styles.meta}>No standing laws yet.</Text>
+              ) : (
+                policies.map((p, i) => (
+                  <View key={i} style={styles.policy}>
+                    <Text style={styles.policyName}>{p.name}</Text>
+                    <Text style={styles.policyBody}>{p.news_snippet || p.short_description}</Text>
                   </View>
-                  
-                  <View style={styles.labelBox}>
-                    <Text style={styles.statLabel}>{comp.label}</Text>
-                    {!comp.isRealistic && <Text style={styles.difference}>Δ {difference.toFixed(1)}</Text>}
-                  </View>
-                  
-                  <View style={[
-                    styles.statBox,
-                    { borderColor: theirTheme.color },
-                    !myHigher && { backgroundColor: theirTheme.color + '22', borderWidth: 3 }
-                  ]}>
-                    <Text style={[
-                      styles.statValue,
-                      { color: theirTheme.color },
-                      !myHigher && { fontWeight: 'bold' }
-                    ]}>
-                      {comp.isRealistic ? comp.their : (typeof theirValue === 'number' ? theirValue.toFixed(1) : '0')}
-                    </Text>
-                  </View>
-                </View>
-              );
-            })}
-          </View>
-        ))}
-      </ScrollView>
-    </View>
+                ))
+              )}
+            </LiquidGlass>
+          </ScrollView>
+        ) : (
+          <ScrollView contentContainerStyle={styles.body}>
+            <View style={styles.legend}>
+              <View style={[styles.dot, { backgroundColor: myTint }]} />
+              <Text style={styles.legendText}>{myNation.name}</Text>
+              <View style={[styles.dot, { backgroundColor: theirTint, marginLeft: 14 }]} />
+              <Text style={styles.legendText}>{them.name}</Text>
+            </View>
+            <Text style={styles.hint}>Tap a row to open the line graph for both nations.</Text>
+            <LiquidGlass radius={16} style={styles.statRow}>
+              <Text style={[styles.statMine, { color: myTint }]} numberOfLines={2}>{myCur}</Text>
+              <Text style={styles.statLabel}>FX{'\n'}{fxLine}</Text>
+              <Text style={[styles.statTheirs, { color: theirTint }]} numberOfLines={2}>{theirCur}</Text>
+            </LiquidGlass>
+            {COMPARE_GROUPS.map((group) => (
+              <View key={group.title}>
+                <Text style={styles.group}>{group.title}</Text>
+                {group.keys.map((row) => {
+                  const mine = row.money ? myNation.gdp_display : myStats[row.key];
+                  const theirs = row.money ? them.gdp_display : theirStats[row.key];
+                  return (
+                    <TouchableOpacity key={row.key} onPress={() => openGraph(row.key, row.label)} activeOpacity={0.8}>
+                      <LiquidGlass radius={16} style={styles.statRow}>
+                        <Text style={[styles.statMine, { color: myTint }]}>
+                          {fmtStat(mine, row.digits ?? 1, row.suffix || '', !!row.money)}
+                        </Text>
+                        <Text style={styles.statLabel}>{row.label}</Text>
+                        <Text style={[styles.statTheirs, { color: theirTint }]}>
+                          {fmtStat(theirs, row.digits ?? 1, row.suffix || '', !!row.money)}
+                        </Text>
+                      </LiquidGlass>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            ))}
+          </ScrollView>
+        )}
+
+        {info ? (
+          <TouchableOpacity style={styles.modalScrim} activeOpacity={1} onPress={() => setInfo(null)}>
+            <View style={styles.modalCard} onStartShouldSetResponder={() => true}>
+              <Text style={styles.modalTitle}>{them.display_name || them.government_subtype}</Text>
+              <ScrollView style={{ maxHeight: 360 }}>
+                <Text style={styles.modalBody}>{info}</Text>
+              </ScrollView>
+              <TouchableOpacity style={styles.modalOk} onPress={() => setInfo(null)}>
+                <Text style={styles.modalOkText}>OK</Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        ) : null}
+      </View>
+    </ScreenCanvas>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#0B0F14',
+  wrap: { flex: 1 },
+  tabs: {
+    flexDirection: 'row',
+    marginHorizontal: spacing.md,
+    marginBottom: spacing.sm,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderRadius: 12,
+    padding: 3,
   },
-  header: {
+  tab: { flex: 1, paddingVertical: 8, borderRadius: 10, alignItems: 'center' },
+  tabText: { ...typography.label, color: colors.text.muted },
+  tabTextOn: { color: '#08090A', fontWeight: '700' },
+  body: { padding: spacing.md, paddingBottom: 48, gap: 12 },
+  hero: { alignItems: 'center', marginBottom: 8 },
+  nationName: { ...typography.display, color: colors.text.primary, marginTop: 10, textAlign: 'center' },
+  gov: { ...typography.body, fontWeight: '600', marginTop: 4, textAlign: 'center' },
+  race: { ...typography.small, color: colors.text.muted, marginTop: 2 },
+  motto: { ...typography.body, color: colors.text.secondary, fontStyle: 'italic', marginTop: 8, textAlign: 'center' },
+  govBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 10 },
+  govBtnText: { ...typography.small, fontWeight: '600' },
+  block: { padding: 14 },
+  blockLabel: { ...typography.label, color: colors.text.muted, marginBottom: 8 },
+  leaderTitle: { color: colors.accent.gold, fontWeight: '600', marginBottom: 4 },
+  leaderName: { ...typography.body, color: colors.text.primary },
+  desc: { ...typography.body, color: colors.text.secondary, lineHeight: 22 },
+  meta: { ...typography.body, color: colors.text.secondary, marginBottom: 4 },
+  policy: { marginBottom: 10 },
+  policyName: { ...typography.body, fontWeight: '600', color: colors.text.primary },
+  policyBody: { ...typography.small, color: colors.text.secondary, marginTop: 2 },
+  legend: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
+  dot: { width: 10, height: 10, borderRadius: 5 },
+  legendText: { ...typography.small, color: colors.text.primary, marginLeft: 6 },
+  hint: { ...typography.small, color: colors.text.muted, marginBottom: 8 },
+  group: { ...typography.label, color: colors.text.muted, marginTop: 10, marginBottom: 6, textTransform: 'uppercase' },
+  statRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    backgroundColor: '#11171F',
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.08)',
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    marginBottom: 8,
   },
-  backButton: {
-    padding: 8,
+  statMine: { width: 88, fontWeight: '700', fontSize: 13 },
+  statTheirs: { width: 88, fontWeight: '700', fontSize: 13, textAlign: 'right' },
+  statLabel: { flex: 1, textAlign: 'center', color: colors.text.primary, fontWeight: '600' },
+  modalScrim: {
+    ...StyleSheet.absoluteFill,
+    backgroundColor: 'rgba(0,0,0,0.88)',
+    justifyContent: 'center',
+    padding: 24,
   },
-  title: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#F3F6FA',
+  modalCard: {
+    backgroundColor: '#12151A',
+    borderRadius: radii.md,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
-  content: {
-    padding: 16,
-  },
-  categoryTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#F3F6FA',
-    marginTop: 24,
-    marginBottom: 12,
-    paddingBottom: 8,
-    borderBottomWidth: 2,
-    borderBottomColor: 'rgba(255,255,255,0.08)',
-  },
-  nationHeaders: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  nationHeader: {
-    flex: 1,
-    alignItems: 'center',
-    paddingBottom: 12,
-  },
-  nationName: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#F3F6FA',
-    marginBottom: 4,
-  },
-  govType: {
-    fontSize: 12,
-    textAlign: 'center',
-    marginBottom: 4,
-  },
-  politicalLabel: {
-    fontSize: 10,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-  },
-  vsText: {
-    width: 60,
-    alignItems: 'center',
-  },
-  vs: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#00E0C7',
-  },
-  comparisonRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-    gap: 8,
-  },
-  statBox: {
-    flex: 1,
-    backgroundColor: '#11171F',
-    padding: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.08)',
-  },
-  winner: {
-    borderColor: '#27D17A',
-    backgroundColor: '#0F3730',
-  },
-  statValue: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#F3F6FA',
-  },
-  winnerText: {
-    color: '#27D17A',
-  },
-  labelBox: {
-    width: 120,
-    alignItems: 'center',
-  },
-  statLabel: {
-    fontSize: 14,
-    color: 'rgba(243,246,250,0.70)',
-    marginBottom: 4,
-  },
-  difference: {
-    fontSize: 11,
-    color: 'rgba(243,246,250,0.48)',
-  },
+  modalTitle: { ...typography.headline, color: colors.text.primary, marginBottom: 10 },
+  modalBody: { ...typography.body, color: colors.text.secondary, lineHeight: 22 },
+  modalOk: { marginTop: 14, alignSelf: 'flex-end' },
+  modalOkText: { color: colors.text.primary, fontWeight: '700' },
 });

@@ -74,6 +74,7 @@ export function GlassModal({
           pointerEvents="box-none"
         >
           <LiquidGlass
+            dense
             radius={isBottomSheet ? 28 : 24}
             style={[
               styles.glass,
@@ -252,7 +253,7 @@ const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     justifyContent: 'center',
-    backgroundColor: 'rgba(0,0,0,0.62)',
+    backgroundColor: 'rgba(0,0,0,0.82)',
   },
   overlayBottom: {
     justifyContent: 'flex-end',

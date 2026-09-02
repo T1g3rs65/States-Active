@@ -157,7 +157,8 @@ class NationStats(BaseModel):
     # Finance
     national_debt: float = 40.0  # Percentage of GDP
     tax_rate: float = 25.0  # Average tax rate percentage
-    
+    tax_revenue: float = 18.0  # Effective take (% of GDP after leaks)
+
     # International
     international_approval: float = 50.0  # 0-100
     alliance_power: float = 0.0  # Based on alliances
@@ -254,13 +255,16 @@ class Nation(BaseModel):
     
     # Policies - major decisions that define the nation
     policies: List[Policy] = Field(default_factory=list)
+    policy_flags: Dict[str, dict] = Field(default_factory=dict)
+    issue_chain: Optional[dict] = None  # {id, topic, step, max} — one live thread, max 3 beats
+    stat_last_hit: Dict[str, int] = Field(default_factory=dict)  # stat -> total_decisions when last moved by an issue
     
     # Advisors - 8 permanent cabinet positions
     advisors: List[Advisor] = Field(default_factory=list)
     
     # Territory on world map
-    territory_center_col: int = 0  # X position on map
-    territory_center_row: int = 0  # Y position on map
+    territory_center_col: float = 0  # X position on map (Voronoi centroid)
+    territory_center_row: float = 0  # Y position on map (Voronoi centroid)
     cities: List[Dict[str, int]] = Field(default_factory=list)  # [{col, row}] extra hubs
     
     # Territory counts by biome type (for industry system)
@@ -281,6 +285,10 @@ class Nation(BaseModel):
     form_locked: bool = True
     legitimacy: float = 50.0
     leader_name: Optional[str] = None
+    leader_sex: Optional[str] = None  # male | female
+    dynasty_surname: Optional[str] = None
+    co_leader_name: Optional[str] = None
+    diarchy_senior: Optional[int] = None  # 1 = leader_name holds real power, 2 = co_leader
     crisis_state: Optional[CrisisState] = None
     crisis_history: List[CrisisHistoryEntry] = Field(default_factory=list)
 
@@ -296,6 +304,7 @@ class IssueChoice(BaseModel):
     text: str
     effects: Dict[str, float]  # stat_name -> change amount
     description: str  # What happens if you choose this
+    vetoed: bool = False
 
 class Issue(BaseModel):
     id: Optional[str] = None
@@ -309,6 +318,8 @@ class Issue(BaseModel):
     chosen_index: Optional[int] = None
     kind: Optional[str] = None
     chains_into: Optional[str] = None  # Title of a follow-up issue if this one chains
+    chain_id: Optional[str] = None
+    chain_step: int = 0  # 1..3; 0 = one-off
 
 
 class Decision(BaseModel):
@@ -332,6 +343,11 @@ class QuizResult(BaseModel):
     national_animal: Optional[str] = "Eagle"  # Default national animal
     advisors: List[Advisor] = []  # 8 permanent cabinet positions
     wheel_result: Optional[WheelResult] = None
+    leader_name: Optional[str] = None
+    leader_sex: Optional[str] = None
+    dynasty_surname: Optional[str] = None
+    co_leader_name: Optional[str] = None
+    co_leader_sex: Optional[str] = None
 
 class CreateNationRequest(BaseModel):
     user_id: str
@@ -342,8 +358,8 @@ class CreateNationRequest(BaseModel):
     capital_row: Optional[int] = None
 
 class SpinWheelsRequest(BaseModel):
+    wheel_id: str  # form | subtype | territorial | style
     world_id: Optional[str] = None
-    spin_token: Optional[str] = None
     race: Optional[str] = None
 
 class CrisisRespinRequest(BaseModel):
@@ -1038,7 +1054,7 @@ class World(BaseModel):
     seed: int = 123456  # Map generation seed
     noise_settings: Dict[str, float] = Field(default_factory=dict)
     max_players: int = 50
-    enabled_races: List[str] = Field(default_factory=lambda: ["human", "zythera"])  # Which races can be selected
+    enabled_races: List[str] = Field(default_factory=lambda: ["human"])  # Which races can be selected
     
     # Migration settings
     allows_migration: bool = True  # Whether nations can migrate to this world
@@ -1065,7 +1081,7 @@ class CreateWorldRequest(BaseModel):
     description: str = ""
     seed: int = 123456
     max_players: int = 50
-    enabled_races: List[str] = Field(default_factory=lambda: ["human", "zythera"])
+    enabled_races: List[str] = Field(default_factory=lambda: ["human"])
     creator_nation_id: Optional[str] = None
     creator_nation_name: Optional[str] = None
 

@@ -39,6 +39,7 @@ export interface NationStats {
   budget_other: number;
   national_debt: number;
   tax_rate: number;
+  tax_revenue?: number;
   international_approval: number;
   alliance_power: number;
 }
@@ -113,6 +114,11 @@ export interface Nation {
   currency?: string;
   national_animal?: string;
   leader_name?: string;
+  leader_sex?: 'male' | 'female' | string;
+  dynasty_surname?: string;
+  last_description_update?: string;
+  co_leader_name?: string;
+  diarchy_senior?: number | null;
   territory_counts?: Record<string, number>;
   total_territories?: number;
   resource_counts?: Record<string, number>;
@@ -120,6 +126,7 @@ export interface Nation {
   last_reform_sent?: string;
   task_used_today?: boolean;
   policies?: Policy[];
+  policy_flags?: Record<string, { id: string; label: string; on: boolean; source?: string }>;
   timezone_count?: number | null;
   timezone_geo_max?: number;
   timezone_bands?: number[];
@@ -133,12 +140,19 @@ export interface Advisor {
   race?: string;
   portrait?: string;
   expertise?: string[];
+  ability?: number;
+  approval?: number;
+  gov_mod?: number;
+  gov_mod_pct?: number;
+  last_effect?: string;
+  role_blurb?: string;
 }
 
 export interface IssueChoice {
   text: string;
   effects: Record<string, number>;
   description: string;
+  vetoed?: boolean;
 }
 
 export interface Issue {

@@ -194,13 +194,13 @@ type ColonizeOpts = {
  * Manhattan diamonds. Cheapest unclaimed cells go first; mountains/jungle last.
  * Extra start seeds (cities) share capacity with the capital.
  */
-export function colonizeFromCapitals(
+export async function colonizeFromCapitals(
   cells: ColonizeCell[],
   seeds: ColonizeSeed[],
   isWater: (biome: string) => boolean,
   noise?: (i: number) => number,
-  opts?: ColonizeOpts
-): Map<number, string> {
+  opts?: ColonizeOpts & { yieldEvery?: number; yieldFn?: () => Promise<void> }
+): Promise<Map<number, string>> {
   const owner = new Map<number, string>();
   if (!cells.length || !seeds.length) return owner;
 
@@ -281,6 +281,8 @@ export function colonizeFromCapitals(
     enqueue(start, seed.nationId, 0);
   }
 
+  let lastYield = typeof performance !== 'undefined' ? performance.now() : Date.now();
+
   while (heap.length) {
     const [cost, nationId, idx] = heapPop();
     if (owner.has(idx)) continue;
@@ -291,16 +293,24 @@ export function colonizeFromCapitals(
     owner.set(idx, nationId);
     used.set(nationId, have + 1);
     enqueue(cell, nationId, cost);
+    if (opts?.yieldFn) {
+      const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
+      if (now - lastYield >= 8) {
+        lastYield = now;
+        await opts.yieldFn();
+      }
+    }
   }
 
-  dropDisconnected(owner, byIndex, seeds);
+  await dropDisconnected(owner, byIndex, seeds, opts?.yieldFn);
   return owner;
 }
 
-function dropDisconnected(
+async function dropDisconnected(
   owner: Map<number, string>,
   byIndex: Map<number, ColonizeCell>,
-  seeds: ColonizeSeed[]
+  seeds: ColonizeSeed[],
+  yieldFn?: () => Promise<void>
 ) {
   const root = new Map<string, number>();
   for (const s of seeds) {

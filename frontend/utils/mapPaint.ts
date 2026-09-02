@@ -264,7 +264,9 @@ function paintTexture(ctx: CanvasRenderingContext2D, t: Paintable, fam: string) 
   ctx.restore();
 }
 
-export function rasterizeWorldMap(opts: {
+const tick = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
+
+export async function rasterizeWorldMap(opts: {
   territories: Paintable[];
   mapWidth: number;
   mapHeight: number;
@@ -272,7 +274,7 @@ export function rasterizeWorldMap(opts: {
   isNationBorder: (t: Paintable) => boolean;
   mapMode: string;
   resourceColor?: (id: string) => string | undefined;
-}): string | null {
+}): Promise<string | null> {
   if (typeof document === 'undefined') return null;
   const { territories, mapWidth, mapHeight, fillFor, isNationBorder, mapMode, resourceColor } = opts;
   const scale = 2;
@@ -291,6 +293,28 @@ export function rasterizeWorldMap(opts: {
   for (const t of territories) byIndex.set(t.index, t);
 
   const political = mapMode === 'political' || mapMode === 'faction';
+  const resourceMode = mapMode === 'resources';
+
+  let painted = 0;
+  const maybeYield = async () => {
+    painted += 1;
+    if (painted % 700 === 0) await tick();
+  };
+
+  if (resourceMode) {
+    ctx.fillStyle = '#163A6B';
+    ctx.fillRect(0, 0, mapWidth, mapHeight);
+    for (const t of territories) {
+      if (!Array.isArray(t.polygon) || t.polygon.length < 3) continue;
+      ctx.fillStyle = fillFor(t);
+      for (const dx of wrapOffsets(t.polygon, mapWidth)) {
+        pathCell(ctx, t.polygon, dx);
+        ctx.fill();
+      }
+      await maybeYield();
+    }
+    return canvas.toDataURL('image/png');
+  }
 
   for (const t of territories) {
     if (!Array.isArray(t.polygon) || t.polygon.length < 3) continue;
@@ -307,6 +331,7 @@ export function rasterizeWorldMap(opts: {
       pathCell(ctx, t.polygon, dx);
       ctx.fill();
     }
+    await maybeYield();
   }
 
   const texAlpha = political ? 0.12 : 0.32;
@@ -319,6 +344,7 @@ export function rasterizeWorldMap(opts: {
       paintTexture(ctx, t, family(t.biome));
       ctx.restore();
     }
+    await maybeYield();
   }
   ctx.globalAlpha = 1;
 

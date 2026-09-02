@@ -5,6 +5,7 @@ import random
 import json
 from pathlib import Path
 from models import Advisor
+from government_titles import advisor_title as title_for_slot
 
 # Load advisor names from config file
 ADVISOR_NAMES_FILE = Path(__file__).parent / "advisor_names.json"
@@ -32,6 +33,13 @@ def get_race_names(race_id: str) -> tuple[list[str], list[str]]:
     
     # Normalize race_id to lowercase
     race_key = race_id.lower() if race_id else "human"
+
+    if race_key == "human":
+        from human_names import HUMAN_MALE_FIRST_NAMES, HUMAN_FEMALE_FIRST_NAMES, HUMAN_LAST_NAMES
+        return (
+            HUMAN_MALE_FIRST_NAMES + HUMAN_FEMALE_FIRST_NAMES,
+            HUMAN_LAST_NAMES,
+        )
     
     # Try to get race-specific names
     if race_key in names_config:
@@ -181,16 +189,9 @@ ADVISOR_TEMPLATES = [
 ]
 
 
-def generate_advisors(government_type: str, race: str = "human") -> list[Advisor]:
+def generate_advisors(government_basis: str, race: str = "human", territorial: str = "") -> list[Advisor]:
     """
-    Generate 8 advisors for a new nation based on government type and race.
-    
-    Args:
-        government_type: The type of government (Democracy, Monarchy, etc.)
-        race: The race of the nation (human, zythera, etc.) - determines name pool
-    
-    Returns:
-        List of 8 Advisor objects
+    Generate 8 advisors for a new nation based on government wheel subtype/form and race.
     """
     advisors = []
     
@@ -198,8 +199,7 @@ def generate_advisors(government_type: str, race: str = "human") -> list[Advisor
     first_names, last_names = get_race_names(race)
     
     for template in ADVISOR_TEMPLATES:
-        # Get appropriate title for government type
-        title = template["titles"].get(government_type, template["title_base"])
+        title = title_for_slot(template["slot"], government_basis, territorial, race)
         
         # Generate random name from race-specific pool
         name = f"{random.choice(first_names)} {random.choice(last_names)}"

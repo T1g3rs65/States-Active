@@ -150,3 +150,18 @@ export async function colorsFromFlag(
   }
   return fallback;
 }
+
+/** Synchronous flag-color extraction (SVG path only; falls back to hash). */
+export function colorsFromFlagSync(
+  flag: string | null | undefined,
+  salt: string
+): { primary: string; secondary: string } {
+  const fallback = hashPair(salt || 'nation');
+  if (!flag) return fallback;
+  const xml = decodeFlagXml(flag);
+  if (xml) {
+    const svgCols = fromSvg(xml);
+    if (svgCols) return svgCols;
+  }
+  return fallback;
+}

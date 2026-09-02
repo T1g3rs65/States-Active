@@ -84,9 +84,11 @@ export default function CompassTabBar({ state, descriptors, navigation }: any) {
 
 const styles = StyleSheet.create({
   wrap: {
-    backgroundColor: 'transparent',
+    backgroundColor: '#000000',
     paddingTop: 4,
     paddingHorizontal: 10,
+    zIndex: 250,
+    elevation: 24,
   },
   glass: {
     paddingHorizontal: 4,

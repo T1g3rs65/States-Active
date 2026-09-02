@@ -422,6 +422,51 @@ def spin_wheels(seed: Optional[int] = None, race: Optional[str] = None) -> Wheel
     )
 
 
+WHEEL_FIELD = {
+    "form": "government_form",
+    "subtype": "government_subtype",
+    "territorial": "territorial_structure",
+    "style": "style_modifier",
+}
+FOUNDING_WHEEL_ORDER = ["form", "subtype", "territorial", "style"]
+
+
+def founding_next_wheel(saved: Optional[dict] = None) -> Optional[str]:
+    blob = saved or {}
+    for wid in FOUNDING_WHEEL_ORDER:
+        if not blob.get(WHEEL_FIELD[wid]):
+            return wid
+    return None
+
+
+def spin_one_wheel(
+    wheel_id: str,
+    current: Optional[dict] = None,
+    race: Optional[str] = None,
+) -> dict:
+    """Roll a single founding wheel. Already-filled fields are kept."""
+    if wheel_id not in WHEEL_FIELD:
+        raise ValueError(f"Unknown wheel_id: {wheel_id}")
+    out = dict(current or {})
+    field = WHEEL_FIELD[wheel_id]
+    if out.get(field):
+        return out
+    expected = founding_next_wheel(out)
+    if expected != wheel_id:
+        raise ValueError(f"Spin {expected or 'none'} before {wheel_id}")
+    is_zythera = bool(race and race.lower() == "zythera")
+    if wheel_id == "form":
+        table = WHEEL_1_ZYTHERA if is_zythera else WHEEL_1
+        out["government_form"] = weighted_choice(table)
+    elif wheel_id == "subtype":
+        out["government_subtype"] = _pick_subtype(out["government_form"], race)
+    elif wheel_id == "territorial":
+        out["territorial_structure"] = weighted_choice(WHEEL_3)
+    elif wheel_id == "style":
+        out["style_modifier"] = weighted_choice(WHEEL_4)
+    return out
+
+
 def respin_wheel(
     wheel_id: str,
     current: WheelResult,

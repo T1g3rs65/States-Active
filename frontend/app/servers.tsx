@@ -8,7 +8,6 @@ import {
   RefreshControl,
   TextInput,
   Modal,
-  ActivityIndicator,
   Switch,
   Image,
 } from 'react-native';
@@ -18,6 +17,7 @@ import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { api } from '../utils/api';
 import { useNationStore } from '../store/nationStore';
+import { useAccountStore } from '../store/accountStore';
 import { DEFAULT_TERRAIN, TerrainSettings } from '../utils/worldNoise';
 import { rasterizeWorldPreview } from '../utils/worldPreview';
 import ScreenCanvas from '../components/ScreenCanvas';
@@ -26,6 +26,7 @@ import LiquidGlass from '../components/LiquidGlass';
 import GradientBorder from '../components/GradientBorder';
 import { leaningColor } from '../utils/politicalCompass';
 import { glassAlert, glassConfirm } from '../components/GlassModal';
+import StatusDots, { ButtonBusy } from '../components/StatusDots';
 
 interface World {
   id: string;
@@ -43,9 +44,8 @@ interface World {
   created_at: string;
 }
 
-const RACE_INFO: Record<string, { name: string; emoji: string }> = {
-  human: { name: 'Human', emoji: '👤' },
-  zythera: { name: 'Zythera', emoji: '🐛' },
+const RACE_INFO: Record<string, { name: string; icon: 'person' | 'bug' }> = {
+  human: { name: 'Human', icon: 'person' },
 };
 
 function Knob({
@@ -80,9 +80,11 @@ function Knob({
   );
 }
 
-export default async function WorldBrowserScreen() {
+export default function WorldBrowserScreen() {
   const router = useRouter();
   const { nation, refreshNation } = useNationStore();
+  const { user } = useAccountStore();
+  const isAdmin = !!user?.is_admin;
   const nationId = nation?.id || nation?._id;
   const currentWorldId = nation?.world_id;
   
@@ -99,6 +101,7 @@ export default async function WorldBrowserScreen() {
   const [newWorldSeed, setNewWorldSeed] = useState(Math.floor(Math.random() * 999999).toString());
   const [newWorldMaxPlayers, setNewWorldMaxPlayers] = useState('50');
   const [allowsMigration, setAllowsMigration] = useState(true);
+  const [makeOfficial, setMakeOfficial] = useState(false);
   const [enabledRaces, setEnabledRaces] = useState<Record<string, boolean>>({
     human: true,
     zythera: true,
@@ -141,6 +144,10 @@ export default async function WorldBrowserScreen() {
   }, []);
 
   const handleCreateWorld = async () => {
+    if (!isAdmin) {
+      await glassAlert({ title: 'Admin only', message: 'Only admins can create worlds.' });
+      return;
+    }
     if (!newWorldName.trim()) {
       await glassAlert({ title: 'Error', message: 'Please enter a world name' });
       return;
@@ -157,26 +164,26 @@ export default async function WorldBrowserScreen() {
 
     setCreating(true);
     try {
+      const createdName = newWorldName.trim();
       const response = await api.createWorld({
-        name: newWorldName.trim(),
+        name: createdName,
         description: newWorldDescription.trim(),
         seed: parseInt(newWorldSeed) || Math.floor(Math.random() * 999999),
         max_players: parseInt(newWorldMaxPlayers) || 50,
         enabled_races: enabledRacesList,
         allows_migration: allowsMigration,
+        official: isAdmin && makeOfficial,
         noise_settings: { ...terrain },
         creator_nation_id: nationId,
         creator_nation_name: nation?.name,
       });
 
-      if (response.success) {
-        await glassAlert({ title: 'Success', message: `World "${newWorldName}" created!` });
-        setShowCreateModal(false);
-        resetForm();
-        await loadWorlds();
-      } else {
-        await glassAlert({ title: 'Error', message: response.detail || 'Failed to create world' });
+      if (!response?.success) {
+        throw new Error(response?.detail || 'Failed to create world');
       }
+      setShowCreateModal(false);
+      resetForm();
+      await loadWorlds();
     } catch (error: any) {
       console.error('Error creating world:', error);
       await glassAlert({ title: 'Error', message: error.message || 'Failed to create world' });
@@ -191,7 +198,7 @@ export default async function WorldBrowserScreen() {
     setNewWorldSeed(Math.floor(Math.random() * 999999).toString());
     setNewWorldMaxPlayers('50');
     setAllowsMigration(true);
-    setEnabledRaces({ human: true, zythera: true });
+    setEnabledRaces({ human: true });
     setTerrain({ ...DEFAULT_TERRAIN });
   };
 
@@ -267,7 +274,7 @@ export default async function WorldBrowserScreen() {
     return (
       <ScreenCanvas>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#F3F6FA" />
+          <StatusDots status="Loading" color="#F3F6FA" />
           <Text style={styles.loadingText}>Loading worlds...</Text>
         </View>
       </ScreenCanvas>
@@ -279,12 +286,14 @@ export default async function WorldBrowserScreen() {
       <View style={styles.container}>
         <ScreenHeader
           title="Worlds"
-          subtitle="Servers"
+          subtitle="Worlds"
           onBack={handleBack}
           right={
-            <TouchableOpacity onPress={() => setShowCreateModal(true)} style={{ padding: 6 }}>
-              <Ionicons name="add" size={22} color="#F3F6FA" />
-            </TouchableOpacity>
+            isAdmin ? (
+              <TouchableOpacity onPress={() => setShowCreateModal(true)} style={{ padding: 6 }}>
+                <Ionicons name="add" size={22} color="#F3F6FA" />
+              </TouchableOpacity>
+            ) : undefined
           }
         />
 
@@ -354,9 +363,9 @@ export default async function WorldBrowserScreen() {
                       </View>
                       
                       <View style={styles.metaItem}>
-                        <Text style={styles.metaText}>
-                          {world.enabled_races.map(r => RACE_INFO[r]?.emoji || '❓').join(' ')}
-                        </Text>
+                        {world.enabled_races.map((r) => (
+                          <Ionicons key={r} name={RACE_INFO[r]?.icon || 'help'} size={14} color="rgba(243,246,250,0.7)" />
+                        ))}
                       </View>
                       
                       {world.allows_migration ? (
@@ -379,14 +388,10 @@ export default async function WorldBrowserScreen() {
                       onPress={() => handleMigrateToWorld(world)}
                       disabled={!canMigrate || migrating}
                     >
-                      {migrating ? (
-                        <ActivityIndicator color="#F3F6FA" size="small" />
-                      ) : (
-                        <>
-                          <Ionicons name="airplane" size={16} color="#F3F6FA" />
-                          <Text style={styles.migrateButtonText}>Migrate</Text>
-                        </>
-                      )}
+                      <ButtonBusy busy={migrating} color="#081014">
+                        <Ionicons name="airplane" size={16} color="#F3F6FA" />
+                        <Text style={styles.migrateButtonText}>Migrate</Text>
+                      </ButtonBusy>
                     </TouchableOpacity>
                   )}
                 </View>
@@ -403,9 +408,9 @@ export default async function WorldBrowserScreen() {
           onRequestClose={() => setShowCreateModal(false)}
         >
           <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
+            <LiquidGlass dense radius={28} style={styles.modalContent}>
               <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>🌍 Create New World</Text>
+                <Text style={styles.modalTitle}>Create world</Text>
                 <TouchableOpacity onPress={() => setShowCreateModal(false)}>
                   <Ionicons name="close" size={24} color="rgba(243,246,250,0.70)" />
                 </TouchableOpacity>
@@ -457,7 +462,7 @@ export default async function WorldBrowserScreen() {
                       style={styles.randomButton}
                       onPress={() => setNewWorldSeed(Math.floor(Math.random() * 999999).toString())}
                     >
-                      <Ionicons name="shuffle" size={20} color="#00E0C7" />
+                      <Ionicons name="shuffle" size={20} color="#F3F6FA" />
                     </TouchableOpacity>
                   </View>
                   <Text style={styles.formHint}>Same seed = same map terrain</Text>
@@ -538,12 +543,34 @@ export default async function WorldBrowserScreen() {
                   </View>
                 </View>
 
+                {isAdmin ? (
+                  <View style={styles.formGroup}>
+                    <View style={styles.raceRow}>
+                      <View>
+                        <Text style={styles.raceName}>Official world</Text>
+                        <Text style={styles.formHint}>Admin only — listed as a house world</Text>
+                      </View>
+                      <Switch
+                        value={makeOfficial}
+                        onValueChange={setMakeOfficial}
+                        trackColor={{ false: 'rgba(255,255,255,0.08)', true: '#F2C94C' }}
+                        thumbColor="#F3F6FA"
+                      />
+                    </View>
+                  </View>
+                ) : (
+                  <Text style={styles.formHint}>Community world. Official worlds are admin-only.</Text>
+                )}
+
                 {/* Enabled Races */}
                 <View style={styles.formGroup}>
                   <Text style={styles.formLabel}>Enabled Races</Text>
                   {Object.entries(RACE_INFO).map(([raceId, info]) => (
                     <View key={raceId} style={styles.raceRow}>
-                      <Text style={styles.raceName}>{info.emoji} {info.name}</Text>
+                      <View style={styles.raceNameRow}>
+                        <Ionicons name={info.icon} size={16} color="#F3F6FA" />
+                        <Text style={styles.raceName}>{info.name}</Text>
+                      </View>
                       <Switch
                         value={enabledRaces[raceId] || false}
                         onValueChange={(value) => 
@@ -573,17 +600,13 @@ export default async function WorldBrowserScreen() {
                   onPress={handleCreateWorld}
                   disabled={creating}
                 >
-                  {creating ? (
-                    <ActivityIndicator color="#F3F6FA" size="small" />
-                  ) : (
-                    <>
-                      <Ionicons name="planet" size={18} color="#F3F6FA" />
-                      <Text style={styles.createWorldButtonText}>Create World</Text>
-                    </>
-                  )}
+                  <ButtonBusy busy={creating} color="#081014">
+                    <Ionicons name="planet" size={18} color="#000" />
+                    <Text style={styles.createWorldButtonText}>Create World</Text>
+                  </ButtonBusy>
                 </TouchableOpacity>
               </View>
-            </View>
+            </LiquidGlass>
           </View>
         </Modal>
       </View>
@@ -773,6 +796,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 8,
     marginLeft: 12,
+    overflow: 'hidden',
   },
   migrateButtonDisabled: {
     backgroundColor: 'rgba(255,255,255,0.08)',
@@ -785,27 +809,28 @@ const styles = StyleSheet.create({
   // Modal styles
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: 'rgba(0, 0, 0, 0.82)',
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: '#11171F',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    maxHeight: '90%',
+    maxHeight: '92%',
+    overflow: 'hidden',
+    marginHorizontal: 10,
+    marginBottom: 10,
   },
   modalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.08)',
+    paddingHorizontal: 20,
+    paddingTop: 18,
+    paddingBottom: 12,
   },
   modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    fontSize: 22,
+    fontWeight: '500',
     color: '#F3F6FA',
+    letterSpacing: -0.3,
   },
   modalBody: {
     padding: 20,
@@ -820,13 +845,13 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   formInput: {
-    backgroundColor: '#0B0F14',
-    borderRadius: 8,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    borderRadius: 14,
     padding: 14,
     color: '#F3F6FA',
     fontSize: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: 'rgba(255,255,255,0.12)',
   },
   formTextArea: {
     minHeight: 80,
@@ -845,8 +870,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   randomButton: {
-    backgroundColor: '#0B0F14',
-    borderRadius: 8,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    borderRadius: 14,
     padding: 14,
     justifyContent: 'center',
     alignItems: 'center',
@@ -860,6 +885,11 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255,255,255,0.08)',
+  },
+  raceNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   raceName: {
     fontSize: 16,
@@ -876,8 +906,10 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 14,
     alignItems: 'center',
-    borderRadius: 8,
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.16)',
+    backgroundColor: 'transparent',
   },
   cancelButtonText: {
     color: 'rgba(243,246,250,0.70)',
@@ -890,24 +922,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 14,
-    borderRadius: 8,
-    backgroundColor: '#27D17A',
+    borderRadius: 999,
+    backgroundColor: '#F3F6FA',
     gap: 8,
+    overflow: 'hidden',
   },
   createWorldButtonText: {
-    color: '#F3F6FA',
+    color: '#000',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   preview: {
     width: '100%',
     height: 160,
-    borderRadius: 8,
-    backgroundColor: '#08090A',
+    borderRadius: 16,
+    backgroundColor: 'rgba(0,0,0,0.4)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: 'rgba(255,255,255,0.1)',
+    marginTop: 8,
   },
   previewEmpty: {
-    opacity: 0.4,
+    backgroundColor: 'rgba(255,255,255,0.04)',
   },
 });

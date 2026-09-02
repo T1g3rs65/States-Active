@@ -22,12 +22,10 @@ load_dotenv()
 
 logger = logging.getLogger(__name__)
 
-# Get API key - use OPENCLAW_GATEWAY_TOKEN for the local gateway.
-XAI_API_KEY = (
-    os.environ.get('OPENCLAW_GATEWAY_TOKEN')
-    or os.environ.get('XAI_API_KEY')
-    or os.environ.get('EMERGENT_LLM_KEY')
-)
+# Exclusively use OPENCLAW_GATEWAY_TOKEN. Direct XAI/EMERGENT keys removed.
+XAI_API_KEY = os.environ.get('OPENCLAW_GATEWAY_TOKEN')
+if not XAI_API_KEY:
+    raise RuntimeError('OPENCLAW_GATEWAY_TOKEN is required. Direct XAI/EMERGENT keys removed.')
 
 class WarService:
     """Service for managing wars between nations."""
@@ -174,13 +172,13 @@ class WarService:
                 attacker_id=attacker_id,
                 attacker_name=attacker["name"],
                 attacker_race=attacker.get("race", "human"),
-                attacker_government=attacker.get("government_type", "Unknown"),
+                attacker_government=attacker.get("display_name") or attacker.get("display_identity") or attacker.get("government_subtype", "Unknown"),
                 attacker_flag=attacker.get("flag_base64"),
                 
                 defender_id=defender_id,
                 defender_name=defender["name"],
                 defender_race=defender.get("race", "human"),
-                defender_government=defender.get("government_type", "Unknown"),
+                defender_government=defender.get("display_name") or defender.get("display_identity") or defender.get("government_subtype", "Unknown"),
                 defender_flag=defender.get("flag_base64"),
                 
                 world_id=attacker_world,  # Store which world this war is in
@@ -602,8 +600,10 @@ class WarService:
         """Get the military advisor from a nation."""
         advisors = nation.get("advisors", [])
         for advisor in advisors:
+            if int(advisor.get("slot") or 0) == 3:
+                return advisor
             title = advisor.get("title", "").lower()
-            if any(keyword in title for keyword in ['marshal', 'defense', 'military', 'general', 'commander', 'admiral', 'war']):
+            if any(keyword in title for keyword in ['marshal', 'defense', 'defence', 'military', 'general', 'commander', 'admiral', 'war', 'army', 'militia', 'ordnance', 'capo of arms', 'brood marshal']):
                 return advisor
         return None
     

@@ -9,8 +9,10 @@ import { useCallback, useState } from 'react';
 import PressScale from '../../components/PressScale';
 import ScreenCanvas from '../../components/ScreenCanvas';
 import { useNationStore } from '../../store/nationStore';
+import { useAccountStore } from '../../store/accountStore';
 import LiquidGlass from '../../components/LiquidGlass';
 import { leaningColor } from '../../utils/politicalCompass';
+import { api } from '../../utils/api';
 
 interface MenuItem {
   label: string;
@@ -19,52 +21,76 @@ interface MenuItem {
   route: string;
 }
 
-const GROUPS: { title: string; items: MenuItem[] }[] = [
-  {
-    title: 'Realm',
-    items: [
-      { label: 'Advisors', hint: 'Cabinet and daily jobs', icon: 'people', route: '/(tabs)/advisors' },
-      { label: 'Industry', hint: 'Resources and output', icon: 'construct', route: '/(tabs)/industry' },
-      { label: 'World Map', hint: 'Borders, cities, timezones', icon: 'globe', route: '/world-map' },
-      { label: 'Policies', hint: 'Standing law', icon: 'document-text', route: '/policies' },
-    ],
-  },
-  {
-    title: 'World',
-    items: [
-      { label: 'Rankings', hint: 'Who is on top', icon: 'trophy', route: '/(tabs)/rankings' },
-      { label: 'World News', hint: 'What other nations did', icon: 'newspaper', route: '/world-news' },
-      { label: 'Alliances', hint: 'Pacts and diplomacy', icon: 'git-network', route: '/alliances' },
-      { label: 'Factions', hint: 'Blocs and vassals', icon: 'flag', route: '/faction-browser' },
-      { label: 'War room', hint: 'Declare or manage wars', icon: 'shield', route: '/war-dashboard' },
-    ],
-  },
-  {
-    title: 'Account',
-    items: [
-      { label: 'Profile', hint: 'Leader and identity', icon: 'person', route: '/profile' },
-      { label: 'Servers', hint: 'This world / others', icon: 'server', route: '/servers' },
-    ],
-  },
-];
-
 export default function More() {
   const router = useRouter();
   const { nation } = useNationStore();
+  const { user, loadSession } = useAccountStore();
   const tint = leaningColor(nation);
   const [visit, setVisit] = useState(0);
+  const [activeWar, setActiveWar] = useState<any>(null);
+
   useFocusEffect(
     useCallback(() => {
+      loadSession();
       setVisit((v) => v + 1);
-    }, [])
+      const nid = nation?.id || nation?._id;
+      if (!nid) {
+        setActiveWar(null);
+        return;
+      }
+      api.getNationActiveWar(nid).then((res: any) => {
+        setActiveWar(res?.war || null);
+      }).catch(() => setActiveWar(null));
+    }, [nation?.id, nation?._id])
   );
+
+  const signedIn = !!(user?.id);
+  const isAdmin = !!user?.is_admin;
+  const nationId = nation?.id || nation?._id;
+
+  const realmItems: MenuItem[] = [
+    { label: 'World Map', hint: 'Borders, cities, timezones', icon: 'globe', route: '/world-map' },
+    { label: 'Policies', hint: 'Standing law', icon: 'document-text', route: '/policies' },
+  ];
+
+  const worldItems: MenuItem[] = [
+    { label: 'World News', hint: 'What other nations did', icon: 'newspaper', route: '/world-news' },
+    { label: 'Alliances', hint: 'Pacts and diplomacy', icon: 'git-network', route: '/alliances' },
+    { label: 'Factions', hint: 'Blocs and vassals', icon: 'flag', route: '/faction-browser' },
+    { label: 'Political Compass', hint: 'Where your nation sits', icon: 'compass', route: '/compass' },
+    { label: 'Other nations', hint: 'Their page and stats vs yours', icon: 'people', route: '/other-nations' },
+    ...(activeWar
+      ? ([{
+          label: 'War room',
+          hint: 'Active campaign',
+          icon: 'shield' as const,
+          route: `/war-dashboard?warId=${activeWar._id || activeWar.id}&nationId=${nationId}`,
+        }] as MenuItem[])
+      : []),
+  ];
+
+  const accountItems: MenuItem[] = signedIn
+    ? [
+        { label: 'Profile', hint: 'Leader and identity', icon: 'person', route: '/profile' },
+        { label: 'Worlds', hint: 'This world / others', icon: 'globe', route: '/servers' },
+        ...(isAdmin
+          ? ([{ label: 'Admin', hint: 'Worlds, players, bans', icon: 'shield-checkmark' as const, route: '/admin' }] as MenuItem[])
+          : []),
+      ]
+    : [{ label: 'Sign in', hint: 'Email account', icon: 'log-in', route: '/signin' }];
+
+  const groups = [
+    { title: 'Realm', items: realmItems },
+    { title: 'World', items: worldItems },
+    { title: 'Account', items: accountItems },
+  ];
 
   return (
     <ScreenCanvas>
     <View style={styles.container}>
       <TabChrome title="More" subtitle="The rest" />
       <ScrollView contentContainerStyle={styles.menu}>
-        {GROUPS.map((group, gi) => (
+        {groups.map((group, gi) => (
           <FadeUp key={`${group.title}-${visit}`} delay={gi * 70} style={styles.group}>
             <Text style={[styles.groupTitle, { color: tint }]}>{group.title}</Text>
             <LiquidGlass radius={28} style={styles.card}>

@@ -5,7 +5,6 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  ActivityIndicator,
   Dimensions,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -21,44 +20,9 @@ import LiquidGlass from '../components/LiquidGlass';
 import GradientBorder from '../components/GradientBorder';
 import EmptyNation from '../components/EmptyNation';
 import { getNationSizeClass } from '../utils/nationSize';
+import StatusDots from '../components/StatusDots';
 
 const { width } = Dimensions.get('window');
-
-// Display labels for raw government attribute values (GH-93).
-const FORM_LABELS: Record<string, string> = {
-  democracy: 'Democracy',
-  oligarchy: 'Oligarchy',
-  autocracy: 'Autocracy',
-  anocracy: 'Anocracy',
-  anarchy: 'Anarchy',
-};
-const TERRITORIAL_LABELS: Record<string, string> = {
-  unitary: 'Unitary',
-  federal: 'Federal',
-  confederal: 'Confederal',
-};
-
-// Build the government attribute chips for the stats page. The full blended
-// name is intentionally NOT shown here — only the individual components.
-function govChips(nation: any): { label: string; value: string }[] {
-  const chips: { label: string; value: string }[] = [];
-  if (nation?.government_subtype) {
-    chips.push({ label: 'Subtype', value: nation.government_subtype });
-  }
-  const style = nation?.style_modifier;
-  if (style && style !== 'None (clean result)') {
-    chips.push({ label: 'Style', value: style });
-  }
-  const territorial = nation?.territorial_structure;
-  if (territorial) {
-    chips.push({ label: 'Territorial', value: TERRITORIAL_LABELS[territorial] || territorial });
-  }
-  const form = nation?.government_form;
-  if (form) {
-    chips.push({ label: 'Form', value: FORM_LABELS[form] || form });
-  }
-  return chips;
-}
 
 export default function StatDetail() {
   const params = useLocalSearchParams();
@@ -73,13 +37,16 @@ export default function StatDetail() {
   const [historyData, setHistoryData] = useState<any[]>([]);
   const [selectedPeriod, setSelectedPeriod] = useState(90);
   const [chartView, setChartView] = useState<ChartView>('line');
+  const otherId = params.otherId as string | undefined;
+  const otherName = (params.otherName as string) || 'Them';
+  const [otherHistory, setOtherHistory] = useState<any[]>([]);
   const [chartW, setChartW] = useState(Math.max(240, width - 72));
 
   useEffect(() => {
     if (nation && statName) {
       loadHistory();
     }
-  }, [nation, statName, selectedPeriod]);
+  }, [nation, statName, selectedPeriod, otherId]);
 
   const loadHistory = async () => {
     if (!nation?.id && !nation?._id) return;
@@ -87,10 +54,13 @@ export default function StatDetail() {
     setLoading(true);
     try {
       const nationId = nation.id || nation._id;
-      const response = await api.getStatHistory(nationId, statName, selectedPeriod);
-      
-      if (response.success) {
-        setHistoryData(response.history);
+      const mine = await api.getStatHistory(nationId, statName, selectedPeriod);
+      if (mine.success) setHistoryData(mine.history || []);
+      if (otherId) {
+        const them = await api.getStatHistory(otherId, statName, selectedPeriod);
+        setOtherHistory(them?.success ? them.history || [] : []);
+      } else {
+        setOtherHistory([]);
       }
     } catch (error) {
       console.error('Error loading history:', error);
@@ -153,29 +123,55 @@ export default function StatDetail() {
 
   // Prepare chart data with dynamic label frequency
   const labelFreq = getLabelFrequency();
-  const chartData = historyData.map((item, index) => ({
+  const toMs = (raw: any) => {
+    const d = raw ? new Date(raw) : null;
+    return d && !Number.isNaN(d.getTime()) ? d.getTime() : 0;
+  };
+  const collapseByDay = (items: any[]) => {
+    const map = new Map<number, number>();
+    const sorted = [...items].sort((a, b) => toMs(a.timestamp) - toMs(b.timestamp));
+    for (const item of sorted) {
+      const t = toMs(item.timestamp);
+      if (!t) continue;
+      const d = new Date(t);
+      const day = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+      map.set(day, Number(item.value) || 0);
+    }
+    return [...map.entries()]
+      .sort((a, b) => a[0] - b[0])
+      .map(([t, value]) => ({ t, value }));
+  };
+  const compare = Boolean(otherId);
+  const mineSeries = compare ? collapseByDay(historyData) : historyData.map((item) => ({
     value: item.value,
-    label: index % labelFreq === 0 ? format(new Date(item.timestamp), 'MM/dd') : '',
-    dataPointText: '', // Remove individual data point labels for cleaner look
+    t: toMs(item.timestamp),
+  }));
+  const themSeries = compare ? collapseByDay(otherHistory) : [];
+  const chartData = mineSeries.map((item, index) => ({
+    value: item.value,
+    t: item.t,
+    label: index % labelFreq === 0 && item.t ? format(new Date(item.t), 'MM/dd') : '',
+  }));
+  const overlayData = themSeries.map((item) => ({
+    value: item.value,
+    t: item.t,
+    label: '',
   }));
 
   return (
     <ScreenCanvas>
     <View style={styles.container}>
-      <ScreenHeader title={nation.name || 'Statistics'} subtitle={getNationSizeClass(nation.stats?.population)} onBack={() => router.push('/(tabs)/overview')} />
+      <ScreenHeader
+        title={otherId ? `${nation.name} vs ${otherName}` : (nation.name || 'Statistics')}
+        subtitle={statLabel || getNationSizeClass(nation.stats?.population)}
+        onBack={() => {
+          if (router.canGoBack()) router.back();
+          else if (otherId) router.replace(`/compare?nationId=${otherId}` as any);
+          else router.replace('/(tabs)/overview');
+        }}
+      />
 
       <ScrollView contentContainerStyle={styles.content}>
-        {govChips(nation).length > 0 && (
-          <View style={styles.govChips}>
-            {govChips(nation).map((chip) => (
-              <View key={chip.label} style={styles.govChip}>
-                <Text style={styles.govChipLabel}>{chip.label}</Text>
-                <Text style={[styles.govChipValue, { color: tint }]}>{chip.value}</Text>
-              </View>
-            ))}
-          </View>
-        )}
-
         <GradientBorder tone="compass" speed={6} radius={28} style={styles.currentValueCard}>
           <Text style={styles.currentLabel}>Current Value</Text>
           <View style={styles.currentRow}>
@@ -217,12 +213,7 @@ export default function StatDetail() {
           ))}
         </View>
 
-        {loading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={tint} />
-            <Text style={styles.loadingText}>Loading chart...</Text>
-          </View>
-        ) : historyData.length === 0 ? (
+        {historyData.length === 0 && !loading ? (
           <View style={styles.emptyContainer}>
             <Ionicons name="bar-chart-outline" size={64} color="rgba(243,246,250,0.48)" />
             <Text style={styles.emptyText}>No historical data yet</Text>
@@ -256,7 +247,27 @@ export default function StatDetail() {
                   </TouchableOpacity>
                 </View>
               </View>
-              <CompassLineChart data={chartData} width={chartW} height={250} color={tint} view={chartView} />
+              {loading ? (
+                <View style={styles.chartLoad}>
+                  <StatusDots status="Loading" color={tint} fill />
+                </View>
+              ) : (
+                <CompassLineChart
+                  data={chartData}
+                  width={chartW}
+                  height={250}
+                  color={tint}
+                  view={chartView}
+                  overlay={overlayData.length ? overlayData : undefined}
+                  overlayColor="#E8C36A"
+                />
+              )}
+              {otherId ? (
+                <View style={{ flexDirection: 'row', gap: 16, marginTop: 10 }}>
+                  <Text style={{ color: tint, fontSize: 12 }}>● {nation.name}</Text>
+                  <Text style={{ color: '#E8C36A', fontSize: 12 }}>● {otherName}</Text>
+                </View>
+              ) : null}
             </View>
           </LiquidGlass>
         )}
@@ -336,35 +347,6 @@ const styles = StyleSheet.create({
   content: {
     padding: 16,
   },
-  govChips: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 16,
-  },
-  govChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.10)',
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-  },
-  govChipLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    letterSpacing: 0.8,
-    textTransform: 'uppercase',
-    color: 'rgba(243,246,250,0.48)',
-  },
-  govChipValue: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#F3F6FA',
-  },
   currentValueCard: {
     padding: 24,
     marginBottom: 16,
@@ -440,6 +422,12 @@ const styles = StyleSheet.create({
   loadingContainer: {
     padding: 60,
     alignItems: 'center',
+  },
+  chartLoad: {
+    height: 250,
+    position: 'relative',
+    overflow: 'hidden',
+    borderRadius: 12,
   },
   loadingText: {
     marginTop: 16,

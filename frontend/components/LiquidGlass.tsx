@@ -20,10 +20,11 @@ type Props = {
   style?: ViewStyle | ViewStyle[];
   radius?: number;
   padded?: boolean;
+  dense?: boolean;
 };
 
 /** Frosted pill / card. Compass-tinted rim. Web uses ASME liquid-glass CSS. */
-export default function LiquidGlass({ children, style, radius = 28, padded }: Props) {
+export default function LiquidGlass({ children, style, radius = 28, padded, dense }: Props) {
   const tint = leaningColor(useNationStore((s) => s.nation));
   useEffect(() => {
     ensureCss();
@@ -36,12 +37,13 @@ export default function LiquidGlass({ children, style, radius = 28, padded }: Pr
   return (
     <View
       // @ts-expect-error web className
-      className="liquid-glass"
+      className={dense ? 'liquid-glass sheet' : 'liquid-glass'}
       style={[
         styles.base,
         { borderRadius: radius },
         padded ? styles.pad : null,
-        Platform.OS !== 'web' ? { backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1, borderColor: tint } : null,
+        dense ? { backgroundColor: 'rgba(8,8,10,0.94)' } : null,
+        Platform.OS !== 'web' && !dense ? { backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1, borderColor: tint } : null,
         style,
       ]}
     >

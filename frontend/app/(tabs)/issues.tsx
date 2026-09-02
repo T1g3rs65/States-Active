@@ -5,7 +5,6 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  ActivityIndicator,
   RefreshControl,
   Modal,
 } from 'react-native';
@@ -22,8 +21,9 @@ import ScreenCanvas from '../../components/ScreenCanvas';
 import LiquidGlass from '../../components/LiquidGlass';
 import FadeUp from '../../components/FadeUp';
 import { glassAlert, glassConfirm } from '../../components/GlassModal';
+import StatusDots from '../../components/StatusDots';
 
-export default async function Issues() {
+export default function Issues() {
   const router = useRouter();
   const { nation, setNation, recoverNation, issues, setIssues } = useNationStore();
   const [loading, setLoading] = useState(true);
@@ -32,6 +32,7 @@ export default async function Issues() {
   const [refreshing, setRefreshing] = useState(false);
   const [showResultsModal, setShowResultsModal] = useState(false);
   const [statChanges, setStatChanges] = useState<Record<string, number>>({});
+  const [resultLines, setResultLines] = useState<string[]>([]);
   const [policyCreated, setPolicyCreated] = useState<string | null>(null);
   const [timerDisplay, setTimerDisplay] = useState<string>('Loading...');
   const [secondsRemaining, setSecondsRemaining] = useState<number | null>(null);
@@ -62,7 +63,7 @@ export default async function Issues() {
     if (!nation?.id && !nation?._id) return;
     try {
       const nationId = nation.id || nation._id;
-      const response = await api.getWarJoinRequests(nationId);
+      const response = await api.getNotificationCount(nationId);
       if (response.success) {
         setNotificationCount(response.count || 0);
       }
@@ -109,9 +110,12 @@ export default async function Issues() {
       const response = await api.getIssues(nationId, forceGenerate);
       if (response.success) {
         setIssues(response.issues);
-        setTimerDisplay(response.timer_display || 'Loading...');
+        setTimerDisplay(response.timer_display || '—');
         setSecondsRemaining(response.seconds_remaining);
         setAtCap(response.at_cap || false);
+      } else {
+        setTimerDisplay('Unavailable');
+        if (!silent) await glassAlert({ title: 'Error', message: response.detail || 'Failed to load issues' });
       }
     } catch (error) {
       console.error('Error loading issues:', error);
@@ -126,6 +130,8 @@ export default async function Issues() {
 
   const handleDecision = async (issue: Issue, choiceIndex: number) => {
     if (!nation?.id && !nation?._id) return;
+    const pick = issue.choices[choiceIndex];
+    if (pick?.vetoed || /\(vetoed\)/i.test(pick?.text || '')) return;
     
     setSubmitting(true);
     try {
@@ -135,16 +141,15 @@ export default async function Issues() {
       
       if (response.success) {
         // Capture results immediately
-        const changes = response.stat_changes || {};
         const policy = response.policy_created || null;
-        
-        // Update nation stats immediately
-        const updatedNation = { ...nation, stats: response.new_stats };
-        setNation(updatedNation);
-        
-        // Set state for modal
-        setStatChanges(changes);
+        const flags = { ...((nation as any).policy_flags || {}) };
+        for (const f of response.flags_set || []) {
+          flags[f.id] = { ...f, source: issue.title };
+        }
+        setNation({ ...nation, stats: response.new_stats, policy_flags: flags } as any);
         setPolicyCreated(policy);
+        setStatChanges(response.stat_changes || {});
+        setResultLines(response.result_lines || []);
         
         // Close issue detail modal FIRST
         setSelectedIssue(null);
@@ -189,14 +194,7 @@ export default async function Issues() {
 
   // Render main content based on state
   const renderContent = () => {
-    if (loading) {
-      return (
-        <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color={themeColor} />
-          <Text style={styles.loadingText}>Loading issues...</Text>
-        </View>
-      );
-    }
+    if (loading) return null;
 
     if (issues.length === 0) {
       return (
@@ -207,7 +205,7 @@ export default async function Issues() {
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={themeColor} />
           }
         >
-          <Text style={styles.emptyIcon}>📝</Text>
+          <Ionicons name="document-text-outline" size={56} color="rgba(243,246,250,0.28)" />
           <Text style={styles.emptyTitle}>No Active Issues</Text>
           <Text style={styles.emptyText}>Your nation is running smoothly for now</Text>
           
@@ -238,7 +236,12 @@ export default async function Issues() {
     <ScreenCanvas>
     <View style={styles.container}>
       {renderHeader()}
-      <FadeUp key={`issues-${visit}`}>
+      {loading ? (
+        <View style={styles.loaderFill}>
+          <StatusDots status="Loading" color={themeColor} pattern="carve" />
+        </View>
+      ) : (
+      <FadeUp key={`issues-${visit}`} style={{ flex: 1 }}>
       {renderContent()}
       
       {!loading && issues.length > 0 && (
@@ -276,6 +279,7 @@ export default async function Issues() {
       </ScrollView>
       )}
       </FadeUp>
+      )}
       
       {selectedIssue && (
       <Modal visible={!!selectedIssue} animationType="slide" onRequestClose={() => setSelectedIssue(null)}>
@@ -293,30 +297,34 @@ export default async function Issues() {
 
           <Text style={styles.choicesHeader}>How will you respond?</Text>
 
-          {selectedIssue.choices.map((choice, index) => (
+          {selectedIssue.choices.map((choice, index) => {
+            const vetoed = !!(choice as any).vetoed || /\(vetoed\)/i.test(choice.text || '');
+            return (
             <TouchableOpacity
               key={index}
-              onPress={() => handleDecision(selectedIssue, index)}
-              disabled={submitting}
-              activeOpacity={0.85}
+              onPress={() => !vetoed && handleDecision(selectedIssue, index)}
+              disabled={submitting || vetoed}
+              activeOpacity={vetoed ? 1 : 0.85}
             >
-              <LiquidGlass radius={22} style={styles.choiceCard}>
-                <View style={[styles.choiceNumber, { backgroundColor: themeColor }]}>
-                  <Text style={styles.choiceNumberText}>{index + 1}</Text>
+              <LiquidGlass radius={22} style={[styles.choiceCard, vetoed && styles.choiceVetoed]}>
+                <View style={[styles.choiceNumber, { backgroundColor: vetoed ? '#555' : themeColor }]}>
+                  <Text style={[styles.choiceNumberText, vetoed && { color: '#aaa' }]}>{index + 1}</Text>
                 </View>
                 <View style={styles.choiceCopy}>
-                  <Text style={styles.choiceText}>{choice.text}</Text>
-                  <Text style={styles.choiceDescription}>{choice.description}</Text>
+                  <Text style={[styles.choiceText, vetoed && styles.choiceVetoedText]}>{choice.text}</Text>
+                  <Text style={[styles.choiceDescription, vetoed && styles.choiceVetoedText]}>
+                    {vetoed ? 'Blocked by this government.' : choice.description}
+                  </Text>
                 </View>
               </LiquidGlass>
             </TouchableOpacity>
-          ))}
+            );
+          })}
         </ScrollView>
 
         {submitting && (
           <View style={styles.loadingOverlay}>
-            <ActivityIndicator size="large" color={themeColor} />
-            <Text style={styles.loadingText}>Processing decision...</Text>
+            <StatusDots status="Loading" color={themeColor} pattern="carve" />
           </View>
         )}
       </View>
@@ -331,6 +339,8 @@ export default async function Issues() {
         onClose={() => {
           setShowResultsModal(false);
           setPolicyCreated(null);
+          setStatChanges({});
+          setResultLines([]);
         }}
       />
     </View>
@@ -341,12 +351,12 @@ export default async function Issues() {
 // Results Modal Component
 function ResultsModal({ 
   visible, 
-  statChanges, 
+  statChanges,
   policyCreated,
   onClose 
 }: { 
   visible: boolean; 
-  statChanges: Record<string, number>; 
+  statChanges: Record<string, number>;
   policyCreated: string | null;
   onClose: () => void;
 }) {
@@ -380,16 +390,18 @@ function ResultsModal({
 
           <View style={styles.statsChangesContainer}>
             <Text style={styles.statsChangesHeader}>Stat Changes:</Text>
-            {Object.entries(statChanges).map(([stat, value]) => (
+            {Object.entries(statChanges)
+              .filter(([k]) => k !== 'timezone_count')
+              .map(([stat, value]) => (
               <View key={stat} style={styles.statChangeRow}>
-                <Text style={styles.statChangeName}>{stat}</Text>
+                <Text style={styles.statChangeName}>{stat.replace(/_/g, ' ')}</Text>
                 <Text
                   style={[
                     styles.statChangeValue,
                     { color: value > 0 ? '#27D17A' : '#FF5A65' }
                   ]}
                 >
-                  {value > 0 ? '+' : ''}{value.toFixed(1)}
+                  {value > 0 ? '+' : ''}{Number(value).toFixed(1)}
                 </Text>
               </View>
             ))}
@@ -455,6 +467,11 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+  },
+  loaderFill: {
+    flex: 1,
+    position: 'relative',
+    overflow: 'hidden',
   },
   centerContainer: {
     flex: 1,
@@ -578,6 +595,12 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.62)',
     lineHeight: 19,
     marginBottom: 0,
+  },
+  choiceVetoed: {
+    opacity: 0.42,
+  },
+  choiceVetoedText: {
+    color: 'rgba(180,184,192,0.7)',
   },
   detailRoot: {
     flex: 1,
