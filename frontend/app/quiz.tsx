@@ -32,6 +32,7 @@ export default function Quiz() {
   const [answers, setAnswers] = useState<QuizAnswer[]>([]);
   const [nationName, setNationName] = useState('');
   const [motto, setMotto] = useState('');
+  const [mottoHint, setMottoHint] = useState<string | null>(null);
   const [currency, setCurrency] = useState('Credits');
   const [nationalAnimal, setNationalAnimal] = useState('Eagle');
   const [flagBase64, setFlagBase64] = useState('');
@@ -49,8 +50,20 @@ export default function Quiz() {
         router.replace('/signin');
         return;
       }
-      // The wheels come first — read the rolled government from the wheels screen.
-      const rawWheel = await AsyncStorage.getItem('pending_wheel_result');
+      // The wheels come first — prefer the confirm blob, else the server lock.
+      let rawWheel = await AsyncStorage.getItem('pending_wheel_result');
+      if (!rawWheel) {
+        try {
+          const prog = await api.getWheelsProgress();
+          const saved = prog?.result;
+          if (saved?.government_form && saved?.government_subtype && saved?.territorial_structure && saved?.style_modifier) {
+            rawWheel = JSON.stringify(saved);
+            await AsyncStorage.setItem('pending_wheel_result', rawWheel);
+          }
+        } catch (pe) {
+          console.warn('Wheel progress unavailable', pe);
+        }
+      }
       if (rawWheel) {
         try {
           setWheelResult(JSON.parse(rawWheel));
@@ -183,10 +196,26 @@ export default function Quiz() {
                 <TextInput
                   style={styles.input}
                   value={motto}
-                  onChangeText={setMotto}
+                  onChangeText={(t) => {
+                    setMotto(t);
+                    const lower = t.toLowerCase();
+                    const isAutocratic = wheelResult?.government_form === 'autocracy' || wheelResult?.government_subtype?.toLowerCase().includes('dictator');
+                    const liberalMarkers = ['freedom', 'liberty', 'democracy', 'equality', 'rights', 'justice for all', 'will of the people'];
+                    if (isAutocratic && lower.length > 2 && liberalMarkers.some(m => lower.includes(m))) {
+                      setMottoHint('For an autocratic nation, this motto may sound out of tune. Consider strength, order, glory, or prosperity instead.');
+                    } else {
+                      setMottoHint(null);
+                    }
+                  }}
                   placeholder="Liberty, Equality, Prosperity"
                   placeholderTextColor="rgba(243,246,250,0.48)"
                 />
+                {mottoHint ? (
+                  <View style={styles.hintRow}>
+                    <Ionicons name="information-circle" size={14} color="#F2C94C" style={{ marginRight: 6 }} />
+                    <Text style={[styles.hint, { color: '#F2C94C', flex: 1, marginTop: 0, marginBottom: 0 }]}>{mottoHint}</Text>
+                  </View>
+                ) : null}
 
                 <Text style={styles.label}>Currency Name</Text>
                 <TextInput
@@ -388,6 +417,12 @@ const styles = StyleSheet.create({
     color: 'rgba(243,246,250,0.55)',
     fontSize: 13,
     lineHeight: 18,
+    marginTop: -4,
+    marginBottom: 8,
+  },
+  hintRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
     marginTop: -4,
     marginBottom: 8,
   },

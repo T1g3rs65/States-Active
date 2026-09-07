@@ -8,6 +8,7 @@ import LiquidGlass from '../components/LiquidGlass';
 import { glassAlert } from '../components/GlassModal';
 import { api } from '../utils/api';
 import { useAccountStore } from '../store/accountStore';
+import { useNationStore } from '../store/nationStore';
 
 export default function SignIn() {
   const router = useRouter();
@@ -24,6 +25,9 @@ export default function SignIn() {
       setGoogleOn(!!r.enabled);
       setGoogleClientId(r.client_id || null);
     }).catch(() => {});
+    if (typeof document !== 'undefined') {
+      document.title = 'Sign in · Sovereign Hex';
+    }
   }, []);
 
   const submit = async () => {
@@ -57,6 +61,7 @@ export default function SignIn() {
     try {
       const live = await api.getNationByUser(userId);
       if (live?.nation) {
+        await useNationStore.getState().saveNation(live.nation);
         router.replace('/(tabs)/nation');
         return;
       }

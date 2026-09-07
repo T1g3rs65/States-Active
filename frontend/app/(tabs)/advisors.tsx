@@ -133,6 +133,7 @@ export default function Advisors() {
   const [probing, setProbing] = useState(false);
   const [notificationCount, setNotificationCount] = useState(0);
   const [taskUsedToday, setTaskUsedToday] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   
   // War-related state
   const [showDeclareWarModal, setShowDeclareWarModal] = useState(false);
@@ -146,9 +147,18 @@ export default function Advisors() {
   const themeColor = leaningColor(nation);
 
   useEffect(() => {
+    if (!nation) {
+      setLoading(true);
+      // Try to recover from a missing nation on first mount; this covers
+      // direct navigation / refresh where the store is cold.
+      recoverNation().then((ok) => {
+        if (!ok) setLoading(false);
+      });
+      return;
+    }
     fetchNation();
     checkActiveWar();
-  }, []);
+  }, [nation?.id || nation?._id]);
   
   // Load notification count on focus
   useFocusEffect(
@@ -284,25 +294,44 @@ export default function Advisors() {
   };
 
   const fetchNation = async () => {
-    if (!nation) return;
+    if (!nation) {
+      setLoading(false);
+      return;
+    }
+    
+    const nationId = nation.id || nation._id;
+    if (!nationId) {
+      setLoading(false);
+      return;
+    }
+    
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
     
     try {
-      const nationId = nation.id || nation._id;
-      const response = await api.getNation(nationId);
-      if (response.success) {
-        const n = response.nation;
+      const response = await fetch(`${process.env.EXPO_PUBLIC_BACKEND_URL || ''}/api/nations/${nationId}`, {
+        signal: controller.signal,
+      });
+      const data = await response.json();
+      if (data.success) {
+        const n = data.nation;
         setNation(n);
         setTaskUsedToday(!!n.task_used_today || utcTaskUsed(n.advisors));
+      } else {
+        setError('Could not load advisors.');
       }
-    } catch (error) {
-      console.error('Error fetching nation:', error);
+    } catch (err: any) {
+      console.error('Error fetching nation:', err);
+      setError(err?.name === 'AbortError' ? 'Timed out loading advisors.' : 'Failed to load advisors.');
     } finally {
+      clearTimeout(timeoutId);
       setLoading(false);
       setRefreshing(false);
     }
   };
 
   const onRefresh = () => {
+    setError(null);
     setRefreshing(true);
     fetchNation();
   };
@@ -332,6 +361,8 @@ export default function Advisors() {
     if (nation?.task_used_today) return false;
     return !utcTaskUsed(nation?.advisors);
   };
+
+  const dailyTaskExhausted = !canSendTaskToday();
 
   // Global reform cooldown - check nation-level last_reform_sent
   const canSendReform = () => {
@@ -367,6 +398,11 @@ export default function Advisors() {
   };
 
   const handleSendTask = async () => {
+    if (!canSendTaskToday()) {
+      await glassAlert({ title: 'Daily Limit Reached', message: 'You can only send one task per day to any advisor.' });
+      setShowTaskModal(false);
+      return;
+    }
     if (!taskDescription.trim()) {
       await glassAlert({ title: 'Error', message: 'Please enter a task description' });
       return;
@@ -491,6 +527,23 @@ export default function Advisors() {
     );
   }
 
+  if (error) {
+    return (
+      <ScreenCanvas>
+      <View style={styles.container}>
+        <TabChrome title="Advisors" subtitle="Advisors" />
+        <View style={styles.errorFill}>
+          <Ionicons name="alert-circle" size={44} color="#FF5A65" />
+          <Text style={styles.errorText}>{error}</Text>
+          <TouchableOpacity onPress={fetchNation} style={styles.retryBtn}>
+            <Text style={styles.retryText}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+      </ScreenCanvas>
+    );
+  }
+
   if (!nation || !nation.advisors || nation.advisors.length === 0) {
     return (
       <View style={styles.container}>
@@ -523,16 +576,16 @@ export default function Advisors() {
         <Text style={styles.headerTitle}>{body}</Text>
       </View>
 
+      {dailyTaskExhausted ? (
+        <View style={[styles.dailyLimitBanner, { marginBottom: 14 }]} aria-disabled={true}>
+          <Ionicons name="time-outline" size={20} color="#F2C94C" />
+          <Text style={styles.dailyLimitText}>Daily task used. Come back tomorrow to send another advisor task or probe.</Text>
+        </View>
+      ) : null}
+
       <Text style={styles.subtitle}>
         Your key advisors serve {nation.name}
       </Text>
-
-      {!canSendTaskToday() && (
-        <View style={styles.dailyLimitBanner}>
-          <Ionicons name="time-outline" size={20} color="#F2C94C" />
-          <Text style={styles.dailyLimitText}>Daily task limit reached. Try again tomorrow.</Text>
-        </View>
-      )}
 
       <View style={styles.advisorsGrid}>
         {nation.advisors.filter(isFeatureComplete).map((advisor, i) => (
@@ -587,7 +640,7 @@ export default function Advisors() {
                 style={[styles.actionBtn, { backgroundColor: canSendTaskToday() ? themeColor : 'rgba(243,246,250,0.12)' }]}
               >
                 <Ionicons name="paper-plane" size={14} color="#F3F6FA" />
-                <Text style={styles.actionBtnText}>Task</Text>
+                <Text style={styles.actionBtnText}>{canSendTaskToday() ? 'Task' : 'Done'}</Text>
               </PressScale>
 
               {isMilitaryAdvisor(advisor) && (
@@ -633,7 +686,7 @@ export default function Advisors() {
                   style={[styles.actionBtn, { backgroundColor: canSendTaskToday() ? '#8B5CF6' : 'rgba(243,246,250,0.12)' }]}
                 >
                   <Ionicons name="eye" size={14} color="#F3F6FA" />
-                  <Text style={styles.actionBtnText}>Probe</Text>
+                  <Text style={styles.actionBtnText}>{canSendTaskToday() ? 'Probe' : 'Done'}</Text>
                 </PressScale>
               )}
 
@@ -1436,6 +1489,32 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: '#F3F6FA',
     fontWeight: 'bold',
+  },
+  errorFill: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingBottom: 48,
+  },
+  errorText: {
+    color: '#FF8A92',
+    fontSize: 15,
+    textAlign: 'center',
+    marginVertical: 14,
+  },
+  retryBtn: {
+    backgroundColor: 'rgba(243,246,250,0.12)',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.16)',
+  },
+  retryText: {
+    color: '#F3F6FA',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
 

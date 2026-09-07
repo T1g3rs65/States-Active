@@ -35,6 +35,12 @@ export default function Index() {
   }, []);
 
   useEffect(() => {
+    if (typeof document !== 'undefined') {
+      document.title = 'Sovereign Hex';
+    }
+  }, []);
+
+  useEffect(() => {
     checkForNation();
   }, []);
 
@@ -75,33 +81,21 @@ export default function Index() {
         return;
       }
 
-      await loadNation();
+      // First try a fast live lookup by user id so refresh / deep links always hydrate.
       const savedUserId = session.user.id;
-      let cached = useNationStore.getState().nation;
-      // Cached nation from a wiped world is dead — drop it
-      if (cached?.id || cached?._id) {
-        try {
-          const live = await api.getNationByUser(savedUserId);
-          if (!live?.nation) {
-            await useNationStore.getState().clearNation();
-            cached = null;
-          } else {
-            await enterNation(live.nation);
-            return;
-          }
-        } catch (_) {
-          await useNationStore.getState().clearNation();
-          cached = null;
+      try {
+        const live = await api.getNationByUser(savedUserId);
+        if (live?.success && live.nation) {
+          await enterNation(live.nation);
+          return;
         }
-      } else {
-        try {
-          const live = await api.getNationByUser(savedUserId);
-          if (live?.success && live.nation) {
-            await enterNation(live.nation);
-            return;
-          }
-        } catch (_) {}
-      }
+      } catch (_) {}
+
+      // No live nation found; clear stale cache and land on the start screen.
+      await useNationStore.getState().clearNation();
+      try {
+        await AsyncStorage.multiRemove(['nation', 'pending_nation']);
+      } catch (_) {}
       finishLoading();
     } catch (error) {
       console.error('Error checking for nation:', error);

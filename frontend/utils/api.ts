@@ -167,8 +167,10 @@ export const api = {
   },
   
   // Issues
-  getIssues: async (nationId: string, forceGenerate = false) => {
-    const response = await fetch(`${API_URL}/api/nations/${nationId}/issues?force_generate=${forceGenerate}`);
+  getIssues: async (nationId: string, forceGenerate = false, signal?: AbortSignal) => {
+    const response = await fetch(`${API_URL}/api/nations/${nationId}/issues?force_generate=${forceGenerate}`, {
+      signal,
+    });
     return response.json();
   },
   

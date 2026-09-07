@@ -73,9 +73,8 @@ export default function Issues() {
   };
 
   useEffect(() => {
-    if (nation) {
+    if (nation?.id || nation?._id) {
       loadIssues();
-      
       // Poll every 30 seconds to check for new issues and update timer
       pollIntervalRef.current = setInterval(() => {
         loadIssues(false, true); // silent refresh
@@ -87,7 +86,7 @@ export default function Issues() {
         }
       };
     }
-  }, [nation]);
+  }, [nation?.id || nation?._id]);
 
   // When seconds_remaining is near 0, poll more frequently
   useEffect(() => {
@@ -102,12 +101,15 @@ export default function Issues() {
   }, [secondsRemaining]);
 
   const loadIssues = async (forceGenerate = false, silent = false) => {
-    if (!nation?.id && !nation?._id) return;
+    const nationId = nation?.id || nation?._id;
+    if (!nationId) return;
     
     if (!silent) setLoading(true);
     try {
-      const nationId = nation.id || nation._id;
-      const response = await api.getIssues(nationId, forceGenerate);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      const response = await api.getIssues(nationId, forceGenerate, controller.signal);
+      clearTimeout(timeoutId);
       if (response.success) {
         setIssues(response.issues);
         setTimerDisplay(response.timer_display || '—');
@@ -162,6 +164,11 @@ export default function Issues() {
         // Small delay ensures DOM is ready
         requestAnimationFrame(() => {
           setShowResultsModal(true);
+        });
+      } else {
+        await glassAlert({
+          title: 'Could not decide',
+          message: response.detail || 'The server did not accept that decision. Try again.',
         });
       }
     } catch (error) {
@@ -336,6 +343,7 @@ export default function Issues() {
         visible={showResultsModal}
         statChanges={statChanges}
         policyCreated={policyCreated}
+        resultLines={resultLines}
         onClose={() => {
           setShowResultsModal(false);
           setPolicyCreated(null);
@@ -353,11 +361,13 @@ function ResultsModal({
   visible, 
   statChanges,
   policyCreated,
+  resultLines,
   onClose 
 }: { 
   visible: boolean; 
   statChanges: Record<string, number>;
   policyCreated: string | null;
+  resultLines: string[];
   onClose: () => void;
 }) {
   return (
@@ -385,6 +395,15 @@ function ResultsModal({
               <Text style={styles.policyCreatedText}>New Law Enacted!</Text>
               <Text style={styles.policyCreatedName}>{policyCreated}</Text>
               <Text style={styles.policyCreatedHint}>View in Policies page</Text>
+            </View>
+          )}
+
+          {resultLines.length > 0 && (
+            <View style={styles.resultLinesContainer}>
+              <Text style={styles.resultLinesHeader}>What happened:</Text>
+              {resultLines.map((line, idx) => (
+                <Text key={idx} style={styles.resultLine}>{line}</Text>
+              ))}
             </View>
           )}
 
@@ -750,6 +769,24 @@ const styles = StyleSheet.create({
   policyCreatedHint: {
     fontSize: 12,
     color: colors.text.secondary,
+  },
+  resultLinesContainer: {
+    backgroundColor: colors.background,
+    borderRadius: radii.md,
+    padding: 14,
+    marginBottom: 20,
+  },
+  resultLinesHeader: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.text.secondary,
+    marginBottom: 10,
+  },
+  resultLine: {
+    fontSize: 14,
+    color: colors.text.primary,
+    lineHeight: 20,
+    marginBottom: 6,
   },
   statsChangesContainer: {
     backgroundColor: colors.background,

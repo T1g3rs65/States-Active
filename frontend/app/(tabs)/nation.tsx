@@ -247,7 +247,7 @@ export default function Nation() {
         refreshNation();
         loadNotificationCount();
       }
-    }, []) // Empty dependency array - only run on focus, not on nation changes
+    }, [nation?.id || nation?._id])
   );
 
   const loadNotificationCount = async () => {
@@ -264,14 +264,20 @@ export default function Nation() {
   };
 
   const refreshNation = async () => {
-    if (!nation?.id && !nation?._id) return;
+    const nationId = nation?.id || nation?._id;
+    if (!nationId) return;
     
     setRefreshing(true);
     try {
-      const nationId = nation.id || nation._id;
-      const response = await api.getNation(nationId);
-      if (response.success) {
-        setNation(response.nation);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      const response = await fetch(`${process.env.EXPO_PUBLIC_BACKEND_URL || ''}/api/nations/${nationId}`, {
+        signal: controller.signal,
+      });
+      const data = await response.json();
+      clearTimeout(timeoutId);
+      if (data.success) {
+        setNation(data.nation);
       }
     } catch (error) {
       console.error('Error refreshing nation:', error);
