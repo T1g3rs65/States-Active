@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -25,7 +25,7 @@ export default function EmptyNation({
   const router = useRouter();
   const { recoverNation, nation } = useNationStore();
   const tint = leaningColor(nation);
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState(true);
   const [note, setNote] = useState<string | null>(null);
 
   const onReload = async () => {
@@ -44,6 +44,12 @@ export default function EmptyNation({
       setBusy(false);
     }
   };
+
+  useEffect(() => {
+    onReload();
+    // Auto-hydrate on every mount (hard refresh on a tab). Reload button still works.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <ScreenCanvas>
