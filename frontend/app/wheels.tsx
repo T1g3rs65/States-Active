@@ -85,6 +85,9 @@ export default function WheelsScreen() {
             setResult(saved);
           }
           if (nxt === 'done') {
+            try {
+              await AsyncStorage.setItem('pending_wheel_result', JSON.stringify(saved));
+            } catch (_) {}
             setCurrentIndex(WHEEL_ORDER.length - 1);
             setArmed(true);
             setCurrentDone(true);

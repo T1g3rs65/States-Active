@@ -439,6 +439,46 @@ def founding_next_wheel(saved: Optional[dict] = None) -> Optional[str]:
     return None
 
 
+def _as_wheel_blob(value) -> dict:
+    if value is None:
+        return {}
+    if isinstance(value, dict):
+        out = dict(value)
+    elif hasattr(value, "model_dump"):
+        out = value.model_dump()
+    elif hasattr(value, "dict"):
+        out = value.dict()
+    else:
+        out = dict(value)
+    out.pop("updated_at", None)
+    return out
+
+
+def founding_wheels_complete(saved: Optional[dict] = None) -> bool:
+    blob = _as_wheel_blob(saved)
+    return founding_next_wheel(blob) is None and bool(blob.get("government_form"))
+
+
+def _blob_to_wheel_result(blob: dict) -> WheelResult:
+    return WheelResult(
+        government_form=blob["government_form"],
+        government_subtype=blob["government_subtype"],
+        territorial_structure=blob["territorial_structure"],
+        style_modifier=blob["style_modifier"],
+    )
+
+
+def resolve_founding_wheel_result(saved=None, client=None) -> WheelResult:
+    """Server-persisted founding wheels win. Never silently re-spin."""
+    saved_blob = _as_wheel_blob(saved)
+    if founding_wheels_complete(saved_blob):
+        return _blob_to_wheel_result(saved_blob)
+    client_blob = _as_wheel_blob(client)
+    if founding_wheels_complete(client_blob):
+        return _blob_to_wheel_result(client_blob)
+    raise ValueError("Founding wheels are not complete; spin them before creating a nation")
+
+
 def spin_one_wheel(
     wheel_id: str,
     current: Optional[dict] = None,

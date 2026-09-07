@@ -43,6 +43,7 @@ import account_service as accounts
 import email_service
 from government_wheels import (
     spin_wheels, spin_one_wheel, founding_next_wheel, WHEEL_FIELD,
+    resolve_founding_wheel_result,
     wheels_config, respin_wheel, respin_to_form,
     recalc_legitimacy,
     crisis_check, crisis_for_issue, CRISIS_WHEEL_MAP,
@@ -250,10 +251,14 @@ async def create_nation(request: CreateNationRequest):
         # Calculate starting stats from quiz
         stats = calculate_starting_stats(request.quiz_result.answers)
         
-        wheel_result = request.quiz_result.wheel_result
-        if not wheel_result:
-            wheel_result = spin_wheels(race=race_id)
-
+        user_row = await db.users.find_one({"id": request.user_id})
+        try:
+            wheel_result = resolve_founding_wheel_result(
+                (user_row or {}).get("founding_wheels"),
+                request.quiz_result.wheel_result,
+            )
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e))
         wheel_result = WheelsWheelResult(**wheel_result.dict())
         stats = clamp_founding_stats(
             stats,
@@ -426,6 +431,10 @@ async def create_nation(request: CreateNationRequest):
         nation_dict["_id"] = str(result.inserted_id)
         nation_dict["display_identity"] = nation.display_name
         logger.info(f"Nation saved with ID: {result.inserted_id}")
+        await db.users.update_one(
+            {"id": request.user_id},
+            {"$unset": {"founding_wheels": ""}},
+        )
         
         # Update world's nation count if nation is in a world
         if request.world_id:
