@@ -60,9 +60,15 @@ export default function EmptyNation({
             <View style={[styles.iconRing, { borderColor: tint + '66' }]}>
               <Ionicons name="flag-outline" size={28} color={tint} />
             </View>
+            {busy ? (
+              <StatusDots status="Loading" color={tint} />
+            ) : (
+              <>
             <Text style={styles.title}>{title}</Text>
             <Text style={styles.body}>{subtitle}</Text>
             {note ? <Text style={[styles.note, { color: tint }]}>{note}</Text> : null}
+              </>
+            )}
 
             <TouchableOpacity
               style={[styles.primary, { backgroundColor: tint }]}

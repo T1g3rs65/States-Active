@@ -65,7 +65,8 @@ export default function NonAggressionPacts() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<'pacts' | 'requests' | 'find'>('pacts');
-  
+  const [loadError, setLoadError] = useState<string | null>(null);
+
   // Search state
   const [searchQuery, setSearchQuery] = useState('');
   
@@ -83,6 +84,13 @@ export default function NonAggressionPacts() {
   useEffect(() => {
     if (nationId) {
       loadData();
+    } else {
+      setLoading(true);
+      const t = setTimeout(() => {
+        setLoading(false);
+        setLoadError('No nation found. Your session may have dropped on refresh.');
+      }, 2500);
+      return () => clearTimeout(t);
     }
   }, [nationId]);
   
@@ -98,44 +106,55 @@ export default function NonAggressionPacts() {
     }
   }, [searchQuery, allNations]);
 
+  const withTimeout = <T,>(promise: Promise<T>, ms = 8000, label = 'request') =>
+    Promise.race([
+      promise,
+      new Promise<T>((_, reject) =>
+        setTimeout(() => reject(new Error(`${label} timed out`)), ms)
+      ),
+    ]);
+
   const loadData = async () => {
     if (!nationId) return;
-    
+
     setLoading(true);
+    setLoadError(null);
     try {
       // Get world_id for filtering nations to same world
       const worldId = nation?.world_id;
-      
-      const [pactsRes, requestsRes, nationsRes, factionRes] = await Promise.all([
-        api.getAlliances(nationId),
-        api.getAllianceRequests(nationId),
-        api.getRankings('gdp', 100, worldId), // Use rankings API to get list of nations from same world
-        api.getNationMultiAlliance(nationId), // Get faction to filter members
+
+      const [pactsRes, requestsRes, nationsRes, factionRes] = await Promise.allSettled([
+        withTimeout(api.getAlliances(nationId), 8000, 'alliances'),
+        withTimeout(api.getAllianceRequests(nationId), 8000, 'alliance requests'),
+        withTimeout(api.getRankings('gdp', 100, worldId), 8000, 'rankings'),
+        withTimeout(api.getNationMultiAlliance(nationId), 8000, 'faction'),
       ]);
-      
-      if (pactsRes.success) {
-        setPacts(pactsRes.allies || []);
+
+      if (pactsRes.status === 'fulfilled' && pactsRes.value.success) {
+        setPacts(pactsRes.value.allies || []);
       }
-      if (requestsRes.success) {
-        setIncomingRequests(requestsRes.incoming || []);
-        setOutgoingRequests(requestsRes.outgoing || []);
+      if (requestsRes.status === 'fulfilled' && requestsRes.value.success) {
+        setIncomingRequests(requestsRes.value.incoming || []);
+        setOutgoingRequests(requestsRes.value.outgoing || []);
       }
-      if (nationsRes.success && nationsRes.rankings) {
+      if (nationsRes.status === 'fulfilled' && nationsRes.value.success && nationsRes.value.rankings) {
         // Filter out own nation and existing pact nations
-        const pactIds = new Set(pactsRes.allies?.map((a: Pact) => a.ally_id) || []);
-        
+        const pactIds = new Set(
+          (pactsRes.status === 'fulfilled' ? pactsRes.value.allies : [])?.map((a: Pact) => a.ally_id) || []
+        );
+
         // Also filter out faction members (can't have pacts with faction mates)
         const factionMemberIds = new Set<string>();
-        if (factionRes.success && factionRes.alliance) {
-          const faction = factionRes.alliance;
+        if (factionRes.status === 'fulfilled' && factionRes.value.success && factionRes.value.alliance) {
+          const faction = factionRes.value.alliance;
           // Add all members and vassals to the exclusion set
           (faction.members || []).forEach((m: any) => factionMemberIds.add(m.nation_id));
           (faction.vassals || []).forEach((v: any) => factionMemberIds.add(v.nation_id));
         }
-        
-        const filtered = nationsRes.rankings
-          .filter((n: any) => 
-            n.nation_id !== nationId && 
+
+        const filtered = nationsRes.value.rankings
+          .filter((n: any) =>
+            n.nation_id !== nationId &&
             !pactIds.has(n.nation_id) &&
             !factionMemberIds.has(n.nation_id)  // Exclude faction members
           )
@@ -148,8 +167,18 @@ export default function NonAggressionPacts() {
         setAllNations(filtered);
         setFilteredNations(filtered);
       }
+
+      const failures: string[] = [];
+      if (pactsRes.status === 'rejected') failures.push('pacts');
+      if (requestsRes.status === 'rejected') failures.push('requests');
+      if (nationsRes.status === 'rejected') failures.push('nations');
+      if (factionRes.status === 'rejected') failures.push('faction');
+      if (failures.length) {
+        setLoadError(`Some data failed to load: ${failures.join(', ')}. Pull down to retry.`);
+      }
     } catch (error) {
       console.error('Error loading pacts:', error);
+      setLoadError('Failed to load alliances. Pull down to retry.');
     } finally {
       setLoading(false);
     }
@@ -383,6 +412,13 @@ export default function NonAggressionPacts() {
           </Text>
         </View>
       )}
+
+      {loadError ? (
+        <View style={styles.limitBanner}>
+          <Ionicons name="warning-outline" size={16} color="#F2C94C" />
+          <Text style={styles.limitBannerText}>{loadError}</Text>
+        </View>
+      ) : null}
 
       {/* Content */}
       {loading ? (

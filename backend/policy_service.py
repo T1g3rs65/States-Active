@@ -39,7 +39,14 @@ def detect_policy(issue_title: str, choice_text: str, effects: Dict[str, float])
     issue_lower = issue_title.lower()
     choice_lower = choice_text.lower()
     combined = f"{issue_lower} {choice_lower}"
-    
+
+    # Title wins: an Economy-named issue is not Environment just because
+    # a choice mentioned green/eco or an env stat moved.
+    if any(w in issue_lower for w in ("economy", "economic", "enforcement order")):
+        if not any(w in issue_lower for w in ("climate", "pollution", "emissions", "carbon")):
+            logger.info("Policy category from issue title → economy")
+            return "economy"
+
     # Check if this is an advisor issue
     is_advisor_issue = "[advisor report]" in issue_lower
     
