@@ -106,7 +106,7 @@ export default function NonAggressionPacts() {
     }
   }, [searchQuery, allNations]);
 
-  const withTimeout = <T,>(promise: Promise<T>, ms = 8000, label = 'request') =>
+  const withTimeout = <T,>(promise: Promise<T>, ms = 25000, label = 'request') =>
     Promise.race([
       promise,
       new Promise<T>((_, reject) =>
@@ -124,10 +124,10 @@ export default function NonAggressionPacts() {
       const worldId = nation?.world_id;
 
       const [pactsRes, requestsRes, nationsRes, factionRes] = await Promise.allSettled([
-        withTimeout(api.getAlliances(nationId), 8000, 'alliances'),
-        withTimeout(api.getAllianceRequests(nationId), 8000, 'alliance requests'),
-        withTimeout(api.getRankings('gdp', 100, worldId), 8000, 'rankings'),
-        withTimeout(api.getNationMultiAlliance(nationId), 8000, 'faction'),
+        withTimeout(api.getAlliances(nationId), 25000, 'alliances'),
+        withTimeout(api.getAllianceRequests(nationId), 25000, 'alliance requests'),
+        withTimeout(api.getRankings('gdp', 100, worldId), 25000, 'rankings'),
+        withTimeout(api.getNationMultiAlliance(nationId), 25000, 'faction'),
       ]);
 
       if (pactsRes.status === 'fulfilled' && pactsRes.value.success) {

@@ -5,7 +5,7 @@ import Grain from '../components/Grain';
 import { GlassModalHost } from '../components/GlassModal';
 import { useAccountStore } from '../store/accountStore';
 
-export const APP_BUILD = '313';
+export const APP_BUILD = '314';
 
 export default function RootLayout() {
   useEffect(() => {

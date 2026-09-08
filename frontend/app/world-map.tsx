@@ -890,48 +890,6 @@ export default function WorldMap() {
     }
   };
 
-  const claimSelected = async () => {
-    const playerId = nation?.id || nation?._id;
-    if (!playerId || !nation || !selectedTerritory) return;
-    if (selectedTerritory.ownerId) {
-      await glassAlert({ title: 'Already held', message: selectedTerritory.ownerName || 'Another nation owns this land.' });
-      return;
-    }
-    if (WATER_BIOMES.has(selectedTerritory.biome)) {
-      await glassAlert({ title: 'Cannot claim water', message: 'Tap land next to your territory.' });
-      return;
-    }
-    const adjacent = selectedTerritory.neighbors.some((i) => territories[i]?.ownerId === playerId);
-    const mine = nationClusters.find((c) => c.nationId === playerId);
-    const capCol = mine?.capitalCol ?? nation.territory_center_col ?? 0;
-    const capRow = mine?.capitalRow ?? nation.territory_center_row ?? 0;
-    const nearCapital = Math.hypot(wrapDx(selectedTerritory.col - capCol), selectedTerritory.row - capRow) < 10;
-    const playerTiles = territories.filter((x) => x.ownerId === playerId).length;
-    if (!adjacent && !(playerTiles === 0 && nearCapital)) {
-      await glassAlert({ title: 'Too far', message: 'Claim land that touches your territory (or sits by your capital if you have none yet).' });
-      return;
-    }
-    const next = territories.map((x) =>
-      x.index === selectedTerritory.index
-        ? { ...x, ownerId: playerId, ownerName: nation.name, color: tint }
-        : x
-    );
-    setTerritories(next);
-    setSelectedTerritory({ ...selectedTerritory, ownerId: playerId, ownerName: nation.name });
-    const mineTiles = next.filter((x) => x.ownerId === playerId);
-    const biomes: Record<string, number> = {};
-    const resources: Record<string, number> = {};
-    for (const x of mineTiles) {
-      biomes[x.biome] = (biomes[x.biome] || 0) + 1;
-      if (x.resourceId) resources[x.resourceId] = (resources[x.resourceId] || 0) + 1;
-    }
-    try {
-      await api.updateTerritoryCounts(playerId, biomes, mineTiles.length, resources);
-    } catch (e: any) {
-      await glassAlert({ title: 'Claim failed', message: e?.message || 'Could not save territory.' });
-    }
-  };
-
   const isBorderTerritory = (territory: Territory): boolean => {
     if (!territory.ownerId) return false;
     for (const n of territory.neighbors) {
@@ -1718,14 +1676,6 @@ export default function WorldMap() {
                     return timezoneLabel(selectedTerritory.col);
                   })()}
                 </Text>
-                {!selectedTerritory.ownerId && !WATER_BIOMES.has(selectedTerritory.biome) ? (
-                  <TouchableOpacity
-                    style={[styles.placeGo, { backgroundColor: tint, marginTop: 10 }]}
-                    onPress={() => { void claimSelected(); }}
-                  >
-                    <Text style={styles.placeGoText}>Claim</Text>
-                  </TouchableOpacity>
-                ) : null}
                 {selectedTerritory.resourceId && (
                   <View style={styles.resourceInfo}>
                     <View style={[styles.resourceDot, { backgroundColor: RESOURCE_BY_ID.get(selectedTerritory.resourceId)?.color || '#F3F6FA' }]} />
