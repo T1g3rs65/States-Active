@@ -343,7 +343,6 @@ export default function Issues() {
         visible={showResultsModal}
         statChanges={statChanges}
         policyCreated={policyCreated}
-        resultLines={resultLines}
         onClose={() => {
           setShowResultsModal(false);
           setPolicyCreated(null);
@@ -361,13 +360,11 @@ function ResultsModal({
   visible, 
   statChanges,
   policyCreated,
-  resultLines,
   onClose 
 }: { 
   visible: boolean; 
   statChanges: Record<string, number>;
   policyCreated: string | null;
-  resultLines: string[];
   onClose: () => void;
 }) {
   return (
@@ -395,15 +392,6 @@ function ResultsModal({
               <Text style={styles.policyCreatedText}>New Law Enacted!</Text>
               <Text style={styles.policyCreatedName}>{policyCreated}</Text>
               <Text style={styles.policyCreatedHint}>View in Policies page</Text>
-            </View>
-          )}
-
-          {resultLines.length > 0 && (
-            <View style={styles.resultLinesContainer}>
-              <Text style={styles.resultLinesHeader}>What happened:</Text>
-              {resultLines.map((line, idx) => (
-                <Text key={idx} style={styles.resultLine}>{line}</Text>
-              ))}
             </View>
           )}
 
