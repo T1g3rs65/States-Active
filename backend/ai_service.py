@@ -174,16 +174,24 @@ class AIService:
         if db is not None:
             try:
                 nid = getattr(nation, "id", None) or (nation.get("id") if isinstance(nation, dict) else None)
-                cursor = db.issues.find({"nation_id": nid}).sort("generated_at", -1).limit(10)
-                docs = await cursor.to_list(length=10)
+                cursor = db.issues.find({"nation_id": nid}).sort("generated_at", -1).limit(24)
+                docs = await cursor.to_list(length=24)
                 recent_titles = [d.get("title") for d in docs if d.get("title")]
             except Exception:
                 recent_titles = []
         if recent_titles:
-            listed = "; ".join(recent_titles[:8])
+            avoid = recent_titles[:3]
+            older = recent_titles[3:]
+            random.shuffle(older)
+            echo = older[:3]
             recent_block = (
-                f"- RECENT ISSUES (do not sequel these unless CHAIN STATUS says so): {listed}"
+                f"- DO NOT SEQUEL these recent issues unless CHAIN STATUS says so: {'; '.join(avoid)}"
             )
+            if echo:
+                recent_block += (
+                    f"\n- OPTIONAL ECHO (use in at most ONE issue this batch, or none): {'; '.join(echo)}. "
+                    "Most issues must be new subjects. Do not keep returning to the same past event."
+                )
 
         # Create system message for issue generation
         system_message = f"""You are the issue generator for 'SovereignHex', a nation simulation game.
@@ -255,7 +263,7 @@ INTERNATIONAL: international_approval
 - CHAIN ISSUES: MOST issues are one-offs. Do not write a sequel to the last issue unless the CHAIN STATUS block below tells you to. Never more than 3 beats in one story. If this is beat 3, the issue MUST close the thread — no further sequel. At most ONE issue in this batch may include chains_into; the rest must omit it.
 {chain_block}
 {recent_block}
-- Reference past decisions occasionally to create narrative continuity
+- At most ONE issue in this batch may lightly reference an OPTIONAL ECHO. The rest must be new subjects. Do not keep latching onto the same past issue.
 - Issues can change government type by shifting key stats (civil_rights, gdp, political_freedom, environment, military_strength, scientific_advancement, crime_rate)
 - Population growth represents immigration, birth rate, and overall national vitality"""
         
@@ -506,11 +514,15 @@ ABOUT THIS SPECIES:
 RECENT POLICIES (Major Laws):"""
         
         # Include recent policies if they exist
-        policies = getattr(nation, 'policies', [])
+        policies = getattr(nation, 'policies', []) or []
         if policies:
-            recent_policies = policies[-5:]  # Last 5 policies
+            tail = policies[-2:]
+            older_p = policies[:-2]
+            extra = random.sample(older_p, k=min(1, len(older_p))) if older_p else []
+            shown = extra + tail
+            random.shuffle(shown)
             context += "\n"
-            for policy in recent_policies:
+            for policy in shown:
                 # Handle both dict and Policy object
                 if isinstance(policy, dict):
                     policy_name = policy.get('name', 'Unknown Policy')
