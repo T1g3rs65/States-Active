@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { Nation, Issue } from '../types';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { api } from '../utils/api';
 
 interface NationStore {
   nation: Nation | null;
@@ -75,8 +76,7 @@ export const useNationStore = create<NationStore>((set, get) => ({
       const { nation } = get();
       const nationId = nation?.id || nation?._id;
       if (!nationId) return;
-      const response = await fetch(`${process.env.EXPO_PUBLIC_BACKEND_URL || ''}/api/nations/${nationId}`);
-      const data = await response.json();
+      const data = await api.getNation(nationId);
       if (data.success && data.nation) {
         await AsyncStorage.setItem('nation', JSON.stringify(data.nation));
         set({ nation: data.nation });
@@ -101,10 +101,7 @@ export const useNationStore = create<NationStore>((set, get) => ({
         userId = (globalThis as any).__sh_last_user_id;
       }
       if (userId) {
-        const resp = await fetch(
-          `${process.env.EXPO_PUBLIC_BACKEND_URL || ''}/api/nations/user/${userId}`
-        );
-        const data = await resp.json();
+        const data = await api.getNationByUser(userId);
         if (data?.success && data.nation) {
           await AsyncStorage.setItem('nation', JSON.stringify(data.nation));
           await AsyncStorage.setItem('user_id', userId);

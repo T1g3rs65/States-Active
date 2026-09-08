@@ -4,12 +4,18 @@ import { View, StyleSheet } from 'react-native';
 import Grain from '../components/Grain';
 import { GlassModalHost } from '../components/GlassModal';
 import { useAccountStore } from '../store/accountStore';
+import { useNationStore } from '../store/nationStore';
 
-export const APP_BUILD = '314';
+export const APP_BUILD = '315';
 
 export default function RootLayout() {
   useEffect(() => {
-    useAccountStore.getState().loadSession();
+    useAccountStore.getState().loadSession().then(() => {
+      const s = useAccountStore.getState();
+      if (s.token && s.user?.id) {
+        return useNationStore.getState().recoverNation();
+      }
+    });
     if (typeof fetch === 'undefined') return;
     // True one-shot: any prior attempt in this tab must never reload again.
     // Storing the SERVER id used to loop when it never equaled APP_BUILD.

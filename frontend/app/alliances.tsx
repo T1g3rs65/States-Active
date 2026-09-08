@@ -49,7 +49,7 @@ interface OtherNation {
 
 export default function NonAggressionPacts() {
   const router = useRouter();
-  const { nation } = useNationStore();
+  const { nation, recoverNation } = useNationStore();
   
   const MAX_PACTS = 3;  // Maximum non-aggression pacts allowed
   
@@ -84,14 +84,20 @@ export default function NonAggressionPacts() {
   useEffect(() => {
     if (nationId) {
       loadData();
-    } else {
-      setLoading(true);
-      const t = setTimeout(() => {
-        setLoading(false);
-        setLoadError('No nation found. Your session may have dropped on refresh.');
-      }, 2500);
-      return () => clearTimeout(t);
+      return;
     }
+    setLoading(true);
+    setLoadError(null);
+    let cancelled = false;
+    (async () => {
+      const ok = await recoverNation();
+      if (cancelled) return;
+      if (!ok) {
+        setLoading(false);
+        setLoadError('No nation found. Sign in again from the start screen.');
+      }
+    })();
+    return () => { cancelled = true; };
   }, [nationId]);
   
   useEffect(() => {

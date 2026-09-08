@@ -2456,6 +2456,16 @@ async def get_nation_policies(nation_id: str):
             raise HTTPException(status_code=404, detail="Nation not found")
         
         policies = nation_data.get("policies", [])
+        changed = False
+        for p in policies:
+            if not isinstance(p, dict):
+                continue
+            blob = f"{p.get('category','')} {p.get('name','')} {p.get('title','')} {p.get('law_name','')}".lower()
+            if "econom" in blob and p.get("category") in ("environment", "Environment"):
+                p["category"] = "economy"
+                changed = True
+        if changed:
+            await db.nations.update_one({"_id": nation_data["_id"]}, {"$set": {"policies": policies}})
         return {"success": True, "policies": policies}
     except Exception as e:
         logger.error(f"Error fetching policies: {e}")
