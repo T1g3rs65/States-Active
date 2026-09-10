@@ -14,7 +14,7 @@ POLICY_KEYWORDS = {
     "civil_rights": ["cannabis", "marijuana", "gay", "lgbt", "abortion", "marriage", "drugs", "death penalty", "capital punishment"],
     "economy": ["universal basic income", "ubi", "minimum wage", "privatization", "nationalization", "tax", "welfare"],
     "healthcare": ["universal healthcare", "public health", "private insurance", "medicare"],
-    "education": ["free education", "private schools", "university", "tuition"],
+    "education": ["free education", "private schools", "university", "tuition", "stipend", "enrollment", "welfare"],
     "environment": ["climate", "carbon", "emissions", "pollution", "green", "eco"],
     "military": ["conscription", "draft", "military spending", "defense", "war", "peace"],
     "technology": ["ai", "artificial intelligence", "surveillance", "privacy", "internet", "censorship"],
@@ -39,6 +39,11 @@ def detect_policy(issue_title: str, choice_text: str, effects: Dict[str, float])
     issue_lower = issue_title.lower()
     choice_lower = choice_text.lower()
     combined = f"{issue_lower} {choice_lower}"
+
+    if any(w in issue_lower for w in ("stipend", "enrollment", "tuition", "university", "welfare stipend")):
+        if not any(w in issue_lower for w in ("ai", "surveillance", "internet", "censorship")):
+            logger.info("Policy category from issue title → education")
+            return "education"
 
     # Title wins: an Economy-named issue is not Environment just because
     # a choice mentioned green/eco or an env stat moved.

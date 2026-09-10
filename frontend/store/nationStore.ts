@@ -101,6 +101,13 @@ export const useNationStore = create<NationStore>((set, get) => ({
         userId = (globalThis as any).__sh_last_user_id;
       }
       if (userId) {
+        const cached = await AsyncStorage.getItem('nation');
+        if (cached) {
+          try {
+            const parsed = JSON.parse(cached);
+            if (parsed && (parsed.id || parsed._id)) set({ nation: parsed });
+          } catch (_) {}
+        }
         const data = await api.getNationByUser(userId);
         if (data?.success && data.nation) {
           await AsyncStorage.setItem('nation', JSON.stringify(data.nation));

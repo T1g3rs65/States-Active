@@ -297,9 +297,11 @@ export default function Rankings() {
             }))}
             currentNationId={nationId}
             themeColor={themeColor}
+            onEntryPress={(nid) => router.push(`/compare?nationId=${nid}`)}
           />
 
           {/* Remaining entries as list */}
+          {rankings.slice(3).length > 0 ? (
           <LeaderboardList
             entries={rankings.slice(3).map((entry: any) => ({
               nation_id: entry.nation_id,
@@ -317,6 +319,7 @@ export default function Rankings() {
             themeColor={themeColor}
             onEntryPress={(nid) => router.push(`/compare?nationId=${nid}`)}
           />
+          ) : null}
           </FadeUp>
         </ScrollView>
       )}

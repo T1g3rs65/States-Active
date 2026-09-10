@@ -1,6 +1,6 @@
 import { useRef } from 'react';
 import type { ReactNode } from 'react';
-import { Animated, Pressable, StyleSheet, ViewStyle } from 'react-native';
+import { Animated, Pressable, StyleSheet, ViewStyle, Platform } from 'react-native';
 
 type Props = {
   children: ReactNode;
@@ -20,7 +20,11 @@ export default function PressScale({ children, onPress, disabled, style }: Props
       onPress={onPress}
       onPressIn={() => !disabled && press(0.96)}
       onPressOut={() => press(1)}
-      style={({ pressed }) => [disabled && styles.disabled, pressed && !disabled && styles.pressed]}
+      style={({ pressed }) => [
+        disabled && styles.disabled,
+        pressed && !disabled && styles.pressed,
+        disabled && Platform.OS === 'web' ? ({ cursor: 'not-allowed', pointerEvents: 'none' } as unknown as ViewStyle) : null,
+      ]}
     >
       <Animated.View style={[style, { transform: [{ scale }] }]}>{children}</Animated.View>
     </Pressable>

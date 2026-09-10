@@ -2464,6 +2464,9 @@ async def get_nation_policies(nation_id: str):
             if "econom" in blob and p.get("category") in ("environment", "Environment"):
                 p["category"] = "economy"
                 changed = True
+            if any(w in blob for w in ("stipend", "enrollment", "tuition")) and str(p.get("category") or "").lower() in ("technology", "environment"):
+                p["category"] = "education"
+                changed = True
         if changed:
             await db.nations.update_one({"_id": nation_data["_id"]}, {"$set": {"policies": policies}})
         return {"success": True, "policies": policies}

@@ -52,10 +52,12 @@ export function LeaderboardPodium({
   entries,
   currentNationId,
   themeColor,
+  onEntryPress,
 }: {
   entries: PodiumEntry[];
   currentNationId?: string;
   themeColor?: string;
+  onEntryPress?: (nationId: string) => void;
 }) {
   if (entries.length === 0) return null;
 
@@ -72,9 +74,12 @@ export function LeaderboardPodium({
         const medalColor = MEDAL_COLORS[idx] ?? 'rgba(243,246,250,0.4)';
         const isYou = currentNationId && (entry as any).nation_id === currentNationId;
 
+        const nid = (entry as any).nation_id as string | undefined;
+        const Col: any = onEntryPress && nid ? TouchableOpacity : View;
+        const colProps = onEntryPress && nid ? { onPress: () => onEntryPress(nid), activeOpacity: 0.85 } : {};
+
         return (
-          <View key={idx} style={styles.podiumColumn}>
-            {/* Flag + name above the podium block */}
+          <Col key={idx} style={styles.podiumColumn} {...colProps}>
             <View style={styles.podiumHeader}>
               {renderFlag(entry.flag_base64, 24)}
               <Text style={[styles.podiumName, isYou && { color: accent }]} numberOfLines={2}>
@@ -115,7 +120,7 @@ export function LeaderboardPodium({
                 {typeof entry.value === 'number' ? entry.value.toFixed(1) : entry.value}
               </Text>
             </View>
-          </View>
+          </Col>
         );
       })}
     </View>
