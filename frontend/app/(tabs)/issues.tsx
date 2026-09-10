@@ -39,6 +39,9 @@ export default function Issues() {
   const [atCap, setAtCap] = useState(false);
   const [notificationCount, setNotificationCount] = useState(0);
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const loadGen = useRef(0);
+  const abortRef = useRef<AbortController | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [visit, setVisit] = useState(0);
   useFocusEffect(
     useCallback(() => {
@@ -73,19 +76,39 @@ export default function Issues() {
   };
 
   useEffect(() => {
-    if (nation?.id || nation?._id) {
-      loadIssues();
-      // Poll every 30 seconds to check for new issues and update timer
-      pollIntervalRef.current = setInterval(() => {
-        loadIssues(false, true); // silent refresh
-      }, 30000);
-      
-      return () => {
-        if (pollIntervalRef.current) {
-          clearInterval(pollIntervalRef.current);
-        }
-      };
-    }
+    let cancelled = false;
+    const boot = async () => {
+      let id = nation?.id || nation?._id;
+      if (!id) {
+        await recoverNation();
+        if (cancelled) return;
+        const n = useNationStore.getState().nation;
+        id = n?.id || n?._id;
+      }
+      if (!id) {
+        setLoading(false);
+        setLoadError('No nation loaded');
+        return;
+      }
+      const ok = await loadIssues(false, false);
+      if (!ok && !cancelled) {
+        setTimeout(() => {
+          if (!cancelled) loadIssues(false, true);
+        }, 2000);
+      }
+    };
+    boot();
+    pollIntervalRef.current = setInterval(() => {
+      loadIssues(false, true);
+    }, 15000);
+
+    return () => {
+      cancelled = true;
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+      }
+      abortRef.current?.abort();
+    };
   }, [nation?.id || nation?._id]);
 
   // When seconds_remaining is near 0, poll more frequently
@@ -101,29 +124,45 @@ export default function Issues() {
   }, [secondsRemaining]);
 
   const loadIssues = async (forceGenerate = false, silent = false) => {
-    const nationId = nation?.id || nation?._id;
-    if (!nationId) return;
-    
-    if (!silent) setLoading(true);
+    const n = useNationStore.getState().nation;
+    const nationId = n?.id || n?._id;
+    if (!nationId) return false;
+
+    const gen = ++loadGen.current;
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
+    const have = (useNationStore.getState().issues || []).length > 0;
+    if (!silent && !have) setLoading(true);
+    if (!silent) setLoadError(null);
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      const timeoutId = setTimeout(() => controller.abort(), 45000);
       const response = await api.getIssues(nationId, forceGenerate, controller.signal);
       clearTimeout(timeoutId);
+      if (gen !== loadGen.current) return false;
       if (response.success) {
-        setIssues(response.issues);
+        setIssues(Array.isArray(response.issues) ? response.issues : []);
         setTimerDisplay(response.timer_display || '—');
         setSecondsRemaining(response.seconds_remaining);
         setAtCap(response.at_cap || false);
-      } else {
-        setTimerDisplay('Unavailable');
-        if (!silent) await glassAlert({ title: 'Error', message: response.detail || 'Failed to load issues' });
+        setLoadError(null);
+        return true;
       }
-    } catch (error) {
+      setTimerDisplay('Unavailable');
+      setLoadError(response.detail || 'Failed to load issues');
+      return false;
+    } catch (error: any) {
+      if (gen !== loadGen.current) return false;
+      if (error?.name === 'AbortError') {
+        setLoadError('Issues took too long. Retrying…');
+        return false;
+      }
       console.error('Error loading issues:', error);
-      if (!silent) await glassAlert({ title: 'Error', message: 'Failed to load issues' });
+      setLoadError('Failed to load issues');
+      return false;
     } finally {
-      if (!silent) {
+      if (gen === loadGen.current) {
         setLoading(false);
         setRefreshing(false);
       }
@@ -191,7 +230,7 @@ export default function Issues() {
 
   const onRefresh = () => {
     setRefreshing(true);
-    loadIssues(true);
+    loadIssues(false);
   };
 
   // Header component to be reused
@@ -213,8 +252,8 @@ export default function Issues() {
           }
         >
           <Ionicons name="document-text-outline" size={56} color="rgba(243,246,250,0.28)" />
-          <Text style={styles.emptyTitle}>No Active Issues</Text>
-          <Text style={styles.emptyText}>Your nation is running smoothly for now</Text>
+          <Text style={styles.emptyTitle}>{loadError ? 'Couldn’t load issues' : 'No Active Issues'}</Text>
+          <Text style={styles.emptyText}>{loadError ? 'Pull to refresh or tap Retry — they may already be ready.' : 'Your nation is running smoothly for now'}</Text>
           
           <View style={[styles.nextIssueTimer, timerDisplay === 'Available now!' && styles.generatingTimer]}>
             <Ionicons 
@@ -243,6 +282,15 @@ export default function Issues() {
     <ScreenCanvas>
     <View style={styles.container}>
       {renderHeader()}
+      {loadError ? (
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginHorizontal: 16, marginTop: 8, padding: 10, borderRadius: 12, backgroundColor: 'rgba(242,201,76,0.12)' }}>
+          <Ionicons name="warning-outline" size={16} color="#F2C94C" />
+          <Text style={{ color: '#F2C94C', flex: 1, fontSize: 13 }}>{loadError}</Text>
+          <TouchableOpacity onPress={() => loadIssues(false)} hitSlop={8}>
+            <Text style={{ color: '#F3F6FA', fontWeight: '600' }}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      ) : null}
       {loading ? (
         <View style={styles.loaderFill}>
           <StatusDots status="Loading" color={themeColor} pattern="carve" />

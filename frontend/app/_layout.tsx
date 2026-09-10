@@ -6,7 +6,7 @@ import { GlassModalHost } from '../components/GlassModal';
 import { useAccountStore } from '../store/accountStore';
 import { useNationStore } from '../store/nationStore';
 
-export const APP_BUILD = '318';
+export const APP_BUILD = '319';
 
 export default function RootLayout() {
   useEffect(() => {
