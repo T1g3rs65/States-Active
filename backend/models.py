@@ -719,7 +719,7 @@ class MultiAlliance(BaseModel):
     is_public: bool = True  # Can be found in alliance browser
     requires_approval: bool = True  # Founder/Leaders must approve joins
     min_reputation: int = 0  # Minimum reputation to join
-    min_population: int = 0  # Minimum population to join (in millions)
+    min_population: int = 0  # Minimum population to join (same units as stats.population: thousands)
     
     # Race restrictions (empty list = all races allowed)
     allowed_races: List[str] = []  # e.g., ["human", "zythera"] or [] for all

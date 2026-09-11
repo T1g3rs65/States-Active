@@ -35,13 +35,27 @@ STAT_DEFINITIONS = {
     "budget_defense": {"min": 0, "max": 50, "default": 10, "name": "Defense Budget", "higher_is_better": False},
     "income_equality": {"min": 0, "max": 100, "default": 50, "name": "Income Equality", "higher_is_better": True},
     "gini_coefficient": {"min": 0.2, "max": 0.7, "default": 0.35, "name": "Gini Coefficient", "higher_is_better": False},
-    "population": {"min": 1, "max": 1000, "default": 10, "name": "Population (millions)", "higher_is_better": True},
-    "population_growth": {"min": -5, "max": 10, "default": 1, "name": "Population Growth", "higher_is_better": True},
+    "population": {"min": 1, "max": 1000, "default": 2.5, "name": "Population (thousands)", "higher_is_better": True},
+    "population_growth": {"min": -5, "max": 10, "default": 1, "name": "Population Growth (%/year)", "higher_is_better": True},
     "national_debt": {"min": 0, "max": 200, "default": 40, "name": "National Debt", "higher_is_better": False},
     "tax_rate": {"min": 0, "max": 80, "default": 25, "name": "Average Tax Rate", "higher_is_better": False},
     "tax_revenue": {"min": 0, "max": 80, "default": 18, "name": "Tax Take", "higher_is_better": True},
     "international_approval": {"min": 0, "max": 100, "default": 50, "name": "International Approval", "higher_is_better": True},
 }
+
+def clamp_stat_value(stat_name: str, value: float) -> float:
+    """Clamp a live stat to STAT_DEFINITIONS (not founding bands, not blanket 0–100)."""
+    spec = STAT_DEFINITIONS.get(stat_name)
+    if spec:
+        lo, hi = float(spec["min"]), float(spec["max"])
+        fallback = float(spec.get("default", lo))
+    else:
+        lo, hi, fallback = 0.0, 100.0, 0.0
+    try:
+        v = float(value)
+    except (TypeError, ValueError):
+        v = fallback
+    return max(lo, min(hi, v))
 
 # Founding-only. Units match STAT_DEFINITIONS / the overview UI.
 # Indexes stay 0–100 but a new village-state is mid, not a failed state or utopia.

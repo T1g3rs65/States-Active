@@ -169,10 +169,13 @@ def apply_macro_tick(nation: dict) -> None:
     if mil > 70 and b_def > 18:
         _add(stats, "international_approval", -0.05)
 
-    # Population (thousands). Yearly % applied as a tiny daily step.
+    # Population (thousands). Growth is % per year. One tick per UTC day on load;
+    # 365 logins ≈ the labeled yearly %. Idle days do not accrue (by design).
+    # Applied with _set, not _add — extra DRIFT/STOCK damping made ~½% feel like 1%.
     _add(stats, "population_growth", (happy - 50) * 0.008 + (life - 74) * 0.01 - (unemp - 6) * 0.02)
+    pop = _g(stats, "population", 2.5)
     pop_g = _g(stats, "population_growth", 1)
-    _add(stats, "population", pop * (pop_g / 100.0) * (1.0 / 120.0))
+    _set(stats, "population", pop * (1.0 + (pop_g / 100.0) / 365.0))
 
     # Linked identities — keep meaning coherent.
     eq = _g(stats, "income_equality")

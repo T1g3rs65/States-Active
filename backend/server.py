@@ -28,7 +28,7 @@ from models import (
     WheelResult, SpinWheelsRequest, CrisisRespinRequest, ResolveCrisisRequest,
 )
 from quiz import calculate_starting_stats, get_quiz_questions
-from stats_config import classify_government, clamp_founding_stats, get_government_description
+from stats_config import classify_government, clamp_founding_stats, clamp_stat_value, get_government_description
 from ai_service import AIService
 from economy_utils import calculate_realistic_gdp, format_gdp_display
 from budget_utils import normalize_budget
@@ -1635,7 +1635,9 @@ async def submit_decision(request: SubmitDecisionRequest):
             if stat_name == "timezone_count":
                 continue
             if stat_name in current_stats:
-                current_stats[stat_name] = max(0, min(100, current_stats[stat_name] + change))
+                current_stats[stat_name] = clamp_stat_value(
+                    stat_name, current_stats[stat_name] + change
+                )
         
         # Normalize budget to ensure it sums to 100%
         current_stats = normalize_budget(current_stats)
@@ -2840,7 +2842,9 @@ IMPORTANT:
         
         for stat_name, change in stat_effects.items():
             if stat_name in current_stats:
-                current_stats[stat_name] = max(0, min(100, current_stats[stat_name] + change))
+                current_stats[stat_name] = clamp_stat_value(
+                    stat_name, current_stats[stat_name] + change
+                )
         
         # Normalize budget
         current_stats = normalize_budget(current_stats)

@@ -118,8 +118,8 @@ IMPORTANT RULES:
 #### **Equality & Demographics**
 29. **income_equality** (0-100) - Higher is more equal
 30. **gini_coefficient** (0.2-0.7) - Lower is more equal (inverse of income_equality)
-31. **population** (1-1000 millions)
-32. **population_growth** (-5 to 10% per year)
+31. **population** (1–1000 **thousands of people**; UI shows e.g. `2.5k`)
+32. **population_growth** (-5 to 10% per year; daily tick on load applies growth/365)
 
 #### **Budget Allocation (percentages, sum to ~100)**
 33. **budget_education** (default 15%)

@@ -829,15 +829,15 @@ Output ONLY valid JSON (no markdown, no ```json tags):
                 attacker_inc_updates = {}
                 for stat, change in event.attacker_casualties.items():
                     if stat == "population":
-                        # Population change is a percentage, handle separately
+                        # Percent of current pop (thousands). Never invent a million-scale floor.
                         attacker = await self.db.nations.find_one({"_id": ObjectId(war["attacker_id"])})
                         if attacker:
-                            current_pop = attacker.get("stats", {}).get("population", 1000000)
-                            # Change is negative percentage like -0.2 means -0.2% loss
+                            from stats_config import clamp_stat_value
+                            current_pop = float((attacker.get("stats") or {}).get("population") or 2.5)
                             new_pop = current_pop * (1 + (change / 100))
                             await self.db.nations.update_one(
                                 {"_id": ObjectId(war["attacker_id"])},
-                                {"$set": {"stats.population": max(100000, new_pop)}}
+                                {"$set": {"stats.population": clamp_stat_value("population", new_pop)}}
                             )
                     else:
                         attacker_inc_updates[f"stats.{stat}"] = change
@@ -853,14 +853,14 @@ Output ONLY valid JSON (no markdown, no ```json tags):
                 defender_inc_updates = {}
                 for stat, change in event.defender_casualties.items():
                     if stat == "population":
-                        # Population change is a percentage
                         defender = await self.db.nations.find_one({"_id": ObjectId(war["defender_id"])})
                         if defender:
-                            current_pop = defender.get("stats", {}).get("population", 1000000)
+                            from stats_config import clamp_stat_value
+                            current_pop = float((defender.get("stats") or {}).get("population") or 2.5)
                             new_pop = current_pop * (1 + (change / 100))
                             await self.db.nations.update_one(
                                 {"_id": ObjectId(war["defender_id"])},
-                                {"$set": {"stats.population": max(100000, new_pop)}}
+                                {"$set": {"stats.population": clamp_stat_value("population", new_pop)}}
                             )
                     else:
                         defender_inc_updates[f"stats.{stat}"] = change
@@ -1078,7 +1078,7 @@ Output ONLY valid JSON (no markdown, no ```json tags):
                 await self.db.nations.update_one(
                     {"_id": ObjectId(loser_id)},
                     [{"$set": {
-                        "stats.population": {"$multiply": ["$stats.population", 0.85]}  # -15%
+                        "stats.population": {"$max": [1, {"$multiply": ["$stats.population", 0.85]}]}  # -15% of actual pop
                     }}]
                 )
             else:  # victory
@@ -1097,7 +1097,7 @@ Output ONLY valid JSON (no markdown, no ```json tags):
                 await self.db.nations.update_one(
                     {"_id": ObjectId(loser_id)},
                     [{"$set": {
-                        "stats.population": {"$multiply": ["$stats.population", 0.90]}  # -10%
+                        "stats.population": {"$max": [1, {"$multiply": ["$stats.population", 0.90]}]}  # -10% of actual pop
                     }}]
                 )
             
